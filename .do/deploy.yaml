@@ -15,9 +15,21 @@ services:
   health_check:
     http_path: /health
   run_command: |
+    ls -la
+    pwd
     mkdir -p public
     echo '<!DOCTYPE html><html><head><title>tDIL API</title></head><body style="font-family:Arial;max-width:600px;margin:50px auto;padding:20px;text-align:center;"><h1>🎓 tDIL Platform API</h1><p>Backend server running successfully!</p><p><strong>Health Check:</strong> <a href="/health">/health</a></p><p><strong>API Base:</strong> /api</p></body></html>' > public/index.html
-    node server.js
+    if [ -f server.js ]; then
+      echo "Found server.js in current directory"
+      node server.js
+    elif [ -f /app/server.js ]; then
+      echo "Found server.js in /app/"
+      node /app/server.js
+    else
+      echo "server.js not found, listing files:"
+      find . -name "server.js" -type f
+      exit 1
+    fi
   envs:
   - key: NODE_ENV
     value: production
