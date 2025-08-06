@@ -7,6 +7,12 @@ services:
     branch: main
     deploy_on_push: true
   build_command: |
+    # Hide frontend directory from DigitalOcean detection
+    if [ -d "tdil-frontend" ]; then
+      echo "Renaming frontend directory to prevent auto-build..."
+      mv tdil-frontend tdil-frontend-disabled
+    fi
+    
     # Install backend dependencies only
     npm ci
     
@@ -18,38 +24,133 @@ services:
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>tDIL Platform</title>
+        <title>tDIL Platform API</title>
         <style>
-            body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; text-align: center; }
-            .container { background: #f5f5f5; padding: 30px; border-radius: 10px; }
-            h1 { color: #333; }
-            .api-info { background: white; padding: 20px; margin: 20px 0; border-radius: 5px; }
-            a { color: #007bff; text-decoration: none; }
+            body { 
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+                max-width: 1000px; 
+                margin: 0 auto; 
+                padding: 20px; 
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                min-height: 100vh;
+                color: white;
+            }
+            .container { 
+                background: rgba(255,255,255,0.1); 
+                padding: 40px; 
+                border-radius: 20px; 
+                backdrop-filter: blur(10px);
+                box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            }
+            h1 { color: #fff; text-align: center; font-size: 2.5em; margin-bottom: 10px; }
+            .subtitle { text-align: center; opacity: 0.9; margin-bottom: 40px; }
+            .api-info { 
+                background: rgba(255,255,255,0.1); 
+                padding: 30px; 
+                margin: 20px 0; 
+                border-radius: 15px;
+                border: 1px solid rgba(255,255,255,0.2);
+            }
+            .endpoint { 
+                display: flex; 
+                justify-content: space-between; 
+                align-items: center;
+                padding: 10px 0;
+                border-bottom: 1px solid rgba(255,255,255,0.1);
+            }
+            .endpoint:last-child { border-bottom: none; }
+            a { color: #ffd700; text-decoration: none; font-weight: bold; }
+            a:hover { text-decoration: underline; }
+            .status { 
+                background: #00ff88; 
+                color: #000; 
+                padding: 5px 15px; 
+                border-radius: 20px; 
+                font-weight: bold;
+                font-size: 0.9em;
+            }
+            .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 30px; }
+            .card { background: rgba(255,255,255,0.1); padding: 20px; border-radius: 15px; }
         </style>
     </head>
     <body>
         <div class="container">
-            <h1>🎓 tDIL Platform API</h1>
-            <p>The backend API is running successfully!</p>
+            <h1>🎓 tDIL Platform</h1>
+            <p class="subtitle">Professional Development & Career Management System</p>
             
-            <div class="api-info">
-                <h3>API Endpoints Available:</h3>
-                <p><strong>Health Check:</strong> <a href="/health">/health</a></p>
-                <p><strong>Authentication:</strong> /api/auth/register, /api/auth/login</p>
-                <p><strong>Users:</strong> /api/users/profile</p>
-                <p><strong>Events:</strong> /api/events</p>
-                <p><strong>Jobs:</strong> /api/jobs</p>
-                <p><strong>Points:</strong> /api/points</p>
-                <p><strong>Rewards:</strong> /api/rewards</p>
+            <div style="text-align: center; margin: 30px 0;">
+                <span class="status">API ONLINE</span>
             </div>
             
-            <p><em>Frontend interface coming soon...</em></p>
+            <div class="api-info">
+                <h3 style="text-align: center; margin-bottom: 25px;">🔗 API Endpoints</h3>
+                <div class="endpoint">
+                    <span><strong>Health Check</strong></span>
+                    <a href="/health" target="_blank">/health</a>
+                </div>
+                <div class="endpoint">
+                    <span><strong>User Registration</strong></span>
+                    <span>/api/auth/register</span>
+                </div>
+                <div class="endpoint">
+                    <span><strong>User Login</strong></span>
+                    <span>/api/auth/login</span>
+                </div>
+                <div class="endpoint">
+                    <span><strong>User Profile</strong></span>
+                    <span>/api/users/profile</span>
+                </div>
+                <div class="endpoint">
+                    <span><strong>Events Management</strong></span>
+                    <span>/api/events</span>
+                </div>
+                <div class="endpoint">
+                    <span><strong>Job Board</strong></span>
+                    <span>/api/jobs</span>
+                </div>
+                <div class="endpoint">
+                    <span><strong>Points System</strong></span>
+                    <span>/api/points</span>
+                </div>
+                <div class="endpoint">
+                    <span><strong>Rewards Program</strong></span>
+                    <span>/api/rewards</span>
+                </div>
+            </div>
+            
+            <div class="grid">
+                <div class="card">
+                    <h4>🎯 Features Ready</h4>
+                    <ul style="list-style: none; padding: 0;">
+                        <li>✅ User Authentication</li>
+                        <li>✅ PostgreSQL Database</li>
+                        <li>✅ Points & Rewards</li>
+                        <li>✅ Event Management</li>
+                        <li>✅ Job Board System</li>
+                        <li>✅ Real-time Chat</li>
+                    </ul>
+                </div>
+                <div class="card">
+                    <h4>🔒 Security</h4>
+                    <ul style="list-style: none; padding: 0;">
+                        <li>✅ JWT Authentication</li>
+                        <li>✅ Rate Limiting</li>
+                        <li>✅ CORS Protection</li>
+                        <li>✅ Helmet Security</li>
+                        <li>✅ Production SSL</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <p style="text-align: center; margin-top: 40px; opacity: 0.8;">
+                <em>Frontend React application will be deployed separately</em>
+            </p>
         </div>
     </body>
     </html>
     EOF
     
-    echo "Basic frontend created, backend ready to deploy"
+    echo "✅ Backend deployment complete with professional API landing page"
   run_command: node server.js
   environment_slug: node-js
   instance_count: 1
