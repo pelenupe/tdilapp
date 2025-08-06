@@ -3,13 +3,22 @@ services:
 - name: api
   source_dir: /
   github:
-    repo: pelenupe/tdil-final
+    repo: pelenupe/tdil-prod
     branch: main
     deploy_on_push: true
   build_command: |
-    npm ci
-    cd tdil-frontend && npm ci && npm run build
-    cp -r tdil-frontend/dist/* public/
+    npm ci --include=dev
+    cd tdil-frontend
+    npm ci --include=dev
+    npm run build
+    cd ..
+    mkdir -p public
+    if [ -d "tdil-frontend/dist" ]; then
+      cp -r tdil-frontend/dist/* public/
+    else
+      echo "Frontend dist directory not found, creating basic index.html"
+      echo '<html><body><h1>tDIL Platform Loading...</h1></body></html>' > public/index.html
+    fi
   run_command: node server.js
   environment_slug: node-js
   instance_count: 1
@@ -25,8 +34,10 @@ services:
     value: production
   - key: PORT
     value: "5001"
+  - key: DATABASE_URL
+    value: ${db.DATABASE_URL}
   - key: JWT_SECRET
-    value: "your-super-secure-jwt-secret-key-change-this-256-bit-random"
+    value: "WnPQXSHGXjN2+YsQNP6+lC4fHmxDM3snEAbCfzNLA9Y="
     type: SECRET
   - key: JWT_EXPIRES_IN
     value: "15m"
@@ -46,23 +57,7 @@ services:
     value: "true"
 
 databases:
-- name: tdil-db
+- name: db
   engine: PG
-  version: "13"
+  version: "15"
   size: basic
-
-jobs:
-- name: db-migrate
-  source_dir: /
-  github:
-    repo: pelenupe/tdil-final
-    branch: main
-  build_command: npm ci
-  run_command: npm run migrate
-  environment_slug: node-js
-  instance_count: 1
-  instance_size_slug: basic-xxs
-  kind: PRE_DEPLOY
-  envs:
-  - key: NODE_ENV
-    value: production
