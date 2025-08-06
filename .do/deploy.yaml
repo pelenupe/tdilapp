@@ -1,0 +1,40 @@
+name: tdil-backend-api
+services:
+- name: backend-api
+  source_dir: /
+  github:
+    repo: pelenupe/tdil-prod
+    branch: main
+    deploy_on_push: true
+  environment_slug: node-js
+  instance_count: 1
+  instance_size_slug: basic-xxs
+  http_port: 5001
+  routes:
+  - path: /
+  health_check:
+    http_path: /health
+  run_command: |
+    mkdir -p public
+    echo '<!DOCTYPE html><html><head><title>tDIL API</title></head><body style="font-family:Arial;max-width:600px;margin:50px auto;padding:20px;text-align:center;"><h1>🎓 tDIL Platform API</h1><p>Backend server running successfully!</p><p><strong>Health Check:</strong> <a href="/health">/health</a></p><p><strong>API Base:</strong> /api</p></body></html>' > public/index.html
+    node server.js
+  envs:
+  - key: NODE_ENV
+    value: production
+  - key: PORT
+    value: "5001"
+  - key: DATABASE_URL
+    value: ${tdil-database.DATABASE_URL}
+  - key: JWT_SECRET
+    value: "WnPQXSHGXjN2+YsQNP6+lC4fHmxDM3snEAbCfzNLA9Y="
+    type: SECRET
+  - key: JWT_EXPIRES_IN
+    value: "15m"
+  - key: JWT_REFRESH_EXPIRES_IN
+    value: "7d"
+
+databases:
+- name: tdil-database
+  engine: PG
+  version: "15"
+  size: basic
