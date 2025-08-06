@@ -7,13 +7,21 @@ services:
     branch: main
     deploy_on_push: true
   build_command: |
-    # Hide frontend directory from DigitalOcean detection
-    if [ -d "tdil-frontend" ]; then
-      echo "Renaming frontend directory to prevent auto-build..."
-      mv tdil-frontend tdil-frontend-disabled
-    fi
+    # Completely remove frontend directories before any detection
+    echo "🧹 Cleaning workspace of frontend files..."
+    rm -rf tdil-frontend/
+    rm -rf frontend/
+    rm -rf client/
+    rm -rf src/components/ 2>/dev/null || true
+    rm -rf src/pages/ 2>/dev/null || true
+    find . -name "vite.config.*" -delete 2>/dev/null || true
+    find . -name "*.jsx" -delete 2>/dev/null || true
+    find . -name "*.tsx" -delete 2>/dev/null || true
+    find . -name "tailwind.config.*" -delete 2>/dev/null || true
+    find . -name "postcss.config.*" -delete 2>/dev/null || true
     
     # Install backend dependencies only
+    echo "📦 Installing backend dependencies..."
     npm ci
     
     # Create basic frontend for now
