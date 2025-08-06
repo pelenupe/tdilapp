@@ -7,18 +7,49 @@ services:
     branch: main
     deploy_on_push: true
   build_command: |
-    npm ci --include=dev
-    cd tdil-frontend
-    npm ci --include=dev
-    npm run build
-    cd ..
+    # Install backend dependencies only
+    npm ci
+    
+    # Create basic frontend for now
     mkdir -p public
-    if [ -d "tdil-frontend/dist" ]; then
-      cp -r tdil-frontend/dist/* public/
-    else
-      echo "Frontend dist directory not found, creating basic index.html"
-      echo '<html><body><h1>tDIL Platform Loading...</h1></body></html>' > public/index.html
-    fi
+    cat > public/index.html << 'EOF'
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>tDIL Platform</title>
+        <style>
+            body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; text-align: center; }
+            .container { background: #f5f5f5; padding: 30px; border-radius: 10px; }
+            h1 { color: #333; }
+            .api-info { background: white; padding: 20px; margin: 20px 0; border-radius: 5px; }
+            a { color: #007bff; text-decoration: none; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>🎓 tDIL Platform API</h1>
+            <p>The backend API is running successfully!</p>
+            
+            <div class="api-info">
+                <h3>API Endpoints Available:</h3>
+                <p><strong>Health Check:</strong> <a href="/health">/health</a></p>
+                <p><strong>Authentication:</strong> /api/auth/register, /api/auth/login</p>
+                <p><strong>Users:</strong> /api/users/profile</p>
+                <p><strong>Events:</strong> /api/events</p>
+                <p><strong>Jobs:</strong> /api/jobs</p>
+                <p><strong>Points:</strong> /api/points</p>
+                <p><strong>Rewards:</strong> /api/rewards</p>
+            </div>
+            
+            <p><em>Frontend interface coming soon...</em></p>
+        </div>
+    </body>
+    </html>
+    EOF
+    
+    echo "Basic frontend created, backend ready to deploy"
   run_command: node server.js
   environment_slug: node-js
   instance_count: 1
