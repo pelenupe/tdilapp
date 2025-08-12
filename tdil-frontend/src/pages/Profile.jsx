@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Camera, Upload, User, Mail, Building, Briefcase, Award, Star } from 'lucide-react';
 import PageLayout from '../components/PageLayout';
 import PointsService from '../services/pointsService';
+import { getMyProfile, updateProfile } from '../services/profileService';
 
 export default function Profile() {
   const [profile, setProfile] = useState({
@@ -28,10 +29,10 @@ export default function Profile() {
     PointsService.awardPoints('PROFILE_VIEW');
   }, []);
 
-  const loadProfile = () => {
+  const loadProfile = async () => {
     try {
-      // Get user data from localStorage (set during login)
-      const userData = JSON.parse(localStorage.getItem('user') || '{}');
+      const response = await getMyProfile();
+      const userData = response.data;
       setProfile({
         firstName: userData.firstName || '',
         lastName: userData.lastName || '',
@@ -47,6 +48,24 @@ export default function Profile() {
       setIsLoading(false);
     } catch (error) {
       console.error('Error loading profile:', error);
+      // Fallback to localStorage if API fails
+      try {
+        const userData = JSON.parse(localStorage.getItem('user') || '{}');
+        setProfile({
+          firstName: userData.firstName || '',
+          lastName: userData.lastName || '',
+          email: userData.email || '',
+          company: userData.company || '',
+          jobTitle: userData.jobTitle || '',
+          bio: userData.bio || '',
+          points: userData.points || 0,
+          level: userData.level || 1,
+          profilePicUrl: userData.profilePicUrl || '',
+          userType: userData.userType || 'member'
+        });
+      } catch (fallbackError) {
+        console.error('Fallback error:', fallbackError);
+      }
       setIsLoading(false);
     }
   };
@@ -72,14 +91,34 @@ export default function Profile() {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      // For now, just save to localStorage since we have mixed database systems
-      const updatedUser = { ...profile };
+      const profileData = {
+        firstName: profile.firstName,
+        lastName: profile.lastName,
+        company: profile.company,
+        jobTitle: profile.jobTitle,
+        bio: profile.bio
+      };
+
+      // Add selected file if there is one
+      if (selectedFile) {
+        profileData.profilePic = selectedFile;
+      }
+
+      const response = await updateProfile(profileData);
+      
+      // Update localStorage with new data
+      const updatedUser = response.data.user;
       localStorage.setItem('user', JSON.stringify(updatedUser));
       
-      // In a real implementation, you would make an API call here
-      // await updateProfile(formData);
+      // Update local state
+      setProfile(prevProfile => ({
+        ...prevProfile,
+        ...updatedUser
+      }));
       
       setIsEditing(false);
+      setSelectedFile(null);
+      setPreviewUrl('');
       alert('Profile updated successfully!');
     } catch (error) {
       console.error('Error updating profile:', error);
