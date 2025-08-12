@@ -25,20 +25,13 @@ function App() {
   useEffect(() => {
     // Check if user is logged in (check for token in localStorage)
     const token = localStorage.getItem('token');
-    if (token) {
+    if (token && token !== 'demo-token') {
       setIsAuthenticated(true);
     } else {
-      // For testing purposes, set default user data
-      localStorage.setItem('token', 'demo-token');
-      localStorage.setItem('user', JSON.stringify({
-        firstName: 'Demo',
-        lastName: 'User',
-        email: 'demo@tdil.com',
-        userType: 'member',
-        points: 2450,
-        level: 3
-      }));
-      setIsAuthenticated(true);
+      // Clear any demo data
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setIsAuthenticated(false);
     }
     setIsLoading(false);
   }, []);
