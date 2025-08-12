@@ -1,70 +1,155 @@
-const { Sequelize } = require('sequelize');
-const config = require('../backend/config/database');
-
-// Import all models
-const User = require('../backend/models/User');
-const Event = require('../backend/models/Event');
-const Job = require('../backend/models/Job');
-const Message = require('../backend/models/Message');
-const Points = require('../backend/models/Points');
-const Reward = require('../backend/models/Reward');
-const Application = require('../backend/models/Application');
-const ContentResource = require('../backend/models/ContentResource');
-const Invite = require('../backend/models/Invite');
+const { Pool } = require('pg');
+const { initDatabase } = require('../backend/config/database');
 
 async function migrate() {
   try {
     console.log('🚀 Starting database migration...');
     
-    // Create database connection
-    const sequelize = new Sequelize(process.env.DATABASE_URL || config.development.database, {
-      dialect: process.env.DB_TYPE === 'postgresql' ? 'postgres' : 'sqlite',
-      storage: process.env.DB_TYPE === 'sqlite' ? config.development.storage : undefined,
-      logging: console.log,
-      dialectOptions: process.env.NODE_ENV === 'production' ? {
-        ssl: {
-          require: true,
-          rejectUnauthorized: false
-        }
-      } : {}
-    });
-
-    // Test connection
-    await sequelize.authenticate();
-    console.log('✅ Database connection established');
-
-    // Initialize models
-    const models = {
-      User: User(sequelize),
-      Event: Event(sequelize),
-      Job: Job(sequelize),
-      Message: Message(sequelize),
-      Points: Points(sequelize),
-      Reward: Reward(sequelize),
-      Application: Application(sequelize),
-      ContentResource: ContentResource(sequelize),
-      Invite: Invite(sequelize)
-    };
-
-    // Set up associations
-    Object.keys(models).forEach(modelName => {
-      if (models[modelName].associate) {
-        models[modelName].associate(models);
-      }
-    });
-
-    // Sync all models
-    await sequelize.sync({ force: false, alter: true });
-    console.log('✅ Database tables synchronized');
-
-    // Close connection
-    await sequelize.close();
+    // Check if we're using PostgreSQL or SQLite
+    if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes('postgresql://')) {
+      console.log('📊 Using PostgreSQL database...');
+      await migratePostgreSQL();
+    } else {
+      console.log('📊 Using SQLite database...');
+      await migrateSQLite();
+    }
+    
     console.log('✅ Migration completed successfully');
     
   } catch (error) {
     console.error('❌ Migration failed:', error);
+    console.error('Error details:', error.message);
     process.exit(1);
   }
+}
+
+async function migratePostgreSQL() {
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.NODE_ENV === 'production' ? {
+      rejectUnauthorized: false
+    } : false
+  });
+
+  try {
+    // Test connection
+    await pool.query('SELECT NOW()');
+    console.log('✅ PostgreSQL connection established');
+
+    // Create tables
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        "firstName" VARCHAR(255) NOT NULL,
+        "lastName" VARCHAR(255) NOT NULL,
+        company VARCHAR(255),
+        "jobTitle" VARCHAR(255),
+        location VARCHAR(255),
+        "linkedinUrl" VARCHAR(255),
+        "profileImage" VARCHAR(255),
+        points INTEGER DEFAULT 0,
+        level INTEGER DEFAULT 1,
+        "userType" VARCHAR(50) DEFAULT 'member',
+        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS events (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        date TIMESTAMP NOT NULL,
+        location VARCHAR(255),
+        points INTEGER DEFAULT 0,
+        "maxAttendees" INTEGER,
+        "imageUrl" VARCHAR(255),
+        category VARCHAR(100),
+        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS jobs (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        company VARCHAR(255) NOT NULL,
+        description TEXT,
+        location VARCHAR(255),
+        "jobType" VARCHAR(100),
+        points INTEGER DEFAULT 0,
+        requirements TEXT,
+        benefits TEXT,
+        "salaryRange" VARCHAR(100),
+        "postedBy" INTEGER REFERENCES users(id),
+        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS announcements (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        content TEXT NOT NULL,
+        category VARCHAR(100),
+        featured BOOLEAN DEFAULT false,
+        points INTEGER DEFAULT 0,
+        "imageUrl" VARCHAR(255),
+        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS points_history (
+        id SERIAL PRIMARY KEY,
+        "userId" INTEGER NOT NULL REFERENCES users(id),
+        points INTEGER NOT NULL,
+        reason TEXT,
+        type VARCHAR(100),
+        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS rewards (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        "pointsCost" INTEGER NOT NULL,
+        category VARCHAR(100),
+        quantity INTEGER DEFAULT 1,
+        "isActive" BOOLEAN DEFAULT true,
+        "imageUrl" VARCHAR(255),
+        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS messages (
+        id SERIAL PRIMARY KEY,
+        "senderId" INTEGER NOT NULL REFERENCES users(id),
+        "receiverId" INTEGER NOT NULL REFERENCES users(id),
+        content TEXT NOT NULL,
+        read BOOLEAN DEFAULT false,
+        "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    console.log('✅ PostgreSQL tables created successfully');
+    
+  } finally {
+    await pool.end();
+  }
+}
+
+async function migrateSQLite() {
+  // Use the existing SQLite initialization
+  await initDatabase();
+  console.log('✅ SQLite database initialized successfully');
 }
 
 // Run migration if this file is executed directly

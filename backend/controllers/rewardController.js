@@ -1,15 +1,10 @@
-const { db } = require('../config/database');
+const { query } = require('../config/database');
 
 // Get all available rewards
 const getRewards = async (req, res) => {
   try {
-    db.all('SELECT * FROM rewards WHERE isActive = 1', [], (err, rewards) => {
-      if (err) {
-        console.error(err);
-        return res.status(500).json({ message: 'Error fetching rewards' });
-      }
-      res.json(rewards);
-    });
+    const rewards = await query('SELECT * FROM rewards WHERE isActive = 1');
+    res.json(rewards);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Error fetching rewards' });

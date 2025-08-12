@@ -1,9 +1,46 @@
 const sqlite3 = require('sqlite3').verbose();
+const { Pool } = require('pg');
 const path = require('path');
 
-// Create database connection
-const dbPath = path.join(__dirname, '../database.sqlite');
-const db = new sqlite3.Database(dbPath);
+// Database connection based on environment
+let db;
+let isPostgreSQL = false;
+
+if (process.env.DATABASE_URL && process.env.DATABASE_URL.includes('postgresql://')) {
+  // PostgreSQL for production
+  isPostgreSQL = true;
+  db = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.NODE_ENV === 'production' ? {
+      rejectUnauthorized: false
+    } : false
+  });
+  console.log('🐘 Using PostgreSQL database');
+} else {
+  // SQLite for development
+  const dbPath = path.join(__dirname, '../database.sqlite');
+  db = new sqlite3.Database(dbPath);
+  console.log('📄 Using SQLite database');
+}
+
+// Unified query function
+const query = async (sql, params = []) => {
+  if (isPostgreSQL) {
+    try {
+      const result = await db.query(sql, params);
+      return result.rows;
+    } catch (error) {
+      throw error;
+    }
+  } else {
+    return new Promise((resolve, reject) => {
+      db.all(sql, params, (err, rows) => {
+        if (err) reject(err);
+        else resolve(rows);
+      });
+    });
+  }
+};
 
 // Initialize database tables
 const initDatabase = () => {
@@ -220,6 +257,8 @@ const insertSampleData = () => {
 
 module.exports = {
   db,
+  query,
+  isPostgreSQL,
   initDatabase,
   insertSampleData
 };
