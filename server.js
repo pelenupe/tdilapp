@@ -75,7 +75,7 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Serve static files from frontend build in production
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, 'public')));
+  app.use(express.static(path.join(__dirname, 'tdil-frontend/dist')));
 }
 
 // API routes
@@ -104,7 +104,7 @@ app.get('/health', (req, res) => {
 if (process.env.NODE_ENV === 'production') {
   // Serve frontend for all non-API routes
   app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.sendFile(path.join(__dirname, 'tdil-frontend/dist', 'index.html'));
   });
 } else {
   // Test route for development
