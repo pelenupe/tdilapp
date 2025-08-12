@@ -68,6 +68,8 @@ app.use(cors({
     'http://localhost:5175',
     'http://localhost:5176',
     'http://localhost:5177',
+    'http://tdilapp.com',
+    'https://tdilapp.com',
     process.env.FRONTEND_URL
   ].filter(Boolean),
   credentials: true
