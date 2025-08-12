@@ -96,7 +96,7 @@ app.use('/api/activity', activityRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
 
 // Health check endpoint
-app.get('/health', (req, res) => {
+app.get('/api/health', (req, res) => {
   res.status(200).json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
