@@ -23,16 +23,23 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is logged in (check for token in localStorage)
-    const token = localStorage.getItem('token');
-    if (token && token !== 'demo-token') {
-      setIsAuthenticated(true);
-    } else {
-      // Clear any demo data
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      setIsAuthenticated(false);
-    }
+    // TEMPORARY: Auto-login with demo user for testing
+    const demoUser = {
+      id: 1,
+      email: 'demo@tdil.com',
+      firstName: 'Demo',
+      lastName: 'User',
+      company: 'tDIL',
+      jobTitle: 'Member',
+      location: 'Indianapolis, IN',
+      points: 2450,
+      level: 4,
+      userType: 'member'
+    };
+    
+    localStorage.setItem('token', 'demo-token');
+    localStorage.setItem('user', JSON.stringify(demoUser));
+    setIsAuthenticated(true);
     setIsLoading(false);
   }, []);
 
