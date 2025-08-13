@@ -26,9 +26,9 @@ export default function SidebarPartnerSchool() {
     <div className="hidden lg:flex h-screen bg-gray-100 fixed inset-y-0 left-0 z-30 w-64">
       <div className="flex flex-col flex-1 min-h-0 bg-white border-r border-gray-200">
         {/* Header */}
-        <div className="flex items-center justify-between h-16 px-4 bg-green-700">
-          <Logo variant="compact" size="md" className="text-white" />
-          <span className="text-sm font-semibold text-white">Partner Portal</span>
+        <div className="flex items-center justify-between h-16 px-4 bg-gray-100 border-b">
+          <Logo variant="compact" size="md" />
+          <span className="text-sm font-semibold text-tdil-blue">Partner Portal</span>
         </div>
 
         {/* User info */}

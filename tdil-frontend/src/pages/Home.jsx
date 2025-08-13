@@ -47,15 +47,15 @@ export default function Home() {
       showSidebar={false}
     >
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-slate-900 to-slate-700 text-white rounded-lg sm:rounded-xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 mx-1 sm:mx-0">
+      <div className="bg-gray-100 text-gray-900 rounded-lg sm:rounded-xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 mx-1 sm:mx-0 border">
         <div className="text-center">
           <div className="mb-6 flex justify-center">
-            <Logo variant="full" size="xl" className="text-white" />
+            <Logo variant="full" size="xl" />
           </div>
           <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-5xl font-extrabold mb-3 sm:mb-4 leading-tight">
-            <span className="text-orange-400">Develop The Whole Leader</span>
+            <span className="text-tdil-yellow">Develop The Whole Leader</span>
           </h1>
-          <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold mb-3 sm:mb-4 text-orange-300">
+          <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold mb-3 sm:mb-4 text-tdil-blue">
             Talent Development Impact Lab (tDIL)
           </h2>
           <p className="text-sm sm:text-base md:text-lg lg:text-xl mb-4 sm:mb-6 lg:mb-8 max-w-3xl mx-auto opacity-90 px-1 sm:px-2 leading-relaxed">
@@ -64,13 +64,13 @@ export default function Home() {
           <div className="flex flex-col gap-2 sm:flex-row sm:gap-3 lg:gap-4 justify-center mb-3 sm:mb-4 lg:mb-6 px-1 sm:px-2">
             <button
               onClick={() => navigate('/login')}
-              className="px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3 bg-white text-slate-800 rounded-lg text-sm sm:text-base lg:text-lg font-semibold hover:bg-gray-100 transition-colors shadow-lg w-full sm:w-auto"
+              className="px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3 bg-white text-tdil-dark rounded-lg text-sm sm:text-base lg:text-lg font-semibold hover:bg-gray-50 transition-colors shadow-lg w-full sm:w-auto border"
             >
               Sign In
             </button>
             <button
               onClick={() => navigate('/register')}
-              className="px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3 bg-orange-500 text-white rounded-lg text-sm sm:text-base lg:text-lg font-semibold hover:bg-orange-600 transition-colors shadow-lg w-full sm:w-auto"
+              className="px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3 bg-tdil-blue text-white rounded-lg text-sm sm:text-base lg:text-lg font-semibold hover:bg-blue-700 transition-colors shadow-lg w-full sm:w-auto"
             >
               Join tDIL Network
             </button>
@@ -78,19 +78,19 @@ export default function Home() {
           <div className="flex flex-col gap-2 sm:flex-row sm:gap-2 lg:gap-3 justify-center px-1 sm:px-2">
             <button
               onClick={() => navigate('/directory')}
-              className="px-3 sm:px-4 py-2 bg-white/20 text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-white/30 transition-colors border border-white/30 text-center w-full sm:w-auto"
+              className="px-3 sm:px-4 py-2 bg-tdil-dark text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-gray-800 transition-colors text-center w-full sm:w-auto"
             >
               Directory
             </button>
             <button
               onClick={() => navigate('/community')}
-              className="px-3 sm:px-4 py-2 bg-white/20 text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-white/30 transition-colors border border-white/30 text-center w-full sm:w-auto"
+              className="px-3 sm:px-4 py-2 bg-tdil-dark text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-gray-800 transition-colors text-center w-full sm:w-auto"
             >
               Community
             </button>
             <button
               onClick={() => navigate('/events')}
-              className="px-3 sm:px-4 py-2 bg-white/20 text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-white/30 transition-colors border border-white/30 text-center w-full sm:w-auto"
+              className="px-3 sm:px-4 py-2 bg-tdil-dark text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-gray-800 transition-colors text-center w-full sm:w-auto"
             >
               Events
             </button>
