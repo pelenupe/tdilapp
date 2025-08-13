@@ -11,7 +11,8 @@ export default function PageLayout({
   headerActions,
   showPointsInHeader = true,
   userPoints = 0,
-  headerContent
+  headerContent,
+  showSidebar = true
 }) {
   // Render appropriate sidebar based on user type
   const renderSidebar = () => {
@@ -27,14 +28,14 @@ export default function PageLayout({
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Mobile Header */}
-      <MobileHeader userType={userType} />
+      {/* Mobile Header - only show when sidebar is enabled */}
+      {showSidebar && <MobileHeader userType={userType} />}
       
-      {/* Left Sidebar */}
-      {renderSidebar()}
+      {/* Left Sidebar - only show when enabled */}
+      {showSidebar && renderSidebar()}
 
       {/* Main Content */}
-      <div className="transition-all duration-300 lg:ml-64 pt-16 lg:pt-0">
+      <div className={`transition-all duration-300 ${showSidebar ? 'lg:ml-64 pt-16 lg:pt-0' : ''}`}>
         {/* Page Header - Always flush with sidebar */}
         <div className="bg-white border-b border-gray-200 px-6 py-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
