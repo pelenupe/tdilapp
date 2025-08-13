@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { login } from '../services/authService';
+import Logo from '../components/Logo';
 
 export default function Login() {
   const [formData, setFormData] = useState({
@@ -44,19 +45,28 @@ export default function Login() {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="flex justify-center">
-          <div className="w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">
-            tDIL
-          </div>
+        <div className="flex justify-center mb-4">
+          <Logo size="lg" showText={false} />
         </div>
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
           Sign in to your account
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
           Or{' '}
-          <a href="/register" className="font-medium text-blue-600 hover:text-blue-500">
+          <button 
+            onClick={() => navigate('/register')}
+            className="font-medium text-blue-600 hover:text-blue-500 underline"
+          >
             create a new account
-          </a>
+          </button>
+        </p>
+        <p className="mt-2 text-center text-sm text-gray-600">
+          <button 
+            onClick={() => navigate('/')}
+            className="font-medium text-gray-600 hover:text-gray-800 underline"
+          >
+            ← Back to Home
+          </button>
         </p>
       </div>
 

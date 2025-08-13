@@ -47,50 +47,50 @@ export default function Home() {
       showSidebar={false}
     >
       {/* Hero Section */}
-      <div className="bg-gray-100 text-gray-900 rounded-lg sm:rounded-xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 mx-1 sm:mx-0 border">
-        <div className="text-center">
-          <div className="mb-6 flex justify-center">
-            <Logo variant="full" size="xl" />
+      <div className="bg-gray-100 text-gray-900 rounded-lg sm:rounded-xl p-3 sm:p-6 lg:p-8 mb-4 sm:mb-8 mx-2 sm:mx-0 border">
+        <div className="text-center max-w-4xl mx-auto">
+          <div className="mb-4 sm:mb-6 flex justify-center">
+            <Logo size="lg" showText={true} />
           </div>
-          <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-5xl font-extrabold mb-3 sm:mb-4 leading-tight">
+          <h1 className="text-lg sm:text-2xl md:text-3xl lg:text-5xl font-extrabold mb-2 sm:mb-4 leading-tight px-2 sm:px-0">
             <span className="text-tdil-yellow">Develop The Whole Leader</span>
           </h1>
-          <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold mb-3 sm:mb-4 text-tdil-blue">
+          <h2 className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold mb-2 sm:mb-4 text-tdil-blue px-2 sm:px-0">
             Talent Development Impact Lab (tDIL)
           </h2>
-          <p className="text-sm sm:text-base md:text-lg lg:text-xl mb-4 sm:mb-6 lg:mb-8 max-w-3xl mx-auto opacity-90 px-1 sm:px-2 leading-relaxed">
+          <p className="text-xs sm:text-base md:text-lg lg:text-xl mb-4 sm:mb-6 lg:mb-8 max-w-3xl mx-auto opacity-90 px-3 sm:px-2 leading-relaxed">
             tDIL catalyzes aspiring leaders' advancement by bringing together higher education, community organizations, and employers to deliver a transformational experience that grows the skill sets, mindset, and professional network individuals need to thrive.
           </p>
-          <div className="flex flex-col gap-2 sm:flex-row sm:gap-3 lg:gap-4 justify-center mb-3 sm:mb-4 lg:mb-6 px-1 sm:px-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:gap-3 lg:gap-4 justify-center mb-3 sm:mb-4 lg:mb-6 px-3 sm:px-2">
             <button
               onClick={() => navigate('/login')}
-              className="px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3 bg-white text-tdil-dark rounded-lg text-sm sm:text-base lg:text-lg font-semibold hover:bg-gray-50 transition-colors shadow-lg w-full sm:w-auto border"
+              className="px-6 sm:px-6 lg:px-8 py-3 sm:py-3 bg-tdil-blue text-white rounded-lg text-sm sm:text-base lg:text-lg font-semibold hover:bg-blue-700 transition-colors shadow-lg w-full sm:w-auto border min-w-[140px]"
             >
               Sign In
             </button>
             <button
               onClick={() => navigate('/register')}
-              className="px-4 sm:px-6 lg:px-8 py-2.5 sm:py-3 bg-tdil-blue text-white rounded-lg text-sm sm:text-base lg:text-lg font-semibold hover:bg-blue-700 transition-colors shadow-lg w-full sm:w-auto"
+              className="px-6 sm:px-6 lg:px-8 py-3 sm:py-3 bg-tdil-blue text-white rounded-lg text-sm sm:text-base lg:text-lg font-semibold hover:bg-blue-700 transition-colors shadow-lg w-full sm:w-auto min-w-[140px]"
             >
               Join tDIL Network
             </button>
           </div>
-          <div className="flex flex-col gap-2 sm:flex-row sm:gap-2 lg:gap-3 justify-center px-1 sm:px-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:gap-2 lg:gap-3 justify-center px-3 sm:px-2">
             <button
               onClick={() => navigate('/directory')}
-              className="px-3 sm:px-4 py-2 bg-tdil-dark text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-gray-800 transition-colors text-center w-full sm:w-auto"
+              className="px-4 sm:px-4 py-2 bg-tdil-blue text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-blue-700 transition-colors text-center w-full sm:w-auto min-w-[100px]"
             >
               Directory
             </button>
             <button
               onClick={() => navigate('/community')}
-              className="px-3 sm:px-4 py-2 bg-tdil-dark text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-gray-800 transition-colors text-center w-full sm:w-auto"
+              className="px-4 sm:px-4 py-2 bg-tdil-blue text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-blue-700 transition-colors text-center w-full sm:w-auto min-w-[100px]"
             >
               Community
             </button>
             <button
               onClick={() => navigate('/events')}
-              className="px-3 sm:px-4 py-2 bg-tdil-dark text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-gray-800 transition-colors text-center w-full sm:w-auto"
+              className="px-4 sm:px-4 py-2 bg-tdil-blue text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-blue-700 transition-colors text-center w-full sm:w-auto min-w-[100px]"
             >
               Events
             </button>

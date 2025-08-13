@@ -1,10 +1,10 @@
 import { useNavigate } from 'react-router-dom';
 
 export default function Logo({ 
-  variant = 'full', // 'full', 'compact', 'initials'
   size = 'md', // 'xs', 'sm', 'md', 'lg', 'xl'
   className = '',
-  clickable = true 
+  clickable = true,
+  showText = true
 }) {
   const navigate = useNavigate();
   
@@ -15,14 +15,6 @@ export default function Logo({
   };
 
   const sizeClasses = {
-    xs: 'h-6',
-    sm: 'h-8', 
-    md: 'h-10',
-    lg: 'h-12',
-    xl: 'h-16'
-  };
-
-  const textSizes = {
     xs: 'text-xs',
     sm: 'text-sm',
     md: 'text-base', 
@@ -30,51 +22,29 @@ export default function Logo({
     xl: 'text-xl'
   };
 
-  if (variant === 'initials') {
-    return (
-      <div 
-        className={`flex items-center ${clickable ? 'cursor-pointer hover:opacity-80' : ''} ${className}`}
-        onClick={handleClick}
-      >
-        <div className={`flex items-center font-bold ${textSizes[size]}`}>
-          <span className="text-cyan-600">t</span>
-          <span className="text-gray-800">D</span>
-          <span className="text-yellow-500">i</span>
-          <span className="text-cyan-600">L</span>
-        </div>
-      </div>
-    );
-  }
+  const textSizes = {
+    xs: 'text-[8px]',
+    sm: 'text-[10px]',
+    md: 'text-xs',
+    lg: 'text-sm',
+    xl: 'text-base'
+  };
 
-  if (variant === 'compact') {
-    return (
-      <div 
-        className={`flex items-center gap-2 ${clickable ? 'cursor-pointer hover:opacity-80' : ''} ${className}`}
-        onClick={handleClick}
-      >
-        <div className={`flex items-center font-bold ${textSizes[size]}`}>
-          <span className="text-cyan-600">t</span>
-          <span className="text-gray-800">D</span>
-          <span className="text-yellow-500">i</span>
-          <span className="text-cyan-600">L</span>
-        </div>
-      </div>
-    );
-  }
-
-  // Full logo with text
   return (
     <div 
-      className={`flex items-center gap-3 ${clickable ? 'cursor-pointer hover:opacity-80' : ''} ${className}`}
+      className={`flex items-center gap-3 ${clickable ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''} ${className}`}
       onClick={handleClick}
     >
-      <div className={`flex items-center font-bold ${textSizes[size === 'xl' ? 'lg' : size]}`}>
+      {/* tDIL logo with colored letters */}
+      <div className={`flex items-center font-bold ${sizeClasses[size]}`}>
         <span className="text-cyan-600">t</span>
         <span className="text-gray-800">D</span>
         <span className="text-yellow-500">i</span>
         <span className="text-cyan-600">L</span>
       </div>
-      {size !== 'xs' && size !== 'sm' && (
+      
+      {/* Full text - only show on larger sizes */}
+      {showText && (size === 'lg' || size === 'xl') && (
         <div className="flex flex-col">
           <span className={`font-bold text-gray-800 leading-none ${size === 'xl' ? 'text-sm' : 'text-xs'}`}>
             TALENT DEVELOPMENT
