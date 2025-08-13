@@ -131,7 +131,7 @@ export default function Home() {
           {leaderboardData.map((member) => (
             <div
               key={member.position}
-              className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+              className="flex items-center justify-between p-3 bg-white rounded-lg hover:bg-gray-50 transition-colors cursor-pointer border"
               onClick={() => handleMemberClick(member.name)}
             >
               <div className="flex items-center gap-4">
@@ -196,7 +196,7 @@ export default function Home() {
           ].map((member, idx) => (
             <div
               key={idx}
-              className="bg-gray-50 rounded-lg p-6 text-center hover:shadow-md hover:scale-105 transform transition-all duration-300 cursor-pointer"
+              className="bg-white rounded-lg p-6 text-center hover:shadow-md hover:scale-105 transform transition-all duration-300 cursor-pointer border"
               onClick={() => handleMemberClick(member.name)}
             >
               <img
@@ -240,7 +240,7 @@ export default function Home() {
           {upcomingEvents.map((event, idx) => (
             <div
               key={idx}
-              className="bg-gray-50 rounded-lg p-6 hover:shadow-md transition-shadow cursor-pointer"
+              className="bg-white rounded-lg p-6 hover:shadow-md transition-shadow cursor-pointer border"
               onClick={() => navigate('/events')}
             >
               <h3 className="text-lg font-bold text-gray-900 mb-3">{event.title}</h3>
