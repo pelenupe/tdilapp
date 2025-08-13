@@ -47,7 +47,7 @@ export default function Home() {
       showSidebar={false}
     >
       {/* Hero Section */}
-      <div className="bg-gray-100 text-gray-900 rounded-lg sm:rounded-xl p-3 sm:p-6 lg:p-8 mb-4 sm:mb-8 mx-2 sm:mx-0 border">
+      <div className="bg-gradient-to-br from-tdil-dark via-tdil-blue to-tdil-dark text-white rounded-lg sm:rounded-xl p-3 sm:p-6 lg:p-8 mb-4 sm:mb-8 mx-2 sm:mx-0 shadow-lg">
         <div className="text-center max-w-4xl mx-auto">
           <div className="mb-4 sm:mb-6 flex justify-center">
             <Logo size="lg" showText={true} />
