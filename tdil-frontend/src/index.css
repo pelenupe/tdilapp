@@ -1,1 +1,110 @@
 @import "tailwindcss";
+
+@layer base {
+  :root {
+    --color-tdil-blue: #016991;
+    --color-tdil-dark: #1d1d36;
+    --color-tdil-yellow: #f6ed17;
+  }
+}
+
+@layer utilities {
+  .bg-tdil-blue {
+    background-color: #016991;
+  }
+  
+  .bg-tdil-dark {
+    background-color: #1d1d36;
+  }
+  
+  .bg-tdil-yellow {
+    background-color: #f6ed17;
+  }
+  
+  .text-tdil-blue {
+    color: #016991;
+  }
+  
+  .text-tdil-dark {
+    color: #1d1d36;
+  }
+  
+  .text-tdil-yellow {
+    color: #f6ed17;
+  }
+  
+  .border-tdil-blue {
+    border-color: #016991;
+  }
+  
+  .border-tdil-dark {
+    border-color: #6b7280;
+  }
+  
+  .border-tdil-yellow {
+    border-color: #f6ed17;
+  }
+  
+  .from-tdil-dark {
+    --tw-gradient-from: #1d1d36 var(--tw-gradient-from-position);
+    --tw-gradient-to: rgb(29 29 54 / 0) var(--tw-gradient-to-position);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+  }
+  
+  .via-tdil-blue {
+    --tw-gradient-to: rgb(1 105 145 / 0) var(--tw-gradient-to-position);
+    --tw-gradient-stops: var(--tw-gradient-from), #016991 var(--tw-gradient-via-position);
+  }
+  
+  .to-tdil-dark {
+    --tw-gradient-to: #1d1d36 var(--tw-gradient-to-position);
+  }
+  
+  .hover\:bg-tdil-dark:hover {
+    background-color: #1d1d36;
+  }
+  
+  .hover\:bg-tdil-blue:hover {
+    background-color: #016991;
+  }
+  
+  .hover\:text-tdil-yellow:hover {
+    color: #f6ed17;
+  }
+  
+  /* Global hover cursor styles */
+  button,
+  a,
+  [role="button"],
+  .cursor-pointer {
+    cursor: pointer !important;
+  }
+  
+  button:hover,
+  a:hover,
+  [role="button"]:hover,
+  .cursor-pointer:hover {
+    cursor: pointer !important;
+  }
+
+  /* Override default black border with grey */
+  .border:not([class*="border-"]) {
+    border-color: #d1d5db !important;
+  }
+  
+  .border-t:not([class*="border-t-"]) {
+    border-top-color: #d1d5db !important;
+  }
+  
+  .border-r:not([class*="border-r-"]) {
+    border-right-color: #d1d5db !important;
+  }
+  
+  .border-b:not([class*="border-b-"]) {
+    border-bottom-color: #d1d5db !important;
+  }
+  
+  .border-l:not([class*="border-l-"]) {
+    border-left-color: #d1d5db !important;
+  }
+}

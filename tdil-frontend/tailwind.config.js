@@ -4,6 +4,23 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  safelist: [
+    'bg-gradient-to-br',
+    'from-tdil-dark',
+    'via-tdil-blue', 
+    'to-tdil-dark',
+    'text-tdil-yellow',
+    'text-tdil-blue',
+    'bg-tdil-dark',
+    'bg-tdil-blue',
+    'bg-tdil-yellow',
+    'border-tdil-dark',
+    'border-tdil-blue',
+    'border-tdil-yellow',
+    'hover:bg-tdil-dark',
+    'hover:bg-tdil-blue',
+    'hover:text-tdil-yellow',
+  ],
   theme: {
     extend: {
       colors: {

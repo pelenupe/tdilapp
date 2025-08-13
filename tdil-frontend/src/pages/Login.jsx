@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { login } from '../services/authService';
 import Logo from '../components/Logo';
 
 export default function Login() {
@@ -12,11 +11,60 @@ export default function Login() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
+  // Demo accounts
+  const demoAccounts = {
+    'demo@member.com': {
+      password: 'demo123',
+      user: {
+        id: 1,
+        name: 'Demo Member',
+        email: 'demo@member.com',
+        userType: 'member',
+        points: 1250,
+        level: 'Intermediate'
+      }
+    },
+    'demo@school.com': {
+      password: 'school123',
+      user: {
+        id: 2,
+        name: 'Demo School Admin',
+        email: 'demo@school.com',
+        userType: 'partner_school',
+        organization: 'Butler University',
+        studentsEnrolled: 234
+      }
+    },
+    'demo@sponsor.com': {
+      password: 'sponsor123',
+      user: {
+        id: 3,
+        name: 'Demo Sponsor Admin',
+        email: 'demo@sponsor.com',
+        userType: 'sponsor',
+        company: 'Salesforce',
+        sponsorshipLevel: 'Gold',
+        investmentAmount: 50000
+      }
+    }
+  };
+
   const handleChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
+  };
+
+  const handleDemoLogin = (userType) => {
+    const demoEmail = `demo@${userType}.com`;
+    const account = demoAccounts[demoEmail];
+    
+    if (account) {
+      localStorage.setItem('token', 'demo-token-' + userType);
+      localStorage.setItem('user', JSON.stringify(account.user));
+      window.location.href = '/dashboard';
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -25,18 +73,31 @@ export default function Login() {
     setError('');
 
     try {
-      const response = await login(formData);
-      const data = response.data;
-
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-      window.location.href = '/dashboard'; // Force full page reload to update auth state
-    } catch (error) {
-      if (error.response?.data?.message) {
-        setError(error.response.data.message);
-      } else {
-        setError('Network error. Please try again.');
+      // Check demo accounts first
+      const account = demoAccounts[formData.email.toLowerCase()];
+      if (account && account.password === formData.password) {
+        localStorage.setItem('token', 'demo-token-' + account.user.userType);
+        localStorage.setItem('user', JSON.stringify(account.user));
+        window.location.href = '/dashboard';
+        return;
       }
+
+      // Check registered users
+      const registeredUser = localStorage.getItem('user_' + formData.email);
+      if (registeredUser) {
+        const userData = JSON.parse(registeredUser);
+        // For demo purposes, accept any password for registered users
+        // In real app, you'd hash and compare passwords
+        localStorage.setItem('token', 'registered-token-' + userData.id);
+        localStorage.setItem('user', JSON.stringify(userData));
+        window.location.href = '/dashboard';
+        return;
+      }
+
+      // If not found, show error
+      setError('Invalid email or password. Try using a demo account or register first.');
+    } catch (error) {
+      setError('Login failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -147,6 +208,53 @@ export default function Login() {
               </button>
             </div>
           </form>
+
+          {/* Demo Login Buttons */}
+          <div className="mt-6">
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">Or try a demo account</span>
+              </div>
+            </div>
+
+            <div className="mt-6 grid grid-cols-1 gap-3">
+              <button
+                type="button"
+                onClick={() => handleDemoLogin('member')}
+                className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+              >
+                <span className="text-blue-600 mr-2">👤</span>
+                Demo Member Login
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleDemoLogin('school')}
+                className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+              >
+                <span className="text-green-600 mr-2">🎓</span>
+                Demo School Login
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleDemoLogin('sponsor')}
+                className="w-full inline-flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+              >
+                <span className="text-purple-600 mr-2">💼</span>
+                Demo Sponsor Login
+              </button>
+            </div>
+
+            <div className="mt-4 text-xs text-gray-500 text-center">
+              <p><strong>Member:</strong> demo@member.com / demo123</p>
+              <p><strong>School:</strong> demo@school.com / school123</p>
+              <p><strong>Sponsor:</strong> demo@sponsor.com / sponsor123</p>
+            </div>
+          </div>
 
         </div>
       </div>

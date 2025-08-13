@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { register } from '../services/authService';
 import { useNavigate, Link } from 'react-router-dom';
+import Logo from '../components/Logo';
 
 export default function Register() {
   const [formData, setFormData] = useState({ 
@@ -26,10 +26,43 @@ export default function Register() {
     setError('');
     
     try {
-      await register(formData);
-      navigate('/dashboard');
+      // Validate required fields
+      if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
+        setError('Please fill in all required fields.');
+        return;
+      }
+
+      // Check if email already exists (simulate real validation)
+      const existingUser = localStorage.getItem('user_' + formData.email);
+      if (existingUser) {
+        setError('An account with this email already exists. Please sign in instead.');
+        return;
+      }
+
+      // Create new user account
+      const newUser = {
+        id: Date.now(),
+        name: `${formData.firstName} ${formData.lastName}`,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        company: formData.company,
+        jobTitle: formData.jobTitle,
+        userType: 'member', // Default to member
+        points: 0,
+        level: 'Beginner',
+        joinedDate: new Date().toISOString(),
+      };
+
+      // Save user data
+      localStorage.setItem('user_' + formData.email, JSON.stringify(newUser));
+      localStorage.setItem('user', JSON.stringify(newUser));
+      localStorage.setItem('token', 'registered-token-' + newUser.id);
+
+      // Redirect to dashboard
+      window.location.href = '/dashboard';
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed. Please try again.');
+      setError('Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }

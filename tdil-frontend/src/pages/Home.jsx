@@ -55,7 +55,7 @@ export default function Home() {
           <h1 className="text-lg sm:text-2xl md:text-3xl lg:text-5xl font-extrabold mb-2 sm:mb-4 leading-tight px-2 sm:px-0">
             <span className="text-tdil-yellow">Develop The Whole Leader</span>
           </h1>
-          <h2 className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold mb-2 sm:mb-4 text-tdil-blue px-2 sm:px-0">
+          <h2 className="text-sm sm:text-lg md:text-xl lg:text-2xl font-bold mb-2 sm:mb-4 text-white px-2 sm:px-0">
             Talent Development Impact Lab (tDIL)
           </h2>
           <p className="text-xs sm:text-base md:text-lg lg:text-xl mb-4 sm:mb-6 lg:mb-8 max-w-3xl mx-auto opacity-90 px-3 sm:px-2 leading-relaxed">
@@ -64,7 +64,7 @@ export default function Home() {
           <div className="flex flex-col gap-2 sm:flex-row sm:gap-3 lg:gap-4 justify-center mb-3 sm:mb-4 lg:mb-6 px-3 sm:px-2">
             <button
               onClick={() => navigate('/login')}
-              className="px-6 sm:px-6 lg:px-8 py-3 sm:py-3 bg-tdil-dark text-white rounded-lg text-sm sm:text-base lg:text-lg font-semibold hover:bg-gray-800 transition-colors shadow-lg w-full sm:w-auto border min-w-[140px]"
+              className="px-6 sm:px-6 lg:px-8 py-3 sm:py-3 bg-tdil-dark text-white rounded-lg text-sm sm:text-base lg:text-lg font-semibold hover:bg-gray-800 transition-colors shadow-lg w-full sm:w-auto min-w-[140px]"
             >
               Sign In
             </button>
@@ -100,22 +100,22 @@ export default function Home() {
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
-        <div className="bg-white rounded-lg sm:rounded-xl p-4 sm:p-6 text-center shadow-sm border">
+        <div className="bg-white rounded-lg sm:rounded-xl p-4 sm:p-6 text-center shadow-sm">
           <div className="text-2xl sm:text-3xl font-bold text-blue-600 mb-2">500+</div>
           <div className="text-gray-600 text-sm sm:text-base">Active Members</div>
         </div>
-        <div className="bg-white rounded-lg sm:rounded-xl p-4 sm:p-6 text-center shadow-sm border">
+        <div className="bg-white rounded-lg sm:rounded-xl p-4 sm:p-6 text-center shadow-sm">
           <div className="text-2xl sm:text-3xl font-bold text-green-600 mb-2">50+</div>
           <div className="text-gray-600 text-sm sm:text-base">Partner Companies</div>
         </div>
-        <div className="bg-white rounded-lg sm:rounded-xl p-4 sm:p-6 text-center shadow-sm border">
+        <div className="bg-white rounded-lg sm:rounded-xl p-4 sm:p-6 text-center shadow-sm">
           <div className="text-2xl sm:text-3xl font-bold text-purple-600 mb-2">100+</div>
           <div className="text-gray-600 text-sm sm:text-base">Events This Year</div>
         </div>
       </div>
 
       {/* Top Contributors Section */}
-      <div className="bg-white rounded-lg sm:rounded-xl shadow-sm border p-4 sm:p-6 mb-6 sm:mb-8">
+      <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 mb-6 sm:mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6">
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 sm:mb-0">
             🏆 Top Contributors
@@ -131,7 +131,7 @@ export default function Home() {
           {leaderboardData.map((member) => (
             <div
               key={member.position}
-              className="flex items-center justify-between p-3 bg-white rounded-lg hover:bg-gray-50 transition-colors cursor-pointer border"
+              className="flex items-center justify-between p-3 bg-white rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
               onClick={() => handleMemberClick(member.name)}
             >
               <div className="flex items-center gap-4">
@@ -161,7 +161,7 @@ export default function Home() {
       </div>
 
       {/* Featured Members Section */}
-      <div className="bg-white rounded-lg sm:rounded-xl shadow-sm border p-4 sm:p-6 mb-6 sm:mb-8">
+      <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6 mb-6 sm:mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6">
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 sm:mb-0">
             ⭐ Featured Members
@@ -196,7 +196,7 @@ export default function Home() {
           ].map((member, idx) => (
             <div
               key={idx}
-              className="bg-white rounded-lg p-6 text-center hover:shadow-md hover:scale-105 transform transition-all duration-300 cursor-pointer border"
+              className="bg-white rounded-lg p-6 text-center hover:shadow-md hover:scale-105 transform transition-all duration-300 cursor-pointer border border-gray-200"
               onClick={() => handleMemberClick(member.name)}
             >
               <img
@@ -224,7 +224,7 @@ export default function Home() {
       </div>
 
       {/* Upcoming Events Section */}
-      <div className="bg-white rounded-lg sm:rounded-xl shadow-sm border p-4 sm:p-6">
+      <div className="bg-white rounded-lg sm:rounded-xl shadow-sm p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6">
           <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 sm:mb-0">
             📅 Upcoming Events
@@ -240,7 +240,7 @@ export default function Home() {
           {upcomingEvents.map((event, idx) => (
             <div
               key={idx}
-              className="bg-white rounded-lg p-6 hover:shadow-md transition-shadow cursor-pointer border"
+              className="bg-white rounded-lg p-6 hover:shadow-md transition-shadow cursor-pointer border border-gray-200"
               onClick={() => navigate('/events')}
             >
               <h3 className="text-lg font-bold text-gray-900 mb-3">{event.title}</h3>
