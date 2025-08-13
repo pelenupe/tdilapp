@@ -1,4 +1,5 @@
 import PageLayout from '../components/PageLayout';
+import Logo from '../components/Logo';
 import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 
@@ -48,6 +49,9 @@ export default function Home() {
       {/* Hero Section */}
       <div className="bg-gradient-to-r from-slate-900 to-slate-700 text-white rounded-lg sm:rounded-xl p-4 sm:p-6 lg:p-8 mb-6 sm:mb-8 mx-1 sm:mx-0">
         <div className="text-center">
+          <div className="mb-6 flex justify-center">
+            <Logo variant="full" size="xl" className="text-white" />
+          </div>
           <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-5xl font-extrabold mb-3 sm:mb-4 leading-tight">
             <span className="text-orange-400">Develop The Whole Leader</span>
           </h1>

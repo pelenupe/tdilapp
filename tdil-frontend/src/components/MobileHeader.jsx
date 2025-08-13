@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Menu, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import Logo from './Logo';
 
 export default function MobileHeader({ userType = 'member' }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -46,12 +47,7 @@ export default function MobileHeader({ userType = 'member' }) {
       {/* Fixed Mobile Header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200 px-4 py-3">
         <div className="flex items-center justify-between">
-          <Link to="/" className="flex items-center">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-xs mr-3">
-              tDIL
-            </div>
-            <span className="text-lg font-bold text-gray-900">tDIL</span>
-          </Link>
+          <Logo variant="initials" size="lg" />
           
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
