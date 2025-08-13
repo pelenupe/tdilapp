@@ -64,13 +64,13 @@ export default function Home() {
           <div className="flex flex-col gap-2 sm:flex-row sm:gap-3 lg:gap-4 justify-center mb-3 sm:mb-4 lg:mb-6 px-3 sm:px-2">
             <button
               onClick={() => navigate('/login')}
-              className="px-6 sm:px-6 lg:px-8 py-3 sm:py-3 bg-tdil-blue text-white rounded-lg text-sm sm:text-base lg:text-lg font-semibold hover:bg-blue-700 transition-colors shadow-lg w-full sm:w-auto border min-w-[140px]"
+              className="px-6 sm:px-6 lg:px-8 py-3 sm:py-3 bg-tdil-dark text-white rounded-lg text-sm sm:text-base lg:text-lg font-semibold hover:bg-gray-800 transition-colors shadow-lg w-full sm:w-auto border min-w-[140px]"
             >
               Sign In
             </button>
             <button
               onClick={() => navigate('/register')}
-              className="px-6 sm:px-6 lg:px-8 py-3 sm:py-3 bg-tdil-blue text-white rounded-lg text-sm sm:text-base lg:text-lg font-semibold hover:bg-blue-700 transition-colors shadow-lg w-full sm:w-auto min-w-[140px]"
+              className="px-6 sm:px-6 lg:px-8 py-3 sm:py-3 bg-tdil-dark text-white rounded-lg text-sm sm:text-base lg:text-lg font-semibold hover:bg-gray-800 transition-colors shadow-lg w-full sm:w-auto min-w-[140px]"
             >
               Join tDIL Network
             </button>
@@ -78,19 +78,19 @@ export default function Home() {
           <div className="flex flex-col gap-2 sm:flex-row sm:gap-2 lg:gap-3 justify-center px-3 sm:px-2">
             <button
               onClick={() => navigate('/directory')}
-              className="px-4 sm:px-4 py-2 bg-tdil-blue text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-blue-700 transition-colors text-center w-full sm:w-auto min-w-[100px]"
+              className="px-4 sm:px-4 py-2 bg-tdil-dark text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-gray-800 transition-colors text-center w-full sm:w-auto min-w-[100px]"
             >
               Directory
             </button>
             <button
               onClick={() => navigate('/community')}
-              className="px-4 sm:px-4 py-2 bg-tdil-blue text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-blue-700 transition-colors text-center w-full sm:w-auto min-w-[100px]"
+              className="px-4 sm:px-4 py-2 bg-tdil-dark text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-gray-800 transition-colors text-center w-full sm:w-auto min-w-[100px]"
             >
               Community
             </button>
             <button
               onClick={() => navigate('/events')}
-              className="px-4 sm:px-4 py-2 bg-tdil-blue text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-blue-700 transition-colors text-center w-full sm:w-auto min-w-[100px]"
+              className="px-4 sm:px-4 py-2 bg-tdil-dark text-white rounded-lg text-xs sm:text-sm font-medium hover:bg-gray-800 transition-colors text-center w-full sm:w-auto min-w-[100px]"
             >
               Events
             </button>
