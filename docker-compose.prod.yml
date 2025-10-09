@@ -10,32 +10,70 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=5001
+      - DB_TYPE=postgresql
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
       - JWT_SECRET=${JWT_SECRET}
-      - DATABASE_URL=${DATABASE_URL}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-15m}
+      - JWT_REFRESH_EXPIRES_IN=${JWT_REFRESH_EXPIRES_IN:-7d}
+      - JWT_RESET_EXPIRES_IN=${JWT_RESET_EXPIRES_IN:-1h}
       - FRONTEND_URL=${FRONTEND_URL}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS}
       - EMAIL_SERVICE=${EMAIL_SERVICE}
       - EMAIL_USER=${EMAIL_USER}
       - EMAIL_PASS=${EMAIL_PASS}
+      - EMAIL_FROM=${EMAIL_FROM}
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
       - AWS_REGION=${AWS_REGION}
       - AWS_S3_BUCKET=${AWS_S3_BUCKET}
-      - RATE_LIMIT_WINDOW_MS=${RATE_LIMIT_WINDOW_MS}
-      - RATE_LIMIT_MAX_REQUESTS=${RATE_LIMIT_MAX_REQUESTS}
+      - RATE_LIMIT_WINDOW_MS=${RATE_LIMIT_WINDOW_MS:-900000}
+      - RATE_LIMIT_MAX_REQUESTS=${RATE_LIMIT_MAX_REQUESTS:-100}
+      - AUTH_RATE_LIMIT_WINDOW_MS=${AUTH_RATE_LIMIT_WINDOW_MS:-900000}
+      - AUTH_RATE_LIMIT_MAX_REQUESTS=${AUTH_RATE_LIMIT_MAX_REQUESTS:-5}
       - HELMET_ENABLED=true
       - COMPRESSION_ENABLED=true
       - TRUST_PROXY=true
+      - SESSION_SECRET=${SESSION_SECRET}
+      - BCRYPT_ROUNDS=${BCRYPT_ROUNDS:-12}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - LOG_FILE=/var/log/tdil/app.log
+      - ENABLE_ACCESS_LOG=${ENABLE_ACCESS_LOG:-true}
+      - ENABLE_ERROR_LOG=${ENABLE_ERROR_LOG:-true}
+      - HEALTH_CHECK_TOKEN=${HEALTH_CHECK_TOKEN}
+      - METRICS_ENABLED=${METRICS_ENABLED:-true}
+      - ENABLE_DETAILED_ERRORS=${ENABLE_DETAILED_ERRORS:-false}
+      - MAX_FILE_SIZE=${MAX_FILE_SIZE:-10485760}
+      - ALLOWED_FILE_TYPES=${ALLOWED_FILE_TYPES}
+      - UPLOAD_DIRECTORY=/app/uploads
+      - SOCKET_CORS_ORIGIN=${SOCKET_CORS_ORIGIN}
+      - ENABLE_SOCKET_AUTH=${ENABLE_SOCKET_AUTH:-true}
+      - ADMIN_EMAIL=${ADMIN_EMAIL}
+      - ENABLE_USER_REGISTRATION=${ENABLE_USER_REGISTRATION:-true}
+      - REQUIRE_EMAIL_VERIFICATION=${REQUIRE_EMAIL_VERIFICATION:-true}
+      - BACKUP_ENABLED=${BACKUP_ENABLED:-true}
+      - BACKUP_SCHEDULE=${BACKUP_SCHEDULE:-0 2 * * *}
+      - BACKUP_RETENTION_DAYS=${BACKUP_RETENTION_DAYS:-30}
+      - BACKUP_DIR=/app/backups
     volumes:
-      - app_uploads:/app/backend/uploads
+      - app_uploads:/app/uploads
+      - app_logs:/var/log/tdil
+      - app_backups:/app/backups
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "node", "-e", "require('http').get('http://localhost:5001/api/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
+      test: ["CMD", "curl", "-f", "http://localhost:5001/api/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
+      start_period: 60s
     depends_on:
       db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - tdil-network
@@ -44,22 +82,64 @@ services:
     image: postgres:15-alpine
     container_name: tdil-db
     environment:
-      - POSTGRES_DB=${POSTGRES_DB:-tdil}
-      - POSTGRES_USER=${POSTGRES_USER:-tdiluser}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_INITDB_ARGS=--auth-host=scram-sha-256
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - postgres_backups:/backups
+      - ./database/migrations:/docker-entrypoint-initdb.d/migrations:ro
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-tdiluser} -d ${POSTGRES_DB:-tdil}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
+      start_period: 30s
     networks:
       - tdil-network
-    ports:
-      - "5432:5432" # Remove this in production, only for development access
+    # Remove port exposure for security in production
+    # ports:
+    #   - "5432:5432"
+    command: >
+      postgres
+      -c shared_preload_libraries=pg_stat_statements
+      -c pg_stat_statements.track=all
+      -c max_connections=100
+      -c shared_buffers=256MB
+      -c effective_cache_size=1GB
+      -c maintenance_work_mem=64MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+
+  redis:
+    image: redis:7-alpine
+    container_name: tdil-redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+      - redis_logs:/var/log/redis
+    networks:
+      - tdil-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 30s
+    command: >
+      redis-server
+      --appendonly yes
+      --appendfsync everysec
+      --requirepass ${REDIS_PASSWORD}
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --tcp-keepalive 60
+      --timeout 300
 
   nginx:
     image: nginx:alpine
@@ -71,31 +151,114 @@ services:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro
       - nginx_logs:/var/log/nginx
+      - nginx_cache:/var/cache/nginx
     restart: unless-stopped
     depends_on:
       - app
     networks:
       - tdil-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  redis:
-    image: redis:7-alpine
-    container_name: tdil-redis
-    restart: unless-stopped
-    volumes:
-      - redis_data:/data
+  # Migration service (runs once on startup)
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tdil-migrate
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+    command: ["node", "scripts/migrate-production.js", "migrate"]
+    depends_on:
+      db:
+        condition: service_healthy
     networks:
       - tdil-network
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    restart: "no"
+    volumes:
+      - ./database/migrations:/app/database/migrations:ro
+      - ./database/seeds:/app/database/seeds:ro
+
+  # Backup service (runs on schedule)
+  backup:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tdil-backup
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      - BACKUP_ENABLED=${BACKUP_ENABLED:-true}
+      - BACKUP_SCHEDULE=${BACKUP_SCHEDULE:-0 2 * * *}
+      - BACKUP_RETENTION_DAYS=${BACKUP_RETENTION_DAYS:-30}
+      - BACKUP_DIR=/app/backups
+    command: ["node", "scripts/backup-restore.js", "schedule"]
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - tdil-network
+    volumes:
+      - app_backups:/app/backups
+    restart: unless-stopped
+    profiles:
+      - backup
 
 volumes:
   postgres_data:
     driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_DIR:-./data}/postgres
+  postgres_backups:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_DIR:-./data}/postgres_backups
   app_uploads:
     driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_DIR:-./data}/uploads
+  app_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_DIR:-./data}/logs
+  app_backups:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_DIR:-./data}/backups
   nginx_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_DIR:-./data}/nginx_logs
+  nginx_cache:
     driver: local
   redis_data:
     driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_DIR:-./data}/redis
+  redis_logs:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_DIR:-./data}/redis_logs
 
 networks:
   tdil-network:
