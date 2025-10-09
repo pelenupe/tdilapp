@@ -21,13 +21,17 @@ WORKDIR /app/frontend
 COPY tdil-frontend/package*.json ./
 
 # Install frontend dependencies
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 
 # Copy frontend source
 COPY tdil-frontend/ ./
 
-# Build frontend for production
-RUN npm run build
+# Set production environment variables for build
+ENV NODE_ENV=production
+ENV GENERATE_SOURCEMAP=false
+
+# Build frontend for production with error handling
+RUN npm run build || (echo "Build failed, checking for issues..." && npm run build --verbose)
 
 # Production stage
 FROM node:18-alpine AS production
