@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: tdil-platform
+    env: node
+    plan: free
+    buildCommand: |
+      rm -rf node_modules package-lock.json
+      npm cache clean --force
+      npm install --no-optional
+      npm list --depth=0
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: tdil-db
+          property: connectionString
+      - key: DB_TYPE
+        value: postgresql
+      - key: SEQUELIZE_DIALECT
+        value: postgres
+      - key: FRONTEND_URL
+        value: https://tdil-platform.onrender.com
+      - key: ALLOWED_ORIGINS
+        value: https://tdil-platform.onrender.com,https://tdilapp.com,https://www.tdilapp.com
+      - key: JWT_SECRET
+        generateValue: true
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: HEALTH_CHECK_TOKEN
+        generateValue: true
+      - key: PORT
+        value: 10000
+
+databases:
+  - name: tdil-db
+    databaseName: tdil_production
+    user: tdil_user
+    plan: free
