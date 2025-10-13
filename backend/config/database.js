@@ -5,8 +5,15 @@ let db;
 const isPostgreSQL = true;
 
 // Always use PostgreSQL in production
+const connectionString = process.env.DATABASE_URL || process.env.DB_CONNECTION_STRING;
+console.log('🔍 Database connection debug:', {
+  DATABASE_URL: process.env.DATABASE_URL ? 'SET' : 'NOT SET',
+  NODE_ENV: process.env.NODE_ENV,
+  connectionString: connectionString ? connectionString.substring(0, 20) + '...' : 'NOT SET'
+});
+
 db = new Pool({
-  connectionString: process.env.DATABASE_URL || process.env.DB_CONNECTION_STRING,
+  connectionString: connectionString,
   ssl: process.env.NODE_ENV === 'production' ? {
     rejectUnauthorized: false
   } : false
