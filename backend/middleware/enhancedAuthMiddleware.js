@@ -1,5 +1,4 @@
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcrypt');
 const rateLimit = require('express-rate-limit');
 const { query } = require('../config/database');
 
