@@ -6,7 +6,11 @@ services:
     buildCommand: |
       rm -rf node_modules package-lock.json
       npm cache clean --force
-      npm install --no-optional
+      npm config set target_platform linux
+      npm config set target_arch x64
+      npm config set cache /tmp/.npm
+      npm install --production --no-optional --build-from-source
+      npm rebuild bcrypt --build-from-source
       npm list --depth=0
     startCommand: node server.js
     envVars:
@@ -21,9 +25,9 @@ services:
       - key: SEQUELIZE_DIALECT
         value: postgres
       - key: FRONTEND_URL
-        value: https://tdil-platform.onrender.com
+        value: https://tdilapp.onrender.com
       - key: ALLOWED_ORIGINS
-        value: https://tdil-platform.onrender.com,https://tdilapp.com,https://www.tdilapp.com
+        value: https://tdilapp.onrender.com,https://tdilapp.com,https://www.tdilapp.com
       - key: JWT_SECRET
         generateValue: true
       - key: SESSION_SECRET
