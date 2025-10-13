@@ -6,11 +6,7 @@ services:
     buildCommand: |
       rm -rf node_modules package-lock.json
       npm cache clean --force
-      npm config set target_platform linux
-      npm config set target_arch x64
-      npm config set cache /tmp/.npm
-      npm install --production --no-optional --build-from-source
-      npm rebuild bcrypt --build-from-source
+      npm install --production --no-optional
       npm list --depth=0
     startCommand: node server.js
     envVars:
