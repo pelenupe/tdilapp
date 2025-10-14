@@ -4,11 +4,21 @@ services:
     env: node
     plan: free
     buildCommand: |
+      echo "=== BACKEND BUILD ==="
       rm -rf node_modules package-lock.json
       npm cache clean --force
       npm install --no-optional
       npm list --depth=0
-      cd tdil-frontend && npm install && npm run build
+      echo "=== REACT FRONTEND BUILD ==="
+      cd tdil-frontend
+      pwd
+      ls -la
+      npm install
+      echo "React dependencies installed, starting build..."
+      npm run build
+      echo "React build completed, checking dist folder..."
+      ls -la dist/
+      echo "=== BUILD COMPLETE ==="
     startCommand: node server.js
     envVars:
       - key: NODE_ENV
