@@ -6,7 +6,7 @@ services:
     buildCommand: |
       rm -rf node_modules package-lock.json
       npm cache clean --force
-      npm install --production --no-optional
+      npm install --no-optional
       npm list --depth=0
       cd tdil-frontend && npm install && npm run build
     startCommand: node server.js
