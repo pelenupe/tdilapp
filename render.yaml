@@ -8,6 +8,7 @@ services:
       npm cache clean --force
       npm install --production --no-optional
       npm list --depth=0
+      cd tdil-frontend && npm install && npm run build
     startCommand: node server.js
     envVars:
       - key: NODE_ENV

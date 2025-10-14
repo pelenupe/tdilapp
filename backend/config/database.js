@@ -12,17 +12,26 @@ console.log('🔍 Database connection debug:', {
   connectionString: connectionString ? connectionString.substring(0, 20) + '...' : 'NOT SET'
 });
 
-db = new Pool({
-  connectionString: connectionString,
-  ssl: process.env.NODE_ENV === 'production' ? {
-    rejectUnauthorized: false
-  } : false
-});
-
-console.log('🐘 Using PostgreSQL database (production mode)');
+// Only create database pool if we have a connection string
+if (connectionString) {
+  db = new Pool({
+    connectionString: connectionString,
+    ssl: process.env.NODE_ENV === 'production' ? {
+      rejectUnauthorized: false
+    } : false
+  });
+  console.log('🐘 Using PostgreSQL database (production mode)');
+} else {
+  db = null;
+  console.log('⚠️ NO DATABASE - Running in demo mode (frontend only)');
+}
 
 // PostgreSQL query function
 const query = async (sql, params = []) => {
+  if (!db) {
+    console.log('⚠️ Database query skipped - running in demo mode');
+    return [];
+  }
   try {
     const result = await db.query(sql, params);
     return result.rows;
