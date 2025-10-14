@@ -6,7 +6,7 @@
     "scripts": {
         "start": "node server.js",
         "dev": "nodemon server.js",
-        "build": "echo 'Production build complete'",
+        "build": "cd tdil-frontend && npm install && npm run build && echo 'React build complete!'",
         "postinstall": "npm uninstall sqlite3 --save --no-warnings 2>/dev/null || true",
         "migrate": "node scripts/migrate.js",
         "seed": "node scripts/seed.js"
