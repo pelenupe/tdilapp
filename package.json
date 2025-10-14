@@ -36,7 +36,6 @@
     "devDependencies": {
         "nodemon": "^3.1.10"
     },
-    "optionalDependencies": {},
     "config": {
         "database": {
             "dialect": "postgres",

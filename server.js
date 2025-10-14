@@ -140,6 +140,8 @@ if (process.env.NODE_ENV === 'production') {
 const allowedOrigins = process.env.ALLOWED_ORIGINS ? 
   process.env.ALLOWED_ORIGINS.split(',') : 
   [
+    'http://localhost:3099',
+    'http://localhost:4099',
     'http://localhost:5173',
     'http://localhost:5174',
     'http://localhost:5175',
