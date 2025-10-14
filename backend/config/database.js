@@ -33,7 +33,16 @@ const query = async (sql, params = []) => {
 
 // Initialize database tables (PostgreSQL syntax)
 const initDatabase = async () => {
+  if (!connectionString) {
+    console.log('⚠️ No database connection - running without database (demo mode)');
+    return Promise.resolve();
+  }
+
   try {
+    // Test connection first
+    await db.query('SELECT 1');
+    console.log('✅ Database connected successfully');
+
     // Users table
     await db.query(`CREATE TABLE IF NOT EXISTS users (
       id SERIAL PRIMARY KEY,
@@ -83,32 +92,11 @@ const initDatabase = async () => {
       createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`);
 
-    // Announcements table
-    await db.query(`CREATE TABLE IF NOT EXISTS announcements (
-      id SERIAL PRIMARY KEY,
-      title VARCHAR(255) NOT NULL,
-      content TEXT NOT NULL,
-      category VARCHAR(100),
-      featured BOOLEAN DEFAULT FALSE,
-      points INTEGER DEFAULT 0,
-      imageUrl VARCHAR(500),
-      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )`);
-
-    // Other tables...
-    await db.query(`CREATE TABLE IF NOT EXISTS points_history (
-      id SERIAL PRIMARY KEY,
-      userId INTEGER NOT NULL REFERENCES users(id),
-      points INTEGER NOT NULL,
-      reason TEXT,
-      type VARCHAR(100),
-      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )`);
-
     console.log('Database tables initialized successfully');
   } catch (error) {
     console.error('Database initialization error:', error);
-    throw error;
+    console.log('🚨 Continuing without database - app will run in demo mode');
+    return Promise.resolve();
   }
 };
 
