@@ -41,6 +41,36 @@ const initializeDatabase = async () => {
   try {
     await initDatabase();
     logger.info('Database initialized successfully');
+    
+    // Check for and remove demo data in production
+    if (process.env.NODE_ENV === 'production') {
+      const resetScript = require('./scripts/reset-production-db');
+      
+      // Check if database has demo data (admin@tdil.com user)
+      const { Pool } = require('pg');
+      const pool = new Pool({
+        connectionString: process.env.DATABASE_URL,
+        ssl: { rejectUnauthorized: false }
+      });
+      
+      try {
+        const result = await pool.query("SELECT COUNT(*) as count FROM users WHERE email = 'admin@tdil.com'");
+        const hasDemoData = parseInt(result.rows[0].count) > 0;
+        
+        if (hasDemoData) {
+          logger.info('🔥 Demo data detected - cleaning database for production');
+          await resetScript();
+          logger.info('✅ Database cleaned - ready for real users');
+        } else {
+          logger.info('✅ Database clean - no demo data found');
+        }
+        
+        await pool.end();
+      } catch (error) {
+        logger.warn('Could not check for demo data:', error.message);
+      }
+    }
+    
   } catch (error) {
     logger.error('Database initialization failed', { error: error.message });
     process.exit(1);
