@@ -19,7 +19,8 @@ class Logger {
     this.errorLogFile = process.env.ERROR_LOG_FILE || path.join(logDir, 'error.log');
     this.accessLogFile = process.env.ACCESS_LOG_FILE || path.join(logDir, 'access.log');
     this.logLevel = process.env.LOG_LEVEL || 'info';
-    this.enableFileLogging = process.env.NODE_ENV === 'production';
+    // Disable file logging for cloud deployments (Render, Heroku, etc.)
+    this.enableFileLogging = process.env.ENABLE_FILE_LOGGING === 'true' && fs.existsSync(logDir);
   }
 
   formatMessage(level, message, meta = {}) {
