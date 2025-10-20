@@ -1,63 +1,47 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { db } = require('../config/database');
+const { query } = require('../config/database');
 
 const register = async (req, res) => {
   try {
     const { firstName, lastName, email, password, company, jobTitle } = req.body;
 
     // Check if email already registered
-    db.get('SELECT * FROM users WHERE email = ?', [email], async (err, existingUser) => {
-      if (err) {
-        console.error(err);
-        return res.status(500).json({ message: 'Server error during registration.' });
-      }
+    const existingUsers = await query('SELECT id FROM users WHERE email = $1', [email]);
+    if (existingUsers && existingUsers.length > 0) {
+      return res.status(400).json({ message: 'Email already in use.' });
+    }
 
-      if (existingUser) {
-        return res.status(400).json({ message: 'Email already in use.' });
-      }
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-      try {
-        // Hash password
-        const hashedPassword = await bcrypt.hash(password, 10);
+    // Create user and return id
+    const inserted = await query(
+      `INSERT INTO users (email, password, firstName, lastName, company, jobTitle, points, level)
+       VALUES ($1, $2, $3, $4, $5, $6, 0, 1)
+       RETURNING id`,
+      [email, hashedPassword, firstName, lastName, company || '', jobTitle || '']
+    );
 
-        // Create user
-        const stmt = db.prepare(`
-          INSERT INTO users (email, password, firstName, lastName, company, jobTitle, points, level) 
-          VALUES (?, ?, ?, ?, ?, ?, 0, 1)
-        `);
-        
-        stmt.run([email, hashedPassword, firstName, lastName, company || '', jobTitle || ''], function(err) {
-          if (err) {
-            console.error(err);
-            return res.status(500).json({ message: 'Server error during registration.' });
-          }
+    const newUserId = inserted[0].id;
 
-          // Issue JWT
-          const token = jwt.sign(
-            { id: this.lastID, email: email }, 
-            process.env.JWT_SECRET || 'your-secret-key', 
-            { expiresIn: '7d' }
-          );
+    const token = jwt.sign(
+      { id: newUserId, email: email },
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '7d' }
+    );
 
-          res.status(201).json({ 
-            token,
-            user: {
-              id: this.lastID,
-              email: email,
-              firstName: firstName,
-              lastName: lastName,
-              company: company || '',
-              jobTitle: jobTitle || '',
-              points: 0,
-              level: 1
-            }
-          });
-        });
-        stmt.finalize();
-      } catch (hashError) {
-        console.error(hashError);
-        res.status(500).json({ message: 'Server error during registration.' });
+    return res.status(201).json({
+      token,
+      user: {
+        id: newUserId,
+        email,
+        firstName,
+        lastName,
+        company: company || '',
+        jobTitle: jobTitle || '',
+        points: 0,
+        level: 1
       }
     });
   } catch (err) {
@@ -70,45 +54,35 @@ const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    db.get('SELECT * FROM users WHERE email = ?', [email], async (err, user) => {
-      if (err) {
-        console.error(err);
-        return res.status(500).json({ message: 'Server error during login.' });
-      }
+    const users = await query('SELECT * FROM users WHERE email = $1', [email]);
+    const user = users[0];
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid credentials.' });
+    }
 
-      if (!user) {
-        return res.status(400).json({ message: 'Invalid credentials.' });
-      }
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Invalid credentials.' });
+    }
 
-      try {
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) {
-          return res.status(400).json({ message: 'Invalid credentials.' });
-        }
+    const token = jwt.sign(
+      { id: user.id, email: user.email, userType: user.userType },
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '7d' }
+    );
 
-        const token = jwt.sign(
-          { id: user.id, email: user.email, userType: user.userType }, 
-          process.env.JWT_SECRET || 'your-secret-key', 
-          { expiresIn: '7d' }
-        );
-
-        res.json({ 
-          token,
-          user: {
-            id: user.id,
-            email: user.email,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            company: user.company,
-            jobTitle: user.jobTitle,
-            points: user.points,
-            level: user.level,
-            userType: user.userType || 'member'
-          }
-        });
-      } catch (compareError) {
-        console.error(compareError);
-        res.status(500).json({ message: 'Server error during login.' });
+    return res.json({
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        company: user.company,
+        jobTitle: user.jobTitle,
+        points: user.points,
+        level: user.level,
+        userType: user.userType || 'member'
       }
     });
   } catch (err) {

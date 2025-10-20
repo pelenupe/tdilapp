@@ -1,25 +1,19 @@
-const { db } = require('../config/database');
+const { query } = require('../config/database');
 
 // Fetch all members (with optional filters)
 const getMembers = async (req, res) => {
   try {
     const { school, role, skills } = req.query;
 
-    let query = 'SELECT id, email, firstName, lastName, company, jobTitle, points, level, userType, bio, profilePicUrl FROM users WHERE 1=1';
+    let sql = 'SELECT id, email, firstName, lastName, company, jobTitle, points, level, userType, bio, profilePicUrl FROM users WHERE 1=1';
     const params = [];
 
     if (role) {
-      query += ' AND userType = ?';
+      sql += ' AND userType = $' + (params.length + 1);
       params.push(role);
     }
-
-    db.all(query, params, (err, members) => {
-      if (err) {
-        console.error(err);
-        return res.status(500).json({ message: 'Error fetching members' });
-      }
-      res.json(members);
-    });
+    const members = await query(sql, params);
+    return res.json(members);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Error fetching members' });
@@ -31,20 +25,15 @@ const getProfile = async (req, res) => {
   try {
     const userId = req.params.id === 'me' ? req.user.id : req.params.id;
     
-    db.get(
-      'SELECT id, email, firstName, lastName, company, jobTitle, points, level, userType, bio, profilePicUrl FROM users WHERE id = ?',
-      [userId],
-      (err, user) => {
-        if (err) {
-          console.error(err);
-          return res.status(500).json({ message: 'Error fetching profile' });
-        }
-        if (!user) {
-          return res.status(404).json({ message: 'User not found' });
-        }
-        res.json(user);
-      }
+    const users = await query(
+      'SELECT id, email, firstName, lastName, company, jobTitle, points, level, userType, bio, profilePicUrl FROM users WHERE id = $1',
+      [userId]
     );
+    const user = users[0];
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    return res.json(user);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Error fetching profile' });
@@ -62,30 +51,30 @@ const updateProfile = async (req, res) => {
     const params = [];
 
     if (firstName !== undefined) {
-      updates.push('firstName = ?');
+      updates.push(`firstName = $${params.length + 1}`);
       params.push(firstName);
     }
     if (lastName !== undefined) {
-      updates.push('lastName = ?');
+      updates.push(`lastName = $${params.length + 1}`);
       params.push(lastName);
     }
     if (company !== undefined) {
-      updates.push('company = ?');
+      updates.push(`company = $${params.length + 1}`);
       params.push(company);
     }
     if (jobTitle !== undefined) {
-      updates.push('jobTitle = ?');
+      updates.push(`jobTitle = $${params.length + 1}`);
       params.push(jobTitle);
     }
     if (bio !== undefined) {
-      updates.push('bio = ?');
+      updates.push(`bio = $${params.length + 1}`);
       params.push(bio);
     }
 
     // Handle file uploads (simplified for now - can enhance later)
     if (req.files && req.files.profilePic) {
       // For now, just store a placeholder. In production, upload to S3 or similar
-      updates.push('profilePicUrl = ?');
+      updates.push(`profilePicUrl = $${params.length + 1}`);
       params.push('/uploads/profile-pics/' + Date.now() + '.jpg');
     }
 
@@ -94,29 +83,17 @@ const updateProfile = async (req, res) => {
     }
 
     params.push(userId);
-    const query = `UPDATE users SET ${updates.join(', ')} WHERE id = ?`;
+    const updateSql = `UPDATE users SET ${updates.join(', ')} WHERE id = $${params.length}`;
+    await query(updateSql, params);
 
-    db.run(query, params, function(err) {
-      if (err) {
-        console.error(err);
-        return res.status(500).json({ message: 'Error updating profile' });
-      }
-
-      // Fetch updated user data
-      db.get(
-        'SELECT id, email, firstName, lastName, company, jobTitle, points, level, userType, bio, profilePicUrl FROM users WHERE id = ?',
-        [userId],
-        (err, updatedUser) => {
-          if (err) {
-            console.error(err);
-            return res.status(500).json({ message: 'Error fetching updated profile' });
-          }
-          res.json({ 
-            message: 'Profile updated successfully',
-            user: updatedUser 
-          });
-        }
-      );
+    const updatedUsers = await query(
+      'SELECT id, email, firstName, lastName, company, jobTitle, points, level, userType, bio, profilePicUrl FROM users WHERE id = $1',
+      [userId]
+    );
+    const updatedUser = updatedUsers[0];
+    return res.json({ 
+      message: 'Profile updated successfully',
+      user: updatedUser 
     });
   } catch (err) {
     console.error(err);

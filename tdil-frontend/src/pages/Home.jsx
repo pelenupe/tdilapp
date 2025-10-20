@@ -24,19 +24,38 @@ export default function Home() {
     navigate(`/profile?member=${encodeURIComponent(memberName)}`);
   };
 
-  const leaderboardData = [
-    { name: "Sarah Johnson", points: 2450, position: 1 },
-    { name: "Mike Chen", points: 2180, position: 2 },
-    { name: "Emily Rodriguez", points: 1950, position: 3 },
-    { name: "David Kim", points: 1820, position: 4 },
-    { name: "Alex Thompson", points: 1650, position: 5 }
-  ];
+  const [leaderboardData, setLeaderboardData] = useState([]);
+  const [upcomingEvents, setUpcomingEvents] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const upcomingEvents = [
-    { title: "Tech Networking Night", date: "Feb 15", attendees: 45 },
-    { title: "Career Workshop", date: "Feb 20", attendees: 32 },
-    { title: "Alumni Mixer", date: "Feb 25", attendees: 67 }
-  ];
+  // Fetch real data from API
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Fetch leaderboard data
+        const leaderboardResponse = await fetch('/api/leaderboard/top');
+        if (leaderboardResponse.ok) {
+          const leaderboard = await leaderboardResponse.json();
+          setLeaderboardData(leaderboard.slice(0, 5)); // Top 5
+        }
+
+        // Fetch upcoming events
+        const eventsResponse = await fetch('/api/events/upcoming');
+        if (eventsResponse.ok) {
+          const events = await eventsResponse.json();
+          setUpcomingEvents(events.slice(0, 3)); // Next 3 events
+        }
+      } catch (error) {
+        console.error('Error fetching home page data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   return (
     <PageLayout
@@ -128,35 +147,52 @@ export default function Home() {
           </button>
         </div>
         <div className="space-y-3">
-          {leaderboardData.map((member) => (
-            <div
-              key={member.position}
-              className="flex items-center justify-between p-3 bg-white rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
-              onClick={() => handleMemberClick(member.name)}
-            >
-              <div className="flex items-center gap-4">
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
-                  member.position === 1 ? 'bg-yellow-500 text-white' :
-                  member.position === 2 ? 'bg-gray-400 text-white' :
-                  member.position === 3 ? 'bg-orange-600 text-white' :
-                  'bg-blue-600 text-white'
-                }`}>
-                  {member.position}
-                </div>
-                <img
-                  src={`https://i.pravatar.cc/40?img=${member.position + 10}`}
-                  alt={member.name}
-                  className="w-10 h-10 rounded-full"
-                />
-                <span className="font-semibold text-gray-900">
-                  {member.name}
-                </span>
-              </div>
-              <div className="text-blue-600 font-bold">
-                {member.points.toLocaleString()} pts
-              </div>
+          {isLoading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-2 text-gray-500">Loading top contributors...</p>
             </div>
-          ))}
+          ) : leaderboardData.length > 0 ? (
+            leaderboardData.map((member, index) => (
+              <div
+                key={member.id || index}
+                className="flex items-center justify-between p-3 bg-white rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
+                onClick={() => handleMemberClick(member.name)}
+              >
+                <div className="flex items-center gap-4">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
+                    index === 0 ? 'bg-yellow-500 text-white' :
+                    index === 1 ? 'bg-gray-400 text-white' :
+                    index === 2 ? 'bg-orange-600 text-white' :
+                    'bg-blue-600 text-white'
+                  }`}>
+                    {index + 1}
+                  </div>
+                  <img
+                    src={member.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=random`}
+                    alt={member.name}
+                    className="w-10 h-10 rounded-full"
+                  />
+                  <span className="font-semibold text-gray-900">
+                    {member.name}
+                  </span>
+                </div>
+                <div className="text-blue-600 font-bold">
+                  {member.points ? member.points.toLocaleString() : 0} pts
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-gray-500">No contributors yet. Be the first!</p>
+              <button
+                onClick={() => navigate('/register')}
+                className="mt-2 text-blue-600 hover:text-blue-700 font-semibold"
+              >
+                Join the Community →
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -173,53 +209,22 @@ export default function Home() {
             View All Members →
           </button>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          {[
-            {
-              img: "https://i.pravatar.cc/150?img=5",
-              name: "Jane Doe",
-              role: "Full-Stack Developer",
-              company: "Salesforce"
-            },
-            {
-              img: "https://i.pravatar.cc/150?img=7",
-              name: "John Smith",
-              role: "Cloud Engineer",
-              company: "Eli Lilly"
-            },
-            {
-              img: "https://i.pravatar.cc/150?img=12",
-              name: "Emily Chen",
-              role: "Project Manager",
-              company: "Anthem"
-            },
-          ].map((member, idx) => (
-            <div
-              key={idx}
-              className="bg-white rounded-lg p-6 text-center hover:shadow-md hover:scale-105 transform transition-all duration-300 cursor-pointer border border-gray-200"
-              onClick={() => handleMemberClick(member.name)}
+        <div className="text-center py-8">
+          <div className="max-w-md mx-auto">
+            <div className="text-6xl mb-4">👥</div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              Growing Community
+            </h3>
+            <p className="text-gray-600 mb-6">
+              Join our network of ambitious leaders, innovative thinkers, and industry professionals who are developing their skills and advancing their careers.
+            </p>
+            <button
+              onClick={() => navigate('/register')}
+              className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
             >
-              <img
-                src={member.img}
-                alt={member.name}
-                className="rounded-full w-20 h-20 mb-4 object-cover mx-auto"
-              />
-              <h3 className="text-lg font-bold text-gray-900 mb-1">
-                {member.name}
-              </h3>
-              <p className="text-blue-600 font-medium text-sm mb-1">{member.role}</p>
-              <p className="text-gray-500 text-sm mb-3">{member.company}</p>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleMemberClick(member.name);
-                }}
-                className="text-blue-600 hover:text-blue-700 font-semibold text-sm"
-              >
-                View Profile →
-              </button>
-            </div>
-          ))}
+              Join Our Network
+            </button>
+          </div>
         </div>
       </div>
 
@@ -237,34 +242,59 @@ export default function Home() {
           </button>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          {upcomingEvents.map((event, idx) => (
-            <div
-              key={idx}
-              className="bg-white rounded-lg p-6 hover:shadow-md transition-shadow cursor-pointer border border-gray-200"
-              onClick={() => navigate('/events')}
-            >
-              <h3 className="text-lg font-bold text-gray-900 mb-3">{event.title}</h3>
-              <div className="space-y-2 text-sm text-gray-600">
-                <div className="flex items-center gap-2">
-                  <span>📅</span>
-                  <span>{event.date}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span>👥</span>
-                  <span>{event.attendees} attending</span>
-                </div>
-              </div>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  navigate('/events');
-                }}
-                className="mt-4 text-blue-600 hover:text-blue-700 font-semibold text-sm"
+          {isLoading ? (
+            <div className="col-span-full text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-2 text-gray-500">Loading events...</p>
+            </div>
+          ) : upcomingEvents.length > 0 ? (
+            upcomingEvents.map((event, idx) => (
+              <div
+                key={event.id || idx}
+                className="bg-white rounded-lg p-6 hover:shadow-md transition-shadow cursor-pointer border border-gray-200"
+                onClick={() => navigate('/events')}
               >
-                Learn More →
+                <h3 className="text-lg font-bold text-gray-900 mb-3">{event.title}</h3>
+                <div className="space-y-2 text-sm text-gray-600">
+                  <div className="flex items-center gap-2">
+                    <span>📅</span>
+                    <span>{new Date(event.date).toLocaleDateString()}</span>
+                  </div>
+                  {event.attendees && (
+                    <div className="flex items-center gap-2">
+                      <span>👥</span>
+                      <span>{event.attendees} attending</span>
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate('/events');
+                  }}
+                  className="mt-4 text-blue-600 hover:text-blue-700 font-semibold text-sm"
+                >
+                  Learn More →
+                </button>
+              </div>
+            ))
+          ) : (
+            <div className="col-span-full text-center py-8">
+              <div className="text-6xl mb-4">📅</div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                Events Coming Soon
+              </h3>
+              <p className="text-gray-600 mb-6">
+                Stay tuned for exciting networking events, workshops, and career development opportunities.
+              </p>
+              <button
+                onClick={() => navigate('/events')}
+                className="text-blue-600 hover:text-blue-700 font-semibold"
+              >
+                View Events Page →
               </button>
             </div>
-          ))}
+          )}
         </div>
       </div>
     </PageLayout>
