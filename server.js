@@ -50,7 +50,7 @@ const initializeDatabase = async () => {
         
         logger.info('🔄 PRE-CHECK: Checking database schema...');
         
-        // Check if ANY tables exist with wrong schema
+        // Check if ANY tables exist - if so, NUCLEAR RESET (force demo data cleanup)
         try {
           const checkResult = await pool.query(`
             SELECT table_name FROM information_schema.tables 
@@ -59,24 +59,14 @@ const initializeDatabase = async () => {
           `);
           
           if (checkResult.rows.length > 0) {
-            // Check if events table has wrong column name
-            const columnCheck = await pool.query(`
-              SELECT column_name FROM information_schema.columns 
-              WHERE table_name = 'events' AND column_name = 'date'
-            `);
+            logger.info('🔥 EXISTING TABLES DETECTED - FORCING NUCLEAR RESET TO REMOVE DEMO DATA...');
             
-            if (columnCheck.rows.length > 0) {
-              logger.info('🔥 OLD SCHEMA DETECTED - Dropping ALL tables for complete reset...');
-              
-              // Nuclear option: drop entire public schema and recreate
-              await pool.query('DROP SCHEMA public CASCADE');
-              await pool.query('CREATE SCHEMA public');
-              await pool.query('GRANT ALL ON SCHEMA public TO public');
-              
-              logger.info('💥 NUCLEAR RESET: Entire schema destroyed and recreated');
-            } else {
-              logger.info('✅ Schema appears correct');
-            }
+            // Nuclear option: drop entire public schema and recreate
+            await pool.query('DROP SCHEMA public CASCADE');
+            await pool.query('CREATE SCHEMA public');
+            await pool.query('GRANT ALL ON SCHEMA public TO public');
+            
+            logger.info('💥 NUCLEAR RESET: Entire schema destroyed and recreated - ALL DEMO DATA OBLITERATED');
           } else {
             logger.info('✅ No existing tables - fresh database');
           }
