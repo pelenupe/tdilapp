@@ -6,57 +6,12 @@ export default function ChatPage() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
-  const [onlineUsers] = useState(['John Smith', 'Sarah Johnson', 'Mike Chen', 'Emma Wilson']);
+  const [onlineUsers] = useState([]); // Empty - no fake users
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
-    // Mock initial messages
-    const mockMessages = [
-      {
-        id: 1,
-        user: 'John Smith',
-        message: 'Hey everyone! Just wanted to share that I got a new job at Salesforce thanks to connections made through TDIL!',
-        timestamp: new Date(Date.now() - 3600000),
-        avatar: 'https://i.pravatar.cc/40?img=1'
-      },
-      {
-        id: 2,
-        user: 'Sarah Johnson',
-        message: 'Congratulations John! That\'s amazing news 🎉',
-        timestamp: new Date(Date.now() - 3500000),
-        avatar: 'https://i.pravatar.cc/40?img=2'
-      },
-      {
-        id: 3,
-        user: 'Mike Chen',
-        message: 'The networking event last week was incredible. Met so many great people!',
-        timestamp: new Date(Date.now() - 3000000),
-        avatar: 'https://i.pravatar.cc/40?img=3'
-      },
-      {
-        id: 4,
-        user: 'Emma Wilson',
-        message: 'Has anyone tried the new mentorship program? I\'m thinking about signing up.',
-        timestamp: new Date(Date.now() - 2500000),
-        avatar: 'https://i.pravatar.cc/40?img=4'
-      },
-      {
-        id: 5,
-        user: 'John Smith',
-        message: '@Emma Wilson I did the mentorship program last quarter and it was fantastic! Highly recommend it.',
-        timestamp: new Date(Date.now() - 2000000),
-        avatar: 'https://i.pravatar.cc/40?img=1'
-      },
-      {
-        id: 6,
-        user: 'Sarah Johnson',
-        message: 'Quick reminder: Don\'t forget to check out the job board. Some great opportunities posted this week!',
-        timestamp: new Date(Date.now() - 1500000),
-        avatar: 'https://i.pravatar.cc/40?img=2'
-      }
-    ];
-
-    setMessages(mockMessages);
+    // No fake messages - start with empty chat
+    setMessages([]);
     setLoading(false);
   }, []);
 
@@ -135,30 +90,44 @@ export default function ChatPage() {
 
           {/* Messages Container */}
           <div className="flex-1 overflow-y-auto p-6 space-y-4">
-            {messages.map((message) => (
-              <div key={message.id} className={`flex gap-3 ${message.isCurrentUser ? 'flex-row-reverse' : ''}`}>
-                <img
-                  src={message.avatar}
-                  alt={message.user}
-                  className="w-10 h-10 rounded-full flex-shrink-0"
-                />
-                <div className={`flex-1 max-w-lg ${message.isCurrentUser ? 'text-right' : ''}`}>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-medium text-gray-900">{message.user}</span>
-                    <span className="text-xs text-gray-500">{formatTime(message.timestamp)}</span>
-                  </div>
-                  <div
-                    className={`p-3 rounded-lg ${
-                      message.isCurrentUser
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-white border border-gray-200 text-gray-900'
-                    }`}
-                  >
-                    {message.message}
+            {messages.length > 0 ? (
+              messages.map((message) => (
+                <div key={message.id} className={`flex gap-3 ${message.isCurrentUser ? 'flex-row-reverse' : ''}`}>
+                  <img
+                    src={message.avatar}
+                    alt={message.user}
+                    className="w-10 h-10 rounded-full flex-shrink-0"
+                  />
+                  <div className={`flex-1 max-w-lg ${message.isCurrentUser ? 'text-right' : ''}`}>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-medium text-gray-900">{message.user}</span>
+                      <span className="text-xs text-gray-500">{formatTime(message.timestamp)}</span>
+                    </div>
+                    <div
+                      className={`p-3 rounded-lg ${
+                        message.isCurrentUser
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-white border border-gray-200 text-gray-900'
+                      }`}
+                    >
+                      {message.message}
+                    </div>
                   </div>
                 </div>
+              ))
+            ) : (
+              <div className="flex-1 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="text-6xl mb-4">💬</div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                    Start the Conversation
+                  </h3>
+                  <p className="text-gray-600 mb-4">
+                    Be the first to send a message to the TDIL community!
+                  </p>
+                </div>
               </div>
-            ))}
+            )}
             <div ref={messagesEndRef} />
           </div>
 
@@ -186,26 +155,14 @@ export default function ChatPage() {
         {/* Online Users Sidebar */}
         <div className="w-80 bg-white border-l border-gray-200">
           <div className="p-4 border-b border-gray-200">
-            <h3 className="font-semibold text-gray-900">Online Now ({onlineUsers.length})</h3>
+            <h3 className="font-semibold text-gray-900">Community Members</h3>
           </div>
           <div className="p-4">
-            <div className="space-y-3">
-              {onlineUsers.map((user, index) => (
-                <div key={user} className="flex items-center gap-3">
-                  <div className="relative">
-                    <img
-                      src={`https://i.pravatar.cc/32?img=${index + 1}`}
-                      alt={user}
-                      className="w-8 h-8 rounded-full"
-                    />
-                    <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-medium text-gray-900 text-sm">{user}</div>
-                    <div className="text-xs text-gray-500">Active now</div>
-                  </div>
-                </div>
-              ))}
+            <div className="text-center py-8">
+              <div className="text-4xl mb-3">👥</div>
+              <p className="text-gray-600 text-sm">
+                Members will appear here when they join the chat
+              </p>
             </div>
           </div>
 

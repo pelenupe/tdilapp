@@ -1,4 +1,4 @@
-const fs = require('fs');
+econst fs = require('fs');
 const path = require('path');
 const { logAuditEvent } = require('./enhancedAuthMiddleware');
 
