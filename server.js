@@ -121,6 +121,7 @@ const announcementRoutes = require('./backend/routes/announcementRoutes');
 const eventRoutes = require('./backend/routes/eventRoutes');
 const activityRoutes = require('./backend/routes/activityRoutes');
 const leaderboardRoutes = require('./backend/routes/leaderboardRoutes');
+const adminRoutes = require('./backend/routes/adminRoutes');
 
 // Security middleware configuration
 const helmetOptions = process.env.NODE_ENV === 'production' ? {
@@ -281,6 +282,7 @@ app.use('/api/announcements', announcementRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/activity', activityRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Serve frontend for all non-API routes in production
 if (process.env.NODE_ENV === 'production') {
