@@ -47,7 +47,15 @@ const initializeDatabase = async () => {
       try {
         const resetScript = require('./scripts/reset-production-db');
         
-        // Check if database has demo data (admin@tdil.com user)
+        // Force cleanup if environment variable is set
+        if (process.env.FORCE_DATABASE_CLEANUP === 'true') {
+          logger.info('🔥 FORCE cleanup triggered - removing ALL data from database');
+          await resetScript();
+          logger.info('✅ Database force-cleaned - ready for real users');
+          return;
+        }
+        
+        // Check if database has demo data (admin@tdil.com user or any existing users)
         const { Pool } = require('pg');
         const pool = new Pool({
           connectionString: process.env.DATABASE_URL,
@@ -61,12 +69,17 @@ const initializeDatabase = async () => {
           // First check if users table exists
           await pool.query("SELECT 1 FROM information_schema.tables WHERE table_name = 'users'");
           
-          // Then check for demo data
-          const result = await pool.query("SELECT COUNT(*) as count FROM users WHERE email = 'admin@tdil.com'");
-          const hasDemoData = parseInt(result.rows[0].count) > 0;
+          // Check for any existing data (not just admin@tdil.com)
+          const userCount = await pool.query("SELECT COUNT(*) as count FROM users");
+          const eventCount = await pool.query("SELECT COUNT(*) as count FROM events");
+          const rewardCount = await pool.query("SELECT COUNT(*) as count FROM rewards");
           
-          if (hasDemoData) {
-            logger.info('🔥 Demo data detected - cleaning database for production');
+          const totalData = parseInt(userCount.rows[0].count) + 
+                           parseInt(eventCount.rows[0].count) + 
+                           parseInt(rewardCount.rows[0].count);
+          
+          if (totalData > 0) {
+            logger.info(`🔥 Demo data detected (${totalData} records) - cleaning database for production`);
             await resetScript();
             logger.info('✅ Database cleaned - ready for real users');
           } else {
