@@ -39,10 +39,7 @@ const server = http.createServer(app);
 // Initialize database on startup
 const initializeDatabase = async () => {
   try {
-    await initDatabase();
-    logger.info('Database initialized successfully');
-    
-    // ONE-TIME DATABASE SCHEMA RESET - Fix column name mismatches
+    // FIRST: Schema reset if needed (BEFORE initialization)
     if (process.env.NODE_ENV === 'production' && process.env.DATABASE_URL) {
       try {
         const { Pool } = require('pg');
@@ -51,40 +48,40 @@ const initializeDatabase = async () => {
           ssl: { rejectUnauthorized: false }
         });
         
-        logger.info('🔄 ONE-TIME: Checking database schema...');
+        logger.info('🔄 PRE-CHECK: Checking database schema...');
         
-        // Check if events table has wrong column name
+        // Check if ANY tables exist with wrong schema
         try {
           const checkResult = await pool.query(`
-            SELECT column_name FROM information_schema.columns 
-            WHERE table_name = 'events' AND column_name = 'date'
+            SELECT table_name FROM information_schema.tables 
+            WHERE table_schema = 'public' 
+            AND table_name IN ('events', 'users', 'jobs')
           `);
           
           if (checkResult.rows.length > 0) {
-            logger.info('🔥 OLD SCHEMA DETECTED - Dropping all tables and recreating...');
+            // Check if events table has wrong column name
+            const columnCheck = await pool.query(`
+              SELECT column_name FROM information_schema.columns 
+              WHERE table_name = 'events' AND column_name = 'date'
+            `);
             
-            // Drop all tables in correct order (reverse of creation)
-            const dropTables = [
-              'audit_log', 'user_sessions', 'reward_redemptions', 'job_applications',
-              'event_attendees', 'points_history', 'connections', 'messages',
-              'rewards', 'announcements', 'jobs', 'events', 'users'
-            ];
-            
-            for (const table of dropTables) {
-              try {
-                await pool.query(`DROP TABLE IF EXISTS ${table} CASCADE`);
-                logger.info(`✅ Dropped ${table}`);
-              } catch (e) {
-                // Table doesn't exist, continue
-              }
+            if (columnCheck.rows.length > 0) {
+              logger.info('🔥 OLD SCHEMA DETECTED - Dropping ALL tables for complete reset...');
+              
+              // Nuclear option: drop entire public schema and recreate
+              await pool.query('DROP SCHEMA public CASCADE');
+              await pool.query('CREATE SCHEMA public');
+              await pool.query('GRANT ALL ON SCHEMA public TO public');
+              
+              logger.info('💥 NUCLEAR RESET: Entire schema destroyed and recreated');
+            } else {
+              logger.info('✅ Schema appears correct');
             }
-            
-            logger.info('🎉 Old schema completely removed - will recreate with correct schema');
           } else {
-            logger.info('✅ Schema already correct');
+            logger.info('✅ No existing tables - fresh database');
           }
         } catch (e) {
-          logger.info('✅ Events table not found - will create new schema');
+          logger.info('✅ Schema check complete');
         }
         
         await pool.end();
@@ -93,7 +90,11 @@ const initializeDatabase = async () => {
       }
     }
     
-    logger.info('✅ Database ready for production use');
+    // SECOND: Initialize database with correct schema
+    await initDatabase();
+    logger.info('✅ Database initialized successfully');
+    
+    logger.info('🎉 Database ready for production use');
     
   } catch (error) {
     logger.error('Database initialization failed', { error: error.message });
