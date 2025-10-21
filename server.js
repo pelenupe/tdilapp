@@ -42,20 +42,9 @@ const initializeDatabase = async () => {
     await initDatabase();
     logger.info('Database initialized successfully');
     
-    // FORCE CLEAN DATABASE - Remove ALL demo data in production
-    if (process.env.NODE_ENV === 'production' && process.env.DATABASE_URL) {
-      try {
-        const forceCleanScript = require('./scripts/force-clean-db');
-        
-        logger.info('🔥 PRODUCTION MODE - Force cleaning ALL database data');
-        await forceCleanScript();
-        logger.info('✅ Database completely cleaned - ready for real users');
-        
-      } catch (error) {
-        logger.warn('Database force clean failed:', error.message);
-        logger.info('⚠️ Continuing with potentially dirty database');
-      }
-    }
+    // Database is now clean and ready for real users
+    // Force cleaning script removed to preserve user data
+    logger.info('✅ Database ready for production use');
     
   } catch (error) {
     logger.error('Database initialization failed', { error: error.message });
