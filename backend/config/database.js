@@ -40,7 +40,7 @@ const query = async (sql, params = []) => {
   }
 };
 
-// Initialize database tables (PostgreSQL syntax)
+// Initialize database tables using proper migration
 const initDatabase = async () => {
   if (!connectionString) {
     console.log('⚠️ No database connection - running without database (demo mode)');
@@ -52,56 +52,109 @@ const initDatabase = async () => {
     await db.query('SELECT 1');
     console.log('✅ Database connected successfully');
 
-    // Users table
-    await db.query(`CREATE TABLE IF NOT EXISTS users (
-      id SERIAL PRIMARY KEY,
-      email VARCHAR(255) UNIQUE NOT NULL,
-      password VARCHAR(255) NOT NULL,
-      firstName VARCHAR(255) NOT NULL,
-      lastName VARCHAR(255) NOT NULL,
-      company VARCHAR(255),
-      jobTitle VARCHAR(255),
-      location VARCHAR(255),
-      linkedinUrl VARCHAR(500),
-      profileImage VARCHAR(500),
-      points INTEGER DEFAULT 0,
-      level INTEGER DEFAULT 1,
-      userType VARCHAR(50) DEFAULT 'member',
-      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )`);
+    // Run the proper database migration
+    const fs = require('fs');
+    const path = require('path');
+    
+    try {
+      const migrationPath = path.join(__dirname, '../../database/migrations/001_create_initial_schema.sql');
+      const migrationSQL = fs.readFileSync(migrationPath, 'utf8');
+      
+      console.log('🔄 Running database migration...');
+      await db.query(migrationSQL);
+      console.log('✅ Database migration completed successfully');
+      
+    } catch (migrationError) {
+      console.log('⚠️ Migration file not found, using basic schema...');
+      
+      // Fallback to basic schema but with correct column names
+      await db.query(`CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        first_name VARCHAR(255) NOT NULL,
+        last_name VARCHAR(255) NOT NULL,
+        company VARCHAR(255),
+        job_title VARCHAR(255),
+        location VARCHAR(255),
+        linkedin_url VARCHAR(500),
+        profile_image VARCHAR(500),
+        points INTEGER DEFAULT 0,
+        level INTEGER DEFAULT 1,
+        user_type VARCHAR(50) DEFAULT 'member',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )`);
 
-    // Events table
-    await db.query(`CREATE TABLE IF NOT EXISTS events (
-      id SERIAL PRIMARY KEY,
-      title VARCHAR(255) NOT NULL,
-      description TEXT,
-      date TIMESTAMP NOT NULL,
-      location VARCHAR(255),
-      points INTEGER DEFAULT 0,
-      maxAttendees INTEGER,
-      imageUrl VARCHAR(500),
-      category VARCHAR(100),
-      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )`);
+      await db.query(`CREATE TABLE IF NOT EXISTS events (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        event_date TIMESTAMP NOT NULL,
+        location VARCHAR(255),
+        points INTEGER DEFAULT 0,
+        max_attendees INTEGER,
+        image_url VARCHAR(500),
+        category VARCHAR(100),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )`);
 
-    // Jobs table
-    await db.query(`CREATE TABLE IF NOT EXISTS jobs (
-      id SERIAL PRIMARY KEY,
-      title VARCHAR(255) NOT NULL,
-      company VARCHAR(255) NOT NULL,
-      description TEXT,
-      location VARCHAR(255),
-      jobType VARCHAR(100),
-      points INTEGER DEFAULT 0,
-      requirements TEXT,
-      benefits TEXT,
-      salaryRange VARCHAR(100),
-      postedBy INTEGER REFERENCES users(id),
-      createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )`);
+      await db.query(`CREATE TABLE IF NOT EXISTS jobs (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        company VARCHAR(255) NOT NULL,
+        description TEXT,
+        location VARCHAR(255),
+        job_type VARCHAR(100),
+        points INTEGER DEFAULT 0,
+        requirements TEXT,
+        benefits TEXT,
+        salary_range VARCHAR(100),
+        posted_by INTEGER REFERENCES users(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )`);
 
-    console.log('Database tables initialized successfully');
+      await db.query(`CREATE TABLE IF NOT EXISTS announcements (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        content TEXT NOT NULL,
+        category VARCHAR(100),
+        points INTEGER DEFAULT 0,
+        image_url VARCHAR(500),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )`);
+
+      await db.query(`CREATE TABLE IF NOT EXISTS rewards (
+        id SERIAL PRIMARY KEY,
+        title VARCHAR(255) NOT NULL,
+        description TEXT,
+        points_cost INTEGER NOT NULL,
+        category VARCHAR(100),
+        quantity INTEGER DEFAULT 1,
+        image_url VARCHAR(500),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )`);
+
+      await db.query(`CREATE TABLE IF NOT EXISTS points_history (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id),
+        points INTEGER NOT NULL,
+        reason VARCHAR(500),
+        type VARCHAR(50),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )`);
+
+      await db.query(`CREATE TABLE IF NOT EXISTS user_sessions (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id),
+        refresh_token VARCHAR(500) NOT NULL UNIQUE,
+        is_active BOOLEAN DEFAULT TRUE,
+        expires_at TIMESTAMP NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )`);
+    }
+
+    console.log('✅ Database tables initialized successfully');
   } catch (error) {
     console.error('Database initialization error:', error);
     console.log('🚨 Continuing without database - app will run in demo mode');
