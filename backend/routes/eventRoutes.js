@@ -23,7 +23,7 @@ router.get('/upcoming', async (req, res) => {
   try {
     const sql = `
       SELECT * FROM events 
-      WHERE date >= datetime('now')
+      WHERE date >= NOW()
       ORDER BY date ASC
       LIMIT 3
     `;
