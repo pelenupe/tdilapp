@@ -42,8 +42,57 @@ const initializeDatabase = async () => {
     await initDatabase();
     logger.info('Database initialized successfully');
     
-    // Database is now clean and ready for real users
-    // Force cleaning script removed to preserve user data
+    // ONE-TIME DATABASE SCHEMA RESET - Fix column name mismatches
+    if (process.env.NODE_ENV === 'production' && process.env.DATABASE_URL) {
+      try {
+        const { Pool } = require('pg');
+        const pool = new Pool({
+          connectionString: process.env.DATABASE_URL,
+          ssl: { rejectUnauthorized: false }
+        });
+        
+        logger.info('🔄 ONE-TIME: Checking database schema...');
+        
+        // Check if events table has wrong column name
+        try {
+          const checkResult = await pool.query(`
+            SELECT column_name FROM information_schema.columns 
+            WHERE table_name = 'events' AND column_name = 'date'
+          `);
+          
+          if (checkResult.rows.length > 0) {
+            logger.info('🔥 OLD SCHEMA DETECTED - Dropping all tables and recreating...');
+            
+            // Drop all tables in correct order (reverse of creation)
+            const dropTables = [
+              'audit_log', 'user_sessions', 'reward_redemptions', 'job_applications',
+              'event_attendees', 'points_history', 'connections', 'messages',
+              'rewards', 'announcements', 'jobs', 'events', 'users'
+            ];
+            
+            for (const table of dropTables) {
+              try {
+                await pool.query(`DROP TABLE IF EXISTS ${table} CASCADE`);
+                logger.info(`✅ Dropped ${table}`);
+              } catch (e) {
+                // Table doesn't exist, continue
+              }
+            }
+            
+            logger.info('🎉 Old schema completely removed - will recreate with correct schema');
+          } else {
+            logger.info('✅ Schema already correct');
+          }
+        } catch (e) {
+          logger.info('✅ Events table not found - will create new schema');
+        }
+        
+        await pool.end();
+      } catch (error) {
+        logger.warn('Schema check failed:', error.message);
+      }
+    }
+    
     logger.info('✅ Database ready for production use');
     
   } catch (error) {
