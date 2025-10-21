@@ -42,57 +42,18 @@ const initializeDatabase = async () => {
     await initDatabase();
     logger.info('Database initialized successfully');
     
-    // Check for and remove demo data in production
+    // FORCE CLEAN DATABASE - Remove ALL demo data in production
     if (process.env.NODE_ENV === 'production' && process.env.DATABASE_URL) {
       try {
-        const resetScript = require('./scripts/reset-production-db');
+        const forceCleanScript = require('./scripts/force-clean-db');
         
-        // Force cleanup if environment variable is set
-        if (process.env.FORCE_DATABASE_CLEANUP === 'true') {
-          logger.info('🔥 FORCE cleanup triggered - removing ALL data from database');
-          await resetScript();
-          logger.info('✅ Database force-cleaned - ready for real users');
-          return;
-        }
+        logger.info('🔥 PRODUCTION MODE - Force cleaning ALL database data');
+        await forceCleanScript();
+        logger.info('✅ Database completely cleaned - ready for real users');
         
-        // Check if database has demo data (admin@tdil.com user or any existing users)
-        const { Pool } = require('pg');
-        const pool = new Pool({
-          connectionString: process.env.DATABASE_URL,
-          ssl: { rejectUnauthorized: false },
-          connectionTimeoutMillis: 10000,
-          idleTimeoutMillis: 30000,
-          max: 5
-        });
-        
-        try {
-          // First check if users table exists
-          await pool.query("SELECT 1 FROM information_schema.tables WHERE table_name = 'users'");
-          
-          // Check for any existing data (not just admin@tdil.com)
-          const userCount = await pool.query("SELECT COUNT(*) as count FROM users");
-          const eventCount = await pool.query("SELECT COUNT(*) as count FROM events");
-          const rewardCount = await pool.query("SELECT COUNT(*) as count FROM rewards");
-          
-          const totalData = parseInt(userCount.rows[0].count) + 
-                           parseInt(eventCount.rows[0].count) + 
-                           parseInt(rewardCount.rows[0].count);
-          
-          if (totalData > 0) {
-            logger.info(`🔥 Demo data detected (${totalData} records) - cleaning database for production`);
-            await resetScript();
-            logger.info('✅ Database cleaned - ready for real users');
-          } else {
-            logger.info('✅ Database clean - no demo data found');
-          }
-          
-          await pool.end();
-        } catch (dbError) {
-          await pool.end().catch(() => {});
-          logger.warn('Could not check for demo data - tables may not exist yet:', dbError.message);
-        }
       } catch (error) {
-        logger.warn('Demo data cleanup failed:', error.message);
+        logger.warn('Database force clean failed:', error.message);
+        logger.info('⚠️ Continuing with potentially dirty database');
       }
     }
     
