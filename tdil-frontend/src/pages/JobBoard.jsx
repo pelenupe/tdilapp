@@ -24,90 +24,46 @@ export default function JobBoard() {
   }, []);
 
   useEffect(() => {
-    // Mock data for jobs
-    const mockJobs = [
-      {
-        id: 1,
-        title: 'Senior Software Engineer',
-        company: 'Salesforce',
-        location: 'Indianapolis, IN',
-        type: 'Full-time',
-        salary: '$95,000 - $140,000',
-        description: 'Join our growing engineering team building next-generation CRM solutions.',
-        requirements: ['5+ years experience', 'React, Node.js', 'Cloud platforms'],
-        benefits: ['Health insurance', '401k matching', 'Flexible PTO'],
-        postedDate: '2 days ago',
-        category: 'engineering'
-      },
-      {
-        id: 2,
-        title: 'Product Manager',
-        company: 'Eli Lilly',
-        location: 'Indianapolis, IN',
-        type: 'Full-time',
-        salary: '$90,000 - $125,000',
-        description: 'Lead product strategy for pharmaceutical technology platform.',
-        requirements: ['3+ years PM experience', 'Healthcare background', 'Analytical skills'],
-        benefits: ['Health coverage', 'Stock options', 'Development budget'],
-        postedDate: '1 week ago',
-        category: 'product'
-      },
-      {
-        id: 3,
-        title: 'Data Scientist',
-        company: 'Anthem',
-        location: 'Indianapolis, IN',
-        type: 'Full-time',
-        salary: '$80,000 - $110,000',
-        description: 'Analyze healthcare data to drive insights and improve patient outcomes.',
-        requirements: ['MS in Data Science', 'Python, R, SQL', 'Machine learning'],
-        benefits: ['Health insurance', '401k match', 'Tuition reimbursement'],
-        postedDate: '3 days ago',
-        category: 'data'
-      },
-      {
-        id: 4,
-        title: 'UX Designer',
-        company: 'Interactive Intelligence',
-        location: 'Indianapolis, IN',
-        type: 'Full-time',
-        salary: '$70,000 - $95,000',
-        description: 'Design intuitive user experiences for customer communication platform.',
-        requirements: ['3+ years UX/UI', 'Figma/Sketch', 'User research'],
-        benefits: ['Flexible work', 'Health insurance', 'Conference budget'],
-        postedDate: '1 day ago',
-        category: 'design'
-      },
-      {
-        id: 5,
-        title: 'Marketing Manager',
-        company: 'Angie\'s List',
-        location: 'Indianapolis, IN',
-        type: 'Full-time',
-        salary: '$65,000 - $85,000',
-        description: 'Drive growth through digital marketing campaigns and brand strategies.',
-        requirements: ['3+ years marketing', 'Digital advertising', 'Analytics tools'],
-        benefits: ['Health insurance', 'Remote options', 'Career development'],
-        postedDate: '5 days ago',
-        category: 'marketing'
-      },
-      {
-        id: 6,
-        title: 'DevOps Engineer',
-        company: 'Exact Target',
-        location: 'Indianapolis, IN',
-        type: 'Contract',
-        salary: '$85,000 - $115,000',
-        description: 'Build and maintain scalable infrastructure for email marketing platform.',
-        requirements: ['AWS/Azure', 'Docker, Kubernetes', 'CI/CD pipelines'],
-        benefits: ['Competitive rate', 'Flexible schedule', 'Learning budget'],
-        postedDate: '1 week ago',
-        category: 'engineering'
+    // Fetch real jobs from API
+    const fetchJobs = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/jobs');
+        
+        if (response.ok) {
+          const data = await response.json();
+          // Transform data to match frontend format
+          const transformedJobs = data.map(job => ({
+            id: job.id,
+            title: job.title || 'Position Available',
+            company: job.company || 'tDIL Partner Company',
+            location: job.location || 'Indianapolis, IN',
+            type: job.job_type || 'Full-time',
+            salary: job.salary || 'Competitive',
+            description: job.description || 'Join our team and make an impact.',
+            requirements: job.requirements ? job.requirements.split(',').map(r => r.trim()) : ['Experience in relevant field'],
+            benefits: job.benefits ? job.benefits.split(',').map(b => b.trim()) : ['Competitive benefits package'],
+            postedDate: job.created_at ? new Date(job.created_at).toLocaleDateString('en-US', { 
+              year: 'numeric', 
+              month: 'short', 
+              day: 'numeric' 
+            }) : 'Recently posted',
+            category: job.category || 'general'
+          }));
+          setJobs(transformedJobs);
+        } else {
+          console.error('Failed to fetch jobs');
+          setJobs([]); // Show empty state instead of fake data
+        }
+      } catch (error) {
+        console.error('Error fetching jobs:', error);
+        setJobs([]); // Show empty state instead of fake data
+      } finally {
+        setLoading(false);
       }
-    ];
-    
-    setJobs(mockJobs);
-    setLoading(false);
+    };
+
+    fetchJobs();
   }, []);
 
   const handleApply = (jobId) => {

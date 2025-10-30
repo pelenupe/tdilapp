@@ -39,46 +39,9 @@ const server = http.createServer(app);
 // Initialize database on startup
 const initializeDatabase = async () => {
   try {
-    // FIRST: Schema reset if needed (BEFORE initialization)
-    if (process.env.NODE_ENV === 'production' && process.env.DATABASE_URL) {
-      try {
-        const { Pool } = require('pg');
-        const pool = new Pool({
-          connectionString: process.env.DATABASE_URL,
-          ssl: { rejectUnauthorized: false }
-        });
-        
-        logger.info('🔄 PRE-CHECK: Checking database schema...');
-        
-        // Check if ANY tables exist - if so, NUCLEAR RESET (force demo data cleanup)
-        try {
-          const checkResult = await pool.query(`
-            SELECT table_name FROM information_schema.tables 
-            WHERE table_schema = 'public' 
-            AND table_name IN ('events', 'users', 'jobs')
-          `);
-          
-          if (checkResult.rows.length > 0) {
-            logger.info('🔥 EXISTING TABLES DETECTED - FORCING NUCLEAR RESET TO REMOVE DEMO DATA...');
-            
-            // Nuclear option: drop entire public schema and recreate
-            await pool.query('DROP SCHEMA public CASCADE');
-            await pool.query('CREATE SCHEMA public');
-            await pool.query('GRANT ALL ON SCHEMA public TO public');
-            
-            logger.info('💥 NUCLEAR RESET: Entire schema destroyed and recreated - ALL DEMO DATA OBLITERATED');
-          } else {
-            logger.info('✅ No existing tables - fresh database');
-          }
-        } catch (e) {
-          logger.info('✅ Schema check complete');
-        }
-        
-        await pool.end();
-      } catch (error) {
-        logger.warn('Schema check failed:', error.message);
-      }
-    }
+    // DISABLED: Overly aggressive nuclear reset was preventing user persistence
+    // This was eliminating demo data but also wiping real users
+    logger.info('🔄 Database initialization - preserving existing users...');
     
     // SECOND: Initialize database with correct schema
     await initDatabase();
@@ -122,6 +85,8 @@ const eventRoutes = require('./backend/routes/eventRoutes');
 const activityRoutes = require('./backend/routes/activityRoutes');
 const leaderboardRoutes = require('./backend/routes/leaderboardRoutes');
 const adminRoutes = require('./backend/routes/adminRoutes');
+const statsRoutes = require('./backend/routes/statsRoutes');
+const inviteRoutes = require('./backend/routes/inviteRoutes');
 
 // Security middleware configuration
 const helmetOptions = process.env.NODE_ENV === 'production' ? {
@@ -133,6 +98,7 @@ const helmetOptions = process.env.NODE_ENV === 'production' ? {
       imgSrc: ["'self'", "data:", "https:"],
       scriptSrc: ["'self'"],
       connectSrc: ["'self'", "wss:", "ws:"],
+      upgradeInsecureRequests: null, // Disable HTTPS upgrade for HTTP server
     },
   },
   hsts: {
@@ -194,6 +160,7 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS ?
     'http://localhost:5176',
     'http://localhost:5177',
     'https://tdilapp.onrender.com',
+    'http://104.131.63.244:5001',
     process.env.FRONTEND_URL
   ].filter(Boolean);
 
@@ -283,6 +250,8 @@ app.use('/api/events', eventRoutes);
 app.use('/api/activity', activityRoutes);
 app.use('/api/leaderboard', leaderboardRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/stats', statsRoutes);
+app.use('/api/invites', inviteRoutes);
 
 // Serve frontend for all non-API routes in production
 if (process.env.NODE_ENV === 'production') {

@@ -6,12 +6,8 @@ export default function Sidebar() {
   const location = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  const teamMembers = [
-    { id: 1, name: 'John', avatar: 'https://i.pravatar.cc/32?img=1' },
-    { id: 2, name: 'Sarah', avatar: 'https://i.pravatar.cc/32?img=2' },
-    { id: 3, name: 'Mike', avatar: 'https://i.pravatar.cc/32?img=3' },
-    { id: 4, name: 'Emma', avatar: 'https://i.pravatar.cc/32?img=4' }
-  ];
+  // Real team members will be loaded from API when team system is implemented
+  const teamMembers = [];
 
   return (
     <div className={`fixed left-0 top-0 h-full bg-white border-r border-gray-200 transition-all duration-300 z-40 ${

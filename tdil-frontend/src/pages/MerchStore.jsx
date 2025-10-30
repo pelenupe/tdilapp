@@ -24,108 +24,21 @@ export default function MerchStore() {
   }, []);
 
   useEffect(() => {
-    // Mock merchandise data
-    const mockProducts = [
-      {
-        id: 1,
-        name: 'tDIL Logo T-Shirt',
-        price: 25,
-        points: 500,
-        category: 'apparel',
-        image: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=400&fit=crop',
-        description: 'Premium cotton t-shirt with the tDIL logo. Available in navy, black, and white.',
-        sizes: ['S', 'M', 'L', 'XL', 'XXL'],
-        inStock: true,
-        featured: true
-      },
-      {
-        id: 2,
-        name: 'tDIL Hoodie',
-        price: 45,
-        points: 900,
-        category: 'apparel',
-        image: 'https://images.unsplash.com/photo-1556821840-3a63f95609a7?w=400&h=400&fit=crop',
-        description: 'Comfortable pullover hoodie perfect for networking events and casual wear.',
-        sizes: ['S', 'M', 'L', 'XL', 'XXL'],
-        inStock: true,
-        featured: true
-      },
-      {
-        id: 3,
-        name: 'tDIL Water Bottle',
-        price: 15,
-        points: 300,
-        category: 'accessories',
-        image: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=400&h=400&fit=crop',
-        description: 'Stainless steel water bottle with tDIL branding. Keeps drinks cold for 24 hours.',
-        sizes: ['One Size'],
-        inStock: true,
-        featured: false
-      },
-      {
-        id: 4,
-        name: 'tDIL Laptop Stickers',
-        price: 8,
-        points: 150,
-        category: 'accessories',
-        image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=400&fit=crop',
-        description: 'Pack of 5 vinyl stickers featuring tDIL logo and motivational quotes.',
-        sizes: ['One Size'],
-        inStock: true,
-        featured: false
-      },
-      {
-        id: 5,
-        name: 'tDIL Notebook',
-        price: 12,
-        points: 250,
-        category: 'accessories',
-        image: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&h=400&fit=crop',
-        description: 'Professional notebook for taking notes during networking events and meetings.',
-        sizes: ['One Size'],
-        inStock: true,
-        featured: false
-      },
-      {
-        id: 6,
-        name: 'tDIL Baseball Cap',
-        price: 20,
-        points: 400,
-        category: 'apparel',
-        image: 'https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=400&h=400&fit=crop',
-        description: 'Adjustable baseball cap with embroidered tDIL logo.',
-        sizes: ['One Size'],
-        inStock: false,
-        featured: false
-      },
-      {
-        id: 7,
-        name: 'tDIL Tote Bag',
-        price: 18,
-        points: 350,
-        category: 'accessories',
-        image: 'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=400&fit=crop',
-        description: 'Canvas tote bag perfect for carrying materials to networking events.',
-        sizes: ['One Size'],
-        inStock: true,
-        featured: true
-      },
-      {
-        id: 8,
-        name: 'tDIL Coffee Mug',
-        price: 14,
-        points: 280,
-        category: 'accessories',
-        image: 'https://images.unsplash.com/photo-1514228742587-6b1558fcf93a?w=400&h=400&fit=crop',
-        description: 'Ceramic coffee mug with tDIL logo. Microwave and dishwasher safe.',
-        sizes: ['One Size'],
-        inStock: true,
-        featured: false
+    // Fetch real products from API (for now showing empty state)
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        // Future: call '/api/products' or '/api/merch'
+        setProducts([]); // Show empty state instead of fake data
+      } catch (error) {
+        console.error('Error fetching products:', error);
+        setProducts([]); // Show empty state instead of fake data
+      } finally {
+        setLoading(false);
       }
-    ];
+    };
 
-    setProducts(mockProducts);
-    setLoading(false);
+    fetchProducts();
   }, []);
 
   const filteredProducts = products.filter(product => {

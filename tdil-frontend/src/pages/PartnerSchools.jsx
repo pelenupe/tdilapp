@@ -24,82 +24,22 @@ export default function PartnerSchools() {
   }, []);
 
   useEffect(() => {
-    // Mock partner schools data
-    const mockSchools = [
-      {
-        id: 1,
-        name: 'Indiana University',
-        location: 'Bloomington, IN',
-        type: 'Public University',
-        logo: 'https://images.unsplash.com/photo-1562774053-701939374585?w=200&h=200&fit=crop',
-        description: 'Leading research university with strong business and technology programs.',
-        programs: ['Business', 'Computer Science', 'Engineering', 'Data Science'],
-        students: 1250,
-        partnership: 'Premium',
-        benefits: ['Career fairs', 'Mentorship programs', 'Internship opportunities', 'Guest lectures'],
-        website: 'https://www.iu.edu',
-        featured: true
-      },
-      {
-        id: 2,
-        name: 'Purdue University',
-        location: 'West Lafayette, IN',
-        type: 'Public University',
-        logo: 'https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=200&h=200&fit=crop',
-        description: 'World-renowned engineering and technology university.',
-        programs: ['Engineering', 'Computer Science', 'Aviation', 'Business'],
-        students: 980,
-        partnership: 'Premium',
-        benefits: ['Research partnerships', 'Co-op programs', 'Alumni network', 'Innovation labs'],
-        website: 'https://www.purdue.edu',
-        featured: true
-      },
-      {
-        id: 3,
-        name: 'Butler University',
-        location: 'Indianapolis, IN',
-        type: 'Private University',
-        logo: 'https://images.unsplash.com/photo-1607237138185-eedd9c632b0b?w=200&h=200&fit=crop',
-        description: 'Private university known for business and liberal arts excellence.',
-        programs: ['Business', 'Liberal Arts', 'Education', 'Health Sciences'],
-        students: 450,
-        partnership: 'Standard',
-        benefits: ['Networking events', 'Career counseling', 'Job placement', 'Alumni connections'],
-        website: 'https://www.butler.edu',
-        featured: false
-      },
-      {
-        id: 4,
-        name: 'IUPUI',
-        location: 'Indianapolis, IN',
-        type: 'Public University',
-        logo: 'https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=200&h=200&fit=crop',
-        description: 'Urban research university combining IU and Purdue strengths.',
-        programs: ['Medicine', 'Engineering', 'Business', 'Public Health'],
-        students: 720,
-        partnership: 'Premium',
-        benefits: ['Clinical partnerships', 'Research opportunities', 'Urban internships', 'Healthcare network'],
-        website: 'https://www.iupui.edu',
-        featured: true
-      },
-      {
-        id: 5,
-        name: 'DePauw University',
-        location: 'Greencastle, IN',
-        type: 'Private Liberal Arts',
-        logo: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=200&h=200&fit=crop',
-        description: 'Prestigious liberal arts college with strong alumni network.',
-        programs: ['Liberal Arts', 'Business', 'Music', 'Communications'],
-        students: 280,
-        partnership: 'Standard',
-        benefits: ['Liberal arts focus', 'Small class sizes', 'Personal mentoring', 'Alumni network'],
-        website: 'https://www.depauw.edu',
-        featured: false
+    // Fetch real partner schools from API
+    const fetchSchools = async () => {
+      try {
+        setLoading(true);
+        // For now, show empty state since partner schools system isn't implemented
+        // In the future, this would call something like '/api/partners/schools'
+        setSchools([]); // Show empty state instead of fake data
+      } catch (error) {
+        console.error('Error fetching partner schools:', error);
+        setSchools([]); // Show empty state instead of fake data
+      } finally {
+        setLoading(false);
       }
-    ];
+    };
 
-    setSchools(mockSchools);
-    setLoading(false);
+    fetchSchools();
   }, []);
 
   const filteredSchools = schools.filter(school => {

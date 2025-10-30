@@ -22,96 +22,43 @@ export default function Events() {
   }, []);
 
   useEffect(() => {
-    // Mock events data
-    const mockEvents = [
-      {
-        id: 1,
-        title: 'Spring Networking Mixer',
-        date: '2025-04-28',
-        time: '6:00 PM',
-        location: 'The Amp, Indianapolis',
-        type: 'In-person',
-        points: 100,
-        attendees: 45,
-        maxAttendees: 60,
-        description: 'Join us for an evening of networking with fellow tDIL members. Light refreshments will be provided.',
-        image: 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=400&h=250&fit=crop',
-        registered: false
-      },
-      {
-        id: 2,
-        title: 'Resume Workshop',
-        date: '2025-05-05',
-        time: '12:00 PM',
-        location: 'Zoom Webinar',
-        type: 'Virtual',
-        points: 75,
-        attendees: 28,
-        maxAttendees: 50,
-        description: 'Learn how to craft a compelling resume that stands out to employers. Interactive Q&A session included.',
-        image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?w=400&h=250&fit=crop',
-        registered: true
-      },
-      {
-        id: 3,
-        title: 'Executive Panel: Tech Careers',
-        date: '2025-05-15',
-        time: '3:00 PM',
-        location: 'Eli Lilly HQ, Indianapolis',
-        type: 'In-person',
-        points: 200,
-        attendees: 32,
-        maxAttendees: 40,
-        description: 'Hear from tech executives about career paths, industry trends, and networking strategies.',
-        image: 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=400&h=250&fit=crop',
-        registered: false
-      },
-      {
-        id: 4,
-        title: 'Leadership Summit 2025',
-        date: '2025-06-10',
-        time: '9:00 AM',
-        location: 'Indiana Convention Center',
-        type: 'In-person',
-        points: 300,
-        attendees: 120,
-        maxAttendees: 150,
-        description: 'Full-day leadership development summit with keynote speakers and breakout sessions.',
-        image: 'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?w=400&h=250&fit=crop',
-        registered: true
-      },
-      {
-        id: 5,
-        title: 'Monthly Coffee Chat',
-        date: '2025-04-20',
-        time: '8:00 AM',
-        location: 'Starbucks Downtown',
-        type: 'In-person',
-        points: 50,
-        attendees: 12,
-        maxAttendees: 15,
-        description: 'Casual coffee meetup for tDIL members to connect and share experiences.',
-        image: 'https://images.unsplash.com/photo-1521017432531-fbd92d768814?w=400&h=250&fit=crop',
-        registered: false
-      },
-      {
-        id: 6,
-        title: 'Salary Negotiation Workshop',
-        date: '2025-05-22',
-        time: '7:00 PM',
-        location: 'Zoom Webinar',
-        type: 'Virtual',
-        points: 100,
-        attendees: 38,
-        maxAttendees: 75,
-        description: 'Learn effective strategies for negotiating your salary and benefits package.',
-        image: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=400&h=250&fit=crop',
-        registered: false
+    // Fetch real events from API
+    const fetchEvents = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('/api/events');
+        
+        if (response.ok) {
+          const data = await response.json();
+          // Transform data to match frontend format
+          const transformedEvents = data.map(event => ({
+            id: event.id,
+            title: event.title || 'Event',
+            date: event.event_date ? event.event_date.split('T')[0] : new Date().toISOString().split('T')[0],
+            time: event.event_date ? new Date(event.event_date).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : 'TBD',
+            location: event.location || 'TBD',
+            type: event.category === 'virtual' ? 'Virtual' : 'In-person',
+            points: event.points || 50,
+            attendees: Math.floor(Math.random() * 20) + 5, // Temporary until attendee system
+            maxAttendees: event.max_attendees || 50,
+            description: event.description || 'Join us for this exciting tDIL event.',
+            image: event.image_url || 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=400&h=250&fit=crop',
+            registered: false // Temporary until registration system
+          }));
+          setEvents(transformedEvents);
+        } else {
+          console.error('Failed to fetch events');
+          setEvents([]); // Show empty state instead of fake data
+        }
+      } catch (error) {
+        console.error('Error fetching events:', error);
+        setEvents([]); // Show empty state instead of fake data
+      } finally {
+        setLoading(false);
       }
-    ];
+    };
 
-    setEvents(mockEvents);
-    setLoading(false);
+    fetchEvents();
   }, []);
 
   const filteredEvents = events.filter(event => {

@@ -1,10 +1,39 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { query } = require('../config/database');
+const { useToken } = require('./inviteController');
 
 const register = async (req, res) => {
   try {
-    const { firstName, lastName, email, password, company, jobTitle } = req.body;
+    const { firstName, lastName, email, password, company, jobTitle, inviteToken } = req.body;
+
+    // Check if invite token is provided
+    if (!inviteToken) {
+      return res.status(400).json({ 
+        message: 'An invite token is required to register. Please contact an administrator for an invitation.' 
+      });
+    }
+
+    // Validate invite token
+    const tokenCheck = await query(
+      'SELECT * FROM invite_tokens WHERE token = $1 AND is_used = FALSE AND (expires_at IS NULL OR expires_at > NOW())',
+      [inviteToken]
+    );
+
+    if (!tokenCheck.length) {
+      return res.status(400).json({ 
+        message: 'Invalid or expired invite token. Please contact an administrator for a new invitation.' 
+      });
+    }
+
+    const inviteTokenData = tokenCheck[0];
+
+    // If token is associated with a specific email, validate it matches
+    if (inviteTokenData.email && inviteTokenData.email.toLowerCase() !== email.toLowerCase()) {
+      return res.status(400).json({ 
+        message: 'This invite token is associated with a different email address.' 
+      });
+    }
 
     // Check if email already registered
     const existingUsers = await query('SELECT id FROM users WHERE email = $1', [email]);
@@ -25,14 +54,21 @@ const register = async (req, res) => {
 
     const newUserId = inserted[0].id;
 
-    const token = jwt.sign(
+    // Mark invite token as used
+    const tokenUsed = await useToken(inviteToken, newUserId);
+    if (!tokenUsed) {
+      console.error('Failed to mark invite token as used:', inviteToken);
+      // Continue anyway since user is already created
+    }
+
+    const jwtToken = jwt.sign(
       { id: newUserId, email: email },
       process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '7d' }
     );
 
     return res.status(201).json({
-      token,
+      token: jwtToken,
       user: {
         id: newUserId,
         email,

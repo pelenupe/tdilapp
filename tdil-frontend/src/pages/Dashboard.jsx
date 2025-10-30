@@ -73,15 +73,11 @@ export default function Dashboard() {
         setUpcomingEvents(eventsRes.data);
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
-        // Keep mock data as fallback
-        setLeaderboard([
-          { rank: 1, firstName: 'Michael', lastName: 'Johnson', points: 4582, avatar: 'https://i.pravatar.cc/40?img=1' },
-          { rank: 2, firstName: 'Sarah', lastName: 'Williams', points: 3845, avatar: 'https://i.pravatar.cc/40?img=2' },
-          { rank: 3, firstName: 'David', lastName: 'Chen', points: 3210, avatar: 'https://i.pravatar.cc/40?img=3' },
-          { rank: 4, firstName: 'Emma', lastName: 'Rodriguez', points: 2987, avatar: 'https://i.pravatar.cc/40?img=4' },
-          { rank: 5, firstName: 'James', lastName: 'Wilson', points: 2756, avatar: 'https://i.pravatar.cc/40?img=6' },
-          { rank: 12, firstName: 'Jessica', lastName: 'O\'Connor', points: 2450, avatar: user.avatar, isCurrentUser: true }
-        ]);
+        // Show empty state instead of fake data
+        setLeaderboard([]);
+        setAnnouncements([]);
+        setRecentActivity([]);
+        setUpcomingEvents([]);
       } finally {
         setLoading(false);
       }

@@ -10,7 +10,7 @@ export default function Register() {
     password: '', 
     company: '', 
     jobTitle: '', 
-    inviteCode: '' 
+    inviteToken: '' 
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -26,43 +26,44 @@ export default function Register() {
     setError('');
     
     try {
-      // Validate required fields
-      if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
-        setError('Please fill in all required fields.');
+      // Validate required fields including invite token
+      if (!formData.firstName || !formData.lastName || !formData.email || !formData.password || !formData.inviteToken) {
+        setError('Please fill in all required fields, including the invite token.');
         return;
       }
 
-      // Check if email already exists (simulate real validation)
-      const existingUser = localStorage.getItem('user_' + formData.email);
-      if (existingUser) {
-        setError('An account with this email already exists. Please sign in instead.');
-        return;
+      // Make API call to register
+      const response = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          password: formData.password,
+          company: formData.company,
+          jobTitle: formData.jobTitle,
+          inviteToken: formData.inviteToken
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Save user data and token
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+
+        // Redirect to dashboard
+        navigate('/dashboard');
+      } else {
+        setError(data.message || 'Registration failed. Please try again.');
       }
-
-      // Create new user account
-      const newUser = {
-        id: Date.now(),
-        name: `${formData.firstName} ${formData.lastName}`,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        company: formData.company,
-        jobTitle: formData.jobTitle,
-        userType: 'member', // Default to member
-        points: 0,
-        level: 'Beginner',
-        joinedDate: new Date().toISOString(),
-      };
-
-      // Save user data
-      localStorage.setItem('user_' + formData.email, JSON.stringify(newUser));
-      localStorage.setItem('user', JSON.stringify(newUser));
-      localStorage.setItem('token', 'registered-token-' + newUser.id);
-
-      // Redirect to dashboard
-      window.location.href = '/dashboard';
     } catch (err) {
-      setError('Registration failed. Please try again.');
+      console.error('Registration error:', err);
+      setError('Registration failed. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -171,16 +172,20 @@ export default function Register() {
             </div>
             
             <div>
-              <label htmlFor="inviteCode" className="sr-only">Invite Code</label>
+              <label htmlFor="inviteToken" className="sr-only">Invite Token</label>
               <input
-                id="inviteCode"
-                name="inviteCode"
+                id="inviteToken"
+                name="inviteToken"
                 type="text"
-                value={formData.inviteCode}
+                required
+                value={formData.inviteToken}
                 onChange={handleChange}
                 className="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Invite Code (optional)"
+                placeholder="Invite Token (required)"
               />
+              <p className="mt-1 text-xs text-gray-500">
+                Contact an administrator to get your invite token
+              </p>
             </div>
           </div>
 

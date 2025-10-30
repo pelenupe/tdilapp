@@ -24,132 +24,64 @@ export default function Community() {
   }, []);
 
   useEffect(() => {
-    // Mock community members data
-    const mockMembers = [
-      {
-        id: 1,
-        firstName: 'Michael',
-        lastName: 'Johnson',
-        title: 'Senior Software Engineer',
-        company: 'Salesforce',
-        location: 'Indianapolis, IN',
-        points: 4582,
-        level: 8,
-        avatar: 'https://i.pravatar.cc/100?img=1',
-        skills: ['React', 'Node.js', 'Python', 'AWS'],
-        connections: 156,
-        isOnline: true,
-        joinedDate: '2023-01-15'
-      },
-      {
-        id: 2,
-        firstName: 'Sarah',
-        lastName: 'Williams',
-        title: 'Product Manager',
-        company: 'Eli Lilly',
-        location: 'Indianapolis, IN',
-        points: 3845,
-        level: 7,
-        avatar: 'https://i.pravatar.cc/100?img=2',
-        skills: ['Product Strategy', 'Agile', 'Data Analysis', 'Leadership'],
-        connections: 203,
-        isOnline: false,
-        joinedDate: '2023-02-20'
-      },
-      {
-        id: 3,
-        firstName: 'David',
-        lastName: 'Chen',
-        title: 'Data Scientist',
-        company: 'Anthem',
-        location: 'Indianapolis, IN',
-        points: 3210,
-        level: 6,
-        avatar: 'https://i.pravatar.cc/100?img=3',
-        skills: ['Machine Learning', 'Python', 'SQL', 'Tableau'],
-        connections: 89,
-        isOnline: true,
-        joinedDate: '2023-03-10'
-      },
-      {
-        id: 4,
-        firstName: 'Emma',
-        lastName: 'Rodriguez',
-        title: 'UX Designer',
-        company: 'Interactive Intelligence',
-        location: 'Indianapolis, IN',
-        points: 2987,
-        level: 5,
-        avatar: 'https://i.pravatar.cc/100?img=4',
-        skills: ['Figma', 'User Research', 'Prototyping', 'Design Systems'],
-        connections: 134,
-        isOnline: false,
-        joinedDate: '2023-04-05'
-      },
-      {
-        id: 5,
-        firstName: 'James',
-        lastName: 'Wilson',
-        title: 'Marketing Director',
-        company: 'Angie\'s List',
-        location: 'Indianapolis, IN',
-        points: 2756,
-        level: 5,
-        avatar: 'https://i.pravatar.cc/100?img=6',
-        skills: ['Digital Marketing', 'SEO', 'Content Strategy', 'Analytics'],
-        connections: 178,
-        isOnline: true,
-        joinedDate: '2023-05-12'
-      },
-      {
-        id: 6,
-        firstName: 'Lisa',
-        lastName: 'Thompson',
-        title: 'Financial Analyst',
-        company: 'OneAmerica',
-        location: 'Indianapolis, IN',
-        points: 2543,
-        level: 4,
-        avatar: 'https://i.pravatar.cc/100?img=7',
-        skills: ['Financial Modeling', 'Excel', 'PowerBI', 'Risk Analysis'],
-        connections: 67,
-        isOnline: false,
-        joinedDate: '2023-06-18'
-      },
-      {
-        id: 7,
-        firstName: 'Robert',
-        lastName: 'Taylor',
-        title: 'DevOps Engineer',
-        company: 'Genesys',
-        location: 'Indianapolis, IN',
-        points: 2234,
-        level: 4,
-        avatar: 'https://i.pravatar.cc/100?img=8',
-        skills: ['Docker', 'Kubernetes', 'AWS', 'Jenkins'],
-        connections: 92,
-        isOnline: true,
-        joinedDate: '2023-07-22'
-      },
-      {
-        id: 8,
-        firstName: 'Maria',
-        lastName: 'Garcia',
-        title: 'HR Business Partner',
-        company: 'Cummins',
-        location: 'Indianapolis, IN',
-        points: 1987,
-        level: 3,
-        avatar: 'https://i.pravatar.cc/100?img=9',
-        skills: ['Talent Acquisition', 'Employee Relations', 'HRIS', 'Training'],
-        connections: 145,
-        isOnline: false,
-        joinedDate: '2023-08-30'
-      }
-    ];
+    // Fetch real community members from API
+    const fetchMembers = async () => {
+      try {
+        setLoading(true);
+        
+        // Get JWT token from localStorage for authenticated request
+        const token = localStorage.getItem('token');
+        if (!token) {
+          console.error('No authentication token found');
+          setMembers([]);
+          setLoading(false);
+          return;
+        }
 
-    setMembers(mockMembers);
-    setLoading(false);
+        const response = await fetch('/api/members', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          // Transform data to match frontend format
+          const transformedMembers = data.map(member => ({
+            id: member.id,
+            firstName: member.firstname || member.firstName || 'User',
+            lastName: member.lastname || member.lastName || `${member.id}`.slice(0, 8),
+            title: member.jobtitle || member.jobTitle || member.job_title || 'Member',
+            company: member.company || 'tDIL Community',
+            location: 'Indianapolis, IN', // Add location field to database later
+            points: member.points || 0,
+            level: member.level || Math.floor((member.points || 0) / 500) + 1,
+            avatar: member.profilepicurl || member.profilePicUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent((member.firstname || member.firstName || 'User') + '+' + (member.lastname || member.lastName || 'U'))}&background=3B82F6&color=fff`,
+            skills: member.skills ? (Array.isArray(member.skills) ? member.skills : member.skills.split(',').map(s => s.trim())) : [],
+            connections: Math.floor(Math.random() * 200) + 50, // Temporary until connections system
+            isOnline: Math.random() > 0.5, // Temporary until online status system
+            joinedDate: member.created_at || member.createdAt || new Date().toISOString()
+          }));
+          console.log('Fetched members:', transformedMembers); // Debug log
+          setMembers(transformedMembers);
+        } else if (response.status === 401) {
+          console.error('Authentication failed - redirecting to login');
+          // Could redirect to login here
+          setMembers([]);
+        } else {
+          console.error('Failed to fetch members:', response.status, response.statusText);
+          setMembers([]);
+        }
+      } catch (error) {
+        console.error('Error fetching members:', error);
+        setMembers([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMembers();
   }, []);
 
   const filteredMembers = members.filter(member => {

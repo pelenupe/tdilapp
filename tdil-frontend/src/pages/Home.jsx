@@ -26,6 +26,7 @@ export default function Home() {
 
   const [leaderboardData, setLeaderboardData] = useState([]);
   const [upcomingEvents, setUpcomingEvents] = useState([]);
+  const [stats, setStats] = useState({ members: 0, partners: 0, events: 0 });
   const [isLoading, setIsLoading] = useState(true);
 
   // Fetch real data from API
@@ -46,6 +47,17 @@ export default function Home() {
         if (eventsResponse.ok) {
           const events = await eventsResponse.json();
           setUpcomingEvents(events.slice(0, 3)); // Next 3 events
+        }
+
+        // Fetch real statistics
+        const statsResponse = await fetch('/api/stats/overview');
+        if (statsResponse.ok) {
+          const statsData = await statsResponse.json();
+          setStats({
+            members: statsData.totalMembers || 0,
+            partners: statsData.totalPartners || 0,
+            events: statsData.totalEvents || 0
+          });
         }
       } catch (error) {
         console.error('Error fetching home page data:', error);
@@ -120,15 +132,21 @@ export default function Home() {
       {/* Quick Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
         <div className="bg-white rounded-lg sm:rounded-xl p-4 sm:p-6 text-center shadow-sm">
-          <div className="text-2xl sm:text-3xl font-bold text-blue-600 mb-2">500+</div>
+          <div className="text-2xl sm:text-3xl font-bold text-blue-600 mb-2">
+            {isLoading ? '...' : stats.members}
+          </div>
           <div className="text-gray-600 text-sm sm:text-base">Active Members</div>
         </div>
         <div className="bg-white rounded-lg sm:rounded-xl p-4 sm:p-6 text-center shadow-sm">
-          <div className="text-2xl sm:text-3xl font-bold text-green-600 mb-2">50+</div>
+          <div className="text-2xl sm:text-3xl font-bold text-green-600 mb-2">
+            {isLoading ? '...' : stats.partners}
+          </div>
           <div className="text-gray-600 text-sm sm:text-base">Partner Companies</div>
         </div>
         <div className="bg-white rounded-lg sm:rounded-xl p-4 sm:p-6 text-center shadow-sm">
-          <div className="text-2xl sm:text-3xl font-bold text-purple-600 mb-2">100+</div>
+          <div className="text-2xl sm:text-3xl font-bold text-purple-600 mb-2">
+            {isLoading ? '...' : stats.events}
+          </div>
           <div className="text-gray-600 text-sm sm:text-base">Events This Year</div>
         </div>
       </div>

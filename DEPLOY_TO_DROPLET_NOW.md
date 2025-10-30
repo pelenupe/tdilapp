@@ -7,7 +7,7 @@ Copy and paste these commands to deploy the production-ready updates to your dro
 ### 1. Connect to Your Droplet
 ```bash
 # Replace YOUR_DROPLET_IP with your actual droplet IP address
-ssh root@YOUR_DROPLET_IP
+ssh root@104.131.63.244
 ```
 
 ### 2. Navigate to Your App Directory
@@ -44,7 +44,7 @@ DATABASE_URL=postgresql://tdil_user:kakdjkd83en#7jej*re@localhost:5432/tdil_plat
 JWT_SECRET=WnPQXSHGXjN2+YsQNP6+lC4fHmxDM3snEAbCfzNLA9Y=
 JWT_EXPIRES_IN=15m
 JWT_REFRESH_EXPIRES_IN=7d
-FRONTEND_URL=https://tdileapp.kumulushost.com
+FRONTEND_URL=https://tdileapp.com
 RATE_LIMIT_WINDOW_MS=900000
 RATE_LIMIT_MAX_REQUESTS=50
 HELMET_ENABLED=true
