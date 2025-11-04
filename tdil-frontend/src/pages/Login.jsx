@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Logo from '../components/Logo';
+import { login } from '../services/authService';
 
 export default function Login() {
   const [formData, setFormData] = useState({
@@ -26,30 +27,24 @@ export default function Login() {
     setError('');
 
     try {
-      // Make API call to backend authentication endpoint
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password
-        }),
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-        window.location.href = '/dashboard';
-        return;
-      } else {
-        setError(data.message || 'Invalid email or password.');
-      }
+      console.log('Attempting login with:', formData);
+      const response = await login(formData);
+      console.log('Login response:', response);
+      
+      // Store token and user data
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
+      
+      console.log('Stored token:', response.data.token);
+      console.log('Stored user:', response.data.user);
+      
+      // Force a page refresh to trigger App.jsx authentication validation
+      // This ensures the authentication state is updated properly
+      window.location.href = '/dashboard';
     } catch (error) {
-      setError('Login failed. Please check your connection and try again.');
+      console.error('Login error:', error);
+      console.error('Error response:', error.response);
+      setError(error.response?.data?.error || error.response?.data?.message || error.message || 'Login failed. Please check your connection and try again.');
     } finally {
       setIsLoading(false);
     }

@@ -1,36 +1,30 @@
 const express = require('express');
 const router = express.Router();
-const { Pool } = require('pg');
-
-// Get database pool
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
-});
+const { query } = require('../config/database');
 
 // GET /api/stats/overview - Get overview statistics
 router.get('/overview', async (req, res) => {
   try {
     // Get total members count
-    const membersResult = await pool.query('SELECT COUNT(*) as count FROM users');
-    const totalMembers = parseInt(membersResult.rows[0].count) || 0;
+    const membersResult = await query('SELECT COUNT(*) as count FROM users');
+    const totalMembers = parseInt(membersResult[0].count || membersResult[0]['COUNT(*)']) || 0;
 
     // Get total partners count (companies with members)
-    const partnersResult = await pool.query(`
+    const partnersResult = await query(`
       SELECT COUNT(DISTINCT company) as count 
       FROM users 
       WHERE company IS NOT NULL AND company != ''
     `);
-    const totalPartners = parseInt(partnersResult.rows[0].count) || 0;
+    const totalPartners = parseInt(partnersResult[0].count || partnersResult[0]['COUNT(DISTINCT company)']) || 0;
 
     // Get total events count for this year
     const currentYear = new Date().getFullYear();
-    const eventsResult = await pool.query(`
+    const eventsResult = await query(`
       SELECT COUNT(*) as count 
       FROM events 
-      WHERE EXTRACT(YEAR FROM event_date) = $1
-    `, [currentYear]);
-    const totalEvents = parseInt(eventsResult.rows[0].count) || 0;
+      WHERE strftime('%Y', date) = ?
+    `, [currentYear.toString()]);
+    const totalEvents = parseInt(eventsResult[0].count || eventsResult[0]['COUNT(*)']) || 0;
 
     res.json({
       totalMembers,
@@ -52,21 +46,21 @@ router.get('/overview', async (req, res) => {
 router.get('/detailed', async (req, res) => {
   try {
     // Get member statistics by user type
-    const userTypeStats = await pool.query(`
-      SELECT user_type, COUNT(*) as count
+    const userTypeStats = await query(`
+      SELECT userType, COUNT(*) as count
       FROM users 
-      GROUP BY user_type
+      GROUP BY userType
     `);
 
     // Get recent registrations (last 30 days)
-    const recentRegistrations = await pool.query(`
+    const recentRegistrations = await query(`
       SELECT COUNT(*) as count
       FROM users 
-      WHERE created_at >= NOW() - INTERVAL '30 days'
+      WHERE createdAt >= datetime('now', '-30 days')
     `);
 
     // Get top companies by member count
-    const topCompanies = await pool.query(`
+    const topCompanies = await query(`
       SELECT company, COUNT(*) as member_count
       FROM users 
       WHERE company IS NOT NULL AND company != ''
@@ -76,19 +70,19 @@ router.get('/detailed', async (req, res) => {
     `);
 
     // Get event statistics
-    const eventStats = await pool.query(`
+    const eventStats = await query(`
       SELECT 
         COUNT(*) as total_events,
-        COUNT(CASE WHEN event_date >= NOW() THEN 1 END) as upcoming_events,
-        COUNT(CASE WHEN event_date < NOW() THEN 1 END) as past_events
+        COUNT(CASE WHEN date >= datetime('now') THEN 1 END) as upcoming_events,
+        COUNT(CASE WHEN date < datetime('now') THEN 1 END) as past_events
       FROM events
     `);
 
     res.json({
-      userTypeStats: userTypeStats.rows,
-      recentRegistrations: parseInt(recentRegistrations.rows[0].count) || 0,
-      topCompanies: topCompanies.rows,
-      eventStats: eventStats.rows[0],
+      userTypeStats: userTypeStats,
+      recentRegistrations: parseInt(recentRegistrations[0].count || recentRegistrations[0]['COUNT(*)']) || 0,
+      topCompanies: topCompanies,
+      eventStats: eventStats[0],
       timestamp: new Date().toISOString()
     });
 

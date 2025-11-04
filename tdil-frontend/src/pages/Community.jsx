@@ -97,29 +97,71 @@ export default function Community() {
     return matchesSearch;
   });
 
-  const handleConnect = (memberId) => {
-    const member = members.find(m => m.id === memberId);
-    
-    // Update member's connection count
-    setMembers(members.map(m => 
-      m.id === memberId 
-        ? { ...m, connections: m.connections + 1 }
-        : m
-    ));
-    
-    // Show connection alert
-    setConnectionAlerts(prev => ({
-      ...prev,
-      [memberId]: true
-    }));
-    
-    // Hide alert after 3 seconds
-    setTimeout(() => {
-      setConnectionAlerts(prev => ({
-        ...prev,
-        [memberId]: false
-      }));
-    }, 3000);
+  const handleConnect = async (memberId) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error('No authentication token found');
+        return;
+      }
+
+      const response = await fetch('/api/connections', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ targetUserId: memberId })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        
+        // Update member's connection count
+        setMembers(members.map(m => 
+          m.id === memberId 
+            ? { ...m, connections: m.connections + 1 }
+            : m
+        ));
+        
+        // Update user's points display
+        setUserPoints(prev => prev + result.pointsAwarded);
+        
+        // Show connection alert with real points
+        setConnectionAlerts(prev => ({
+          ...prev,
+          [memberId]: `+${result.pointsAwarded} points!`
+        }));
+        
+        // Hide alert after 3 seconds
+        setTimeout(() => {
+          setConnectionAlerts(prev => ({
+            ...prev,
+            [memberId]: false
+          }));
+        }, 3000);
+        
+        console.log('Connection successful:', result);
+      } else {
+        const error = await response.json();
+        console.error('Connection failed:', error.message);
+        
+        // Show error alert
+        setConnectionAlerts(prev => ({
+          ...prev,
+          [memberId]: error.message
+        }));
+        
+        setTimeout(() => {
+          setConnectionAlerts(prev => ({
+            ...prev,
+            [memberId]: false
+          }));
+        }, 3000);
+      }
+    } catch (error) {
+      console.error('Connection error:', error);
+    }
   };
 
   if (loading) {

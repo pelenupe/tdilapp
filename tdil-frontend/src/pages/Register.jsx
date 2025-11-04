@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import Logo from '../components/Logo';
+import { register } from '../services/authService';
 
 export default function Register() {
   const [formData, setFormData] = useState({ 
@@ -33,37 +34,26 @@ export default function Register() {
       }
 
       // Make API call to register
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
-          password: formData.password,
-          company: formData.company,
-          jobTitle: formData.jobTitle,
-          inviteToken: formData.inviteToken
-        }),
+      const response = await register({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        password: formData.password,
+        company: formData.company,
+        jobTitle: formData.jobTitle,
+        inviteToken: formData.inviteToken
       });
 
-      const data = await response.json();
+      // Save user data and token
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
 
-      if (response.ok) {
-        // Save user data and token
-        localStorage.setItem('token', data.token);
-        localStorage.setItem('user', JSON.stringify(data.user));
-
-        // Redirect to dashboard
-        navigate('/dashboard');
-      } else {
-        setError(data.message || 'Registration failed. Please try again.');
-      }
+      // Redirect to dashboard
+      navigate('/dashboard');
+      window.location.reload(); // Force app to re-initialize auth state
     } catch (err) {
       console.error('Registration error:', err);
-      setError('Registration failed. Please check your connection and try again.');
+      setError(err.response?.data?.message || 'Registration failed. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }

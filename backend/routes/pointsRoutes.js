@@ -1,12 +1,34 @@
 const express = require('express');
-const { getPointHistory, getLeaderboard } = require('../controllers/pointsController');
-const { protect } = require('../middleware/authMiddleware');
 const router = express.Router();
+const { authenticateToken } = require('../middleware/enhancedAuthMiddleware');
+const {
+  getUserPoints,
+  getPointsHistory,
+  awardPointsManually,
+  getLeaderboard,
+  getPointsConfig,
+  getPointsStats
+} = require('../controllers/pointsController');
 
-// Fetch current user's points
-router.get('/history', protect, getPointHistory);
+// All routes require authentication
+router.use(authenticateToken);
 
-// Fetch global leaderboard
-router.get('/leaderboard', protect, getLeaderboard);
+// GET /api/points - Get current user's points and level
+router.get('/', getUserPoints);
+
+// GET /api/points/history - Get user's points history
+router.get('/history', getPointsHistory);
+
+// GET /api/points/leaderboard - Get global leaderboard
+router.get('/leaderboard', getLeaderboard);
+
+// POST /api/points/award - Award points manually (admin only)
+router.post('/award', awardPointsManually);
+
+// GET /api/points/config - Get points configuration (admin only)
+router.get('/config', getPointsConfig);
+
+// GET /api/points/stats - Get points statistics (admin only)  
+router.get('/stats', getPointsStats);
 
 module.exports = router;

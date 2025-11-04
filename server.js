@@ -87,6 +87,7 @@ const leaderboardRoutes = require('./backend/routes/leaderboardRoutes');
 const adminRoutes = require('./backend/routes/adminRoutes');
 const statsRoutes = require('./backend/routes/statsRoutes');
 const inviteRoutes = require('./backend/routes/inviteRoutes');
+const connectionRoutes = require('./backend/routes/connectionRoutes');
 
 // Security middleware configuration
 const helmetOptions = process.env.NODE_ENV === 'production' ? {
@@ -154,6 +155,8 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS ?
   [
     'http://localhost:3099',
     'http://localhost:4099',
+    'http://localhost:5000',
+    'http://localhost:5001',
     'http://localhost:5173',
     'http://localhost:5174',
     'http://localhost:5175',
@@ -186,15 +189,13 @@ const maxFileSize = parseInt(process.env.MAX_FILE_SIZE) || 10 * 1024 * 1024; // 
 app.use(express.json({ limit: maxFileSize }));
 app.use(express.urlencoded({ extended: true, limit: maxFileSize }));
 
-// Serve static files from frontend build in production
-if (process.env.NODE_ENV === 'production') {
-  const frontendPath = path.join(__dirname, 'tdil-frontend/dist');
-  app.use(express.static(frontendPath, {
-    maxAge: '1y',
-    etag: true,
-    lastModified: true
-  }));
-}
+// Serve static files from frontend build
+const frontendPath = path.join(__dirname, 'tdil-frontend/dist');
+app.use(express.static(frontendPath, {
+  maxAge: process.env.NODE_ENV === 'production' ? '1y' : '0',
+  etag: true,
+  lastModified: true
+}));
 
 // Health check routes (with authentication for detailed checks)
 app.get('/health', getLivenessCheck);
@@ -252,23 +253,22 @@ app.use('/api/leaderboard', leaderboardRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/invites', inviteRoutes);
+app.use('/api/connections', connectionRoutes);
 
-// Serve frontend for all non-API routes in production
-if (process.env.NODE_ENV === 'production') {
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'tdil-frontend/dist', 'index.html'));
+// API info endpoint for development
+app.get('/api', (req, res) => {
+  res.json({
+    message: 'tDIL Backend API is running 🚀',
+    version: process.env.npm_package_version || '1.0.0',
+    environment: process.env.NODE_ENV || 'development',
+    timestamp: new Date().toISOString()
   });
-} else {
-  // Development root route
-  app.get('/', (req, res) => {
-    res.json({
-      message: 'tDIL Backend API is running 🚀',
-      version: process.env.npm_package_version || '1.0.0',
-      environment: process.env.NODE_ENV || 'development',
-      timestamp: new Date().toISOString()
-    });
-  });
-}
+});
+
+// Serve frontend for all non-API routes
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'tdil-frontend/dist', 'index.html'));
+});
 
 // Initialize Socket.IO with authentication
 initChat(io);

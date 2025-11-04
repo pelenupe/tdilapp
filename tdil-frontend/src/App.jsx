@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import API from './services/api';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -23,17 +24,41 @@ function App() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is logged in (check for token in localStorage)
-    const token = localStorage.getItem('token');
-    if (token && token !== 'demo-token') {
-      setIsAuthenticated(true);
-    } else {
-      // Clear any demo data
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      setIsAuthenticated(false);
-    }
-    setIsLoading(false);
+    const validateAuth = async () => {
+      const token = localStorage.getItem('token');
+      
+      if (!token || token === 'demo-token') {
+        // Clear any invalid or demo data
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        setIsAuthenticated(false);
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        // Validate token with backend
+        const response = await API.get('/auth/me');
+        
+        if (response.data && response.data.user) {
+          // Update user data if token is valid
+          localStorage.setItem('user', JSON.stringify(response.data.user));
+          setIsAuthenticated(true);
+        } else {
+          throw new Error('Invalid response');
+        }
+      } catch (error) {
+        console.error('Auth validation failed:', error);
+        // Token is invalid or expired
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        setIsAuthenticated(false);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    validateAuth();
   }, []);
 
   if (isLoading) {
@@ -53,8 +78,8 @@ function App() {
     <div className="min-h-screen">
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/dashboard" />} />
-        <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to="/dashboard" />} />
+        <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/dashboard" replace />} />
+        <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} />
         <Route path="/community" element={isAuthenticated ? <Community /> : <Navigate to="/login" />} />
         <Route path="/directory" element={isAuthenticated ? <Directory /> : <Navigate to="/login" />} />

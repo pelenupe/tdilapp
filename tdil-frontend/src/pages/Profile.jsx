@@ -25,8 +25,7 @@ export default function Profile() {
 
   useEffect(() => {
     loadProfile();
-    // Award points for viewing profile
-    PointsService.awardPoints('PROFILE_VIEW');
+    // Note: Only award PROFILE_VIEW points when viewing OTHER users' profiles, not your own
   }, []);
 
   const loadProfile = async () => {
@@ -42,7 +41,7 @@ export default function Profile() {
         bio: userData.bio || '',
         points: userData.points || 0,
         level: userData.level || 1,
-        profilePicUrl: userData.profilePicUrl || '',
+        profilePicUrl: userData.profileImage || '',
         userType: userData.userType || 'member'
       });
       setIsLoading(false);
@@ -60,7 +59,7 @@ export default function Profile() {
           bio: userData.bio || '',
           points: userData.points || 0,
           level: userData.level || 1,
-          profilePicUrl: userData.profilePicUrl || '',
+          profilePicUrl: userData.profileImage || userData.profilePicUrl || '',
           userType: userData.userType || 'member'
         });
       } catch (fallbackError) {
@@ -110,10 +109,11 @@ export default function Profile() {
       const updatedUser = response.data.user;
       localStorage.setItem('user', JSON.stringify(updatedUser));
       
-      // Update local state
+      // Update local state with correct field mapping
       setProfile(prevProfile => ({
         ...prevProfile,
-        ...updatedUser
+        ...updatedUser,
+        profilePicUrl: updatedUser.profileImage || updatedUser.profilePicUrl || prevProfile.profilePicUrl
       }));
       
       setIsEditing(false);

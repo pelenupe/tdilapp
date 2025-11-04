@@ -1,19 +1,26 @@
 const { Pool } = require('pg');
+const sqlite3 = require('sqlite3').verbose();
+const { Database } = require('sqlite3');
 
-// PostgreSQL connection for production
+// Database configuration
 let db;
-const isPostgreSQL = true;
+let isPostgreSQL;
 
-// Always use PostgreSQL in production
+const dbType = process.env.DB_TYPE || 'sqlite';
 const connectionString = process.env.DATABASE_URL || process.env.DB_CONNECTION_STRING;
+const sqliteDbPath = process.env.DB_PATH || './backend/database.sqlite';
+
 console.log('🔍 Database connection debug:', {
+  DB_TYPE: dbType,
   DATABASE_URL: process.env.DATABASE_URL ? 'SET' : 'NOT SET',
-  NODE_ENV: process.env.NODE_ENV,
-  connectionString: connectionString ? connectionString.substring(0, 20) + '...' : 'NOT SET'
+  DB_PATH: sqliteDbPath,
+  NODE_ENV: process.env.NODE_ENV
 });
 
-// Only create database pool if we have a connection string
-if (connectionString) {
+// Initialize database based on type
+if (connectionString && (process.env.NODE_ENV === 'production' || dbType === 'postgresql')) {
+  // PostgreSQL for production
+  isPostgreSQL = true;
   db = new Pool({
     connectionString: connectionString,
     ssl: process.env.NODE_ENV === 'production' ? {
@@ -25,21 +32,58 @@ if (connectionString) {
     statement_timeout: 30000,
     query_timeout: 30000
   });
-  console.log('🐘 Using PostgreSQL database (production mode)');
+  console.log('🐘 Using PostgreSQL database');
 } else {
-  db = null;
-  console.log('⚠️ NO DATABASE - Running in demo mode (frontend only)');
+  // SQLite for development
+  isPostgreSQL = false;
+  try {
+    db = new sqlite3.Database(sqliteDbPath, sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE, (err) => {
+      if (err) {
+        console.error('Error opening SQLite database:', err);
+        db = null;
+      } else {
+        console.log('📦 Using SQLite database:', sqliteDbPath);
+      }
+    });
+  } catch (error) {
+    console.error('Failed to create SQLite database:', error);
+    db = null;
+  }
 }
 
-// PostgreSQL query function
+// Universal query function for both PostgreSQL and SQLite
 const query = async (sql, params = []) => {
   if (!db) {
     console.log('⚠️ Database query skipped - running in demo mode');
     return [];
   }
+  
   try {
-    const result = await db.query(sql, params);
-    return result.rows;
+    if (isPostgreSQL) {
+      // PostgreSQL query
+      const result = await db.query(sql, params);
+      return result.rows;
+    } else {
+      // SQLite query
+      return new Promise((resolve, reject) => {
+        if (sql.trim().toUpperCase().startsWith('SELECT')) {
+          db.all(sql, params, (err, rows) => {
+            if (err) reject(err);
+            else resolve(rows || []);
+          });
+        } else if (sql.trim().toUpperCase().startsWith('INSERT')) {
+          db.run(sql, params, function(err) {
+            if (err) reject(err);
+            else resolve([{ id: this.lastID }]);
+          });
+        } else {
+          db.run(sql, params, (err) => {
+            if (err) reject(err);
+            else resolve([]);
+          });
+        }
+      });
+    }
   } catch (error) {
     throw error;
   }
@@ -47,116 +91,110 @@ const query = async (sql, params = []) => {
 
 // Initialize database tables using proper migration
 const initDatabase = async () => {
-  if (!connectionString) {
+  if (!db) {
     console.log('⚠️ No database connection - running without database (demo mode)');
     return Promise.resolve();
   }
 
   try {
     // Test connection first
-    await db.query('SELECT 1');
+    if (isPostgreSQL) {
+      await query('SELECT 1');
+    } else {
+      await query('SELECT 1');
+    }
     console.log('✅ Database connected successfully');
 
-    // Run the proper database migration
-    const fs = require('fs');
-    const path = require('path');
+    // Define schema based on database type
+    const createUserTable = isPostgreSQL 
+      ? `CREATE TABLE IF NOT EXISTS users (
+          id SERIAL PRIMARY KEY,
+          email VARCHAR(255) UNIQUE NOT NULL,
+          password VARCHAR(255) NOT NULL,
+          firstName VARCHAR(255) NOT NULL,
+          lastName VARCHAR(255) NOT NULL,
+          company VARCHAR(255),
+          jobTitle VARCHAR(255),
+          location VARCHAR(255),
+          linkedin_url VARCHAR(500),
+          profile_image VARCHAR(500),
+          points INTEGER DEFAULT 0,
+          level INTEGER DEFAULT 1,
+          userType VARCHAR(50) DEFAULT 'member',  
+          is_active BOOLEAN DEFAULT true,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`
+      : `CREATE TABLE IF NOT EXISTS users (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          email TEXT UNIQUE NOT NULL,
+          password TEXT NOT NULL,
+          firstName TEXT NOT NULL,
+          lastName TEXT NOT NULL,
+          company TEXT,
+          jobTitle TEXT,
+          location TEXT,
+          linkedin_url TEXT,
+          profile_image TEXT,
+          points INTEGER DEFAULT 0,
+          level INTEGER DEFAULT 1,
+          userType TEXT DEFAULT 'member',
+          is_active INTEGER DEFAULT 1,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`;
+
+    const createInviteTokenTable = isPostgreSQL
+      ? `CREATE TABLE IF NOT EXISTS invite_tokens (
+          id SERIAL PRIMARY KEY,
+          token VARCHAR(255) UNIQUE NOT NULL,
+          email VARCHAR(255),
+          created_by INTEGER REFERENCES users(id),
+          used_by INTEGER REFERENCES users(id),
+          is_used BOOLEAN DEFAULT FALSE,
+          expires_at TIMESTAMP,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`
+      : `CREATE TABLE IF NOT EXISTS invite_tokens (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          token TEXT UNIQUE NOT NULL,
+          email TEXT,
+          created_by INTEGER,
+          used_by INTEGER,
+          is_used INTEGER DEFAULT 0,
+          expires_at DATETIME,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`;
+
+    console.log('🔄 Creating database tables...');
+    await query(createUserTable);
+    await query(createInviteTokenTable);
+
+    // Insert default admin user if none exists
+    const existingUsers = await query('SELECT COUNT(*) as count FROM users');
+    const userCount = existingUsers[0]?.count || existingUsers[0]?.['COUNT(*)'] || 0;
     
-    try {
-      const migrationPath = path.join(__dirname, '../../database/migrations/001_create_initial_schema.sql');
-      const migrationSQL = fs.readFileSync(migrationPath, 'utf8');
+    if (userCount === 0) {
+      const bcrypt = require('bcryptjs');
+      const hashedPassword = await bcrypt.hash('TempAdmin2024!', 10);
       
-      console.log('🔄 Running database migration...');
-      await db.query(migrationSQL);
-      console.log('✅ Database migration completed successfully');
+      console.log('👤 Creating default admin user...');
+      await query(
+        `INSERT INTO users (email, password, firstName, lastName, userType, points, level) 
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        ['admin@tdil.com', hashedPassword, 'Admin', 'User', 'admin', 100, 5]
+      );
+
+      // Create a sample invite token
+      const crypto = require('crypto');
+      const inviteToken = crypto.randomBytes(32).toString('hex');
+      await query(
+        `INSERT INTO invite_tokens (token, created_by, is_used) VALUES (?, 1, ?)`,
+        [inviteToken, isPostgreSQL ? false : 0]
+      );
       
-    } catch (migrationError) {
-      console.log('⚠️ Migration file not found, using basic schema...');
-      
-      // Fallback to basic schema but with correct column names
-      await db.query(`CREATE TABLE IF NOT EXISTS users (
-        id SERIAL PRIMARY KEY,
-        email VARCHAR(255) UNIQUE NOT NULL,
-        password VARCHAR(255) NOT NULL,
-        first_name VARCHAR(255) NOT NULL,
-        last_name VARCHAR(255) NOT NULL,
-        company VARCHAR(255),
-        job_title VARCHAR(255),
-        location VARCHAR(255),
-        linkedin_url VARCHAR(500),
-        profile_image VARCHAR(500),
-        points INTEGER DEFAULT 0,
-        level INTEGER DEFAULT 1,
-        user_type VARCHAR(50) DEFAULT 'member',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )`);
-
-      await db.query(`CREATE TABLE IF NOT EXISTS events (
-        id SERIAL PRIMARY KEY,
-        title VARCHAR(255) NOT NULL,
-        description TEXT,
-        event_date TIMESTAMP NOT NULL,
-        location VARCHAR(255),
-        points INTEGER DEFAULT 0,
-        max_attendees INTEGER,
-        image_url VARCHAR(500),
-        category VARCHAR(100),
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )`);
-
-      await db.query(`CREATE TABLE IF NOT EXISTS jobs (
-        id SERIAL PRIMARY KEY,
-        title VARCHAR(255) NOT NULL,
-        company VARCHAR(255) NOT NULL,
-        description TEXT,
-        location VARCHAR(255),
-        job_type VARCHAR(100),
-        points INTEGER DEFAULT 0,
-        requirements TEXT,
-        benefits TEXT,
-        salary_range VARCHAR(100),
-        posted_by INTEGER REFERENCES users(id),
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )`);
-
-      await db.query(`CREATE TABLE IF NOT EXISTS announcements (
-        id SERIAL PRIMARY KEY,
-        title VARCHAR(255) NOT NULL,
-        content TEXT NOT NULL,
-        category VARCHAR(100),
-        points INTEGER DEFAULT 0,
-        image_url VARCHAR(500),
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )`);
-
-      await db.query(`CREATE TABLE IF NOT EXISTS rewards (
-        id SERIAL PRIMARY KEY,
-        title VARCHAR(255) NOT NULL,
-        description TEXT,
-        points_cost INTEGER NOT NULL,
-        category VARCHAR(100),
-        quantity INTEGER DEFAULT 1,
-        image_url VARCHAR(500),
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )`);
-
-      await db.query(`CREATE TABLE IF NOT EXISTS points_history (
-        id SERIAL PRIMARY KEY,
-        user_id INTEGER NOT NULL REFERENCES users(id),
-        points INTEGER NOT NULL,
-        reason VARCHAR(500),
-        type VARCHAR(50),
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )`);
-
-      await db.query(`CREATE TABLE IF NOT EXISTS user_sessions (
-        id SERIAL PRIMARY KEY,
-        user_id INTEGER NOT NULL REFERENCES users(id),
-        refresh_token VARCHAR(500) NOT NULL UNIQUE,
-        is_active BOOLEAN DEFAULT TRUE,
-        expires_at TIMESTAMP NOT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )`);
+      console.log(`✅ Default admin user created (admin@tdil.com / TempAdmin2024!)`);
+      console.log(`✅ Sample invite token created: ${inviteToken}`);
     }
 
     console.log('✅ Database tables initialized successfully');

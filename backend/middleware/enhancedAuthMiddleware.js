@@ -18,20 +18,21 @@ const authenticateToken = async (req, res, next) => {
     // Verify JWT token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
-    // Check if user session is still active
-    const sessionCheck = await query(
-      'SELECT us.*, u.is_active, u.email FROM user_sessions us JOIN users u ON us.user_id = u.id WHERE us.user_id = $1 AND us.is_active = true AND us.expires_at > NOW()',
-      [decoded.userId]
+    // For simple JWT tokens (no session tracking), just validate user exists and is active
+    const userCheck = await query(
+      'SELECT id, email, userType, is_active FROM users WHERE id = ?',
+      [decoded.id]
     );
 
-    if (sessionCheck.length === 0) {
+    if (userCheck.length === 0) {
       return res.status(401).json({ 
-        error: 'Session expired or invalid',
-        code: 'SESSION_INVALID'
+        error: 'User not found',
+        code: 'USER_NOT_FOUND'
       });
     }
 
-    if (!sessionCheck[0].is_active) {
+    const user = userCheck[0];
+    if (!user.is_active) {
       return res.status(401).json({ 
         error: 'Account deactivated',
         code: 'ACCOUNT_DEACTIVATED'
@@ -39,16 +40,16 @@ const authenticateToken = async (req, res, next) => {
     }
 
     req.user = {
-      id: decoded.userId,
-      email: sessionCheck[0].email,
-      userType: decoded.userType,
-      sessionId: sessionCheck[0].id
+      id: decoded.id,
+      email: user.email,
+      userType: decoded.userType || user.userType,
+      sessionId: null // Simple JWT doesn't have sessions
     };
 
     // Update last activity
     await query(
-      'UPDATE users SET last_login_at = NOW() WHERE id = $1',
-      [decoded.userId]
+      'UPDATE users SET updatedAt = datetime(\'now\') WHERE id = ?',
+      [decoded.id]
     );
 
     next();
@@ -158,18 +159,18 @@ const validatePasswordStrength = (password) => {
 const generateTokens = async (userId, userType, sessionId) => {
   const accessToken = jwt.sign(
     { 
-      userId, 
+      id: userId, 
       userType,
       sessionId,
       type: 'access'
     },
     process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN || '15m' }
+    { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
   );
 
   const refreshToken = jwt.sign(
     { 
-      userId, 
+      id: userId, 
       sessionId,
       type: 'refresh'
     },
@@ -187,15 +188,12 @@ const createUserSession = async (userId, refreshToken, req) => {
 
   const sessionResult = await query(
     `INSERT INTO user_sessions 
-     (user_id, refresh_token, ip_address, user_agent, expires_at) 
-     VALUES ($1, $2, $3, $4, $5) 
-     RETURNING id`,
+     (user_id, refresh_token, expires_at) 
+     VALUES (?, ?, ?)`,
     [
       userId,
       refreshToken,
-      req.ip,
-      req.get('User-Agent') || 'Unknown',
-      expiresAt
+      expiresAt.toISOString()
     ]
   );
 
@@ -226,10 +224,10 @@ const refreshTokenMiddleware = async (req, res, next) => {
 
     // Check if session exists and is active
     const session = await query(
-      `SELECT us.*, u.user_type, u.is_active 
+      `SELECT us.*, u.userType, u.is_active 
        FROM user_sessions us 
        JOIN users u ON us.user_id = u.id 
-       WHERE us.id = $1 AND us.refresh_token = $2 AND us.is_active = true AND us.expires_at > NOW()`,
+       WHERE us.id = ? AND us.refresh_token = ? AND us.is_active = 1 AND us.expires_at > datetime('now')`,
       [decoded.sessionId, refreshToken]
     );
 
@@ -248,8 +246,8 @@ const refreshTokenMiddleware = async (req, res, next) => {
     }
 
     req.user = {
-      id: decoded.userId,
-      userType: session[0].user_type,
+      id: decoded.id,
+      userType: session[0].userType,
       sessionId: decoded.sessionId
     };
 
@@ -281,7 +279,7 @@ const refreshTokenMiddleware = async (req, res, next) => {
 const logoutUser = async (userId, sessionId) => {
   try {
     await query(
-      'UPDATE user_sessions SET is_active = false WHERE user_id = $1 AND id = $2',
+      'UPDATE user_sessions SET is_active = 0 WHERE user_id = ? AND id = ?',
       [userId, sessionId]
     );
     return true;
@@ -295,7 +293,7 @@ const logoutUser = async (userId, sessionId) => {
 const logoutAllSessions = async (userId) => {
   try {
     await query(
-      'UPDATE user_sessions SET is_active = false WHERE user_id = $1',
+      'UPDATE user_sessions SET is_active = 0 WHERE user_id = ?',
       [userId]
     );
     return true;
@@ -311,7 +309,7 @@ const logAuditEvent = async (userId, action, resourceType, resourceId, details, 
     await query(
       `INSERT INTO audit_log 
        (user_id, action, resource_type, resource_id, details, ip_address, user_agent) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [userId, action, resourceType, resourceId, JSON.stringify(details), ipAddress, userAgent]
     );
   } catch (error) {
@@ -323,7 +321,7 @@ const logAuditEvent = async (userId, action, resourceType, resourceId, details, 
 const cleanupExpiredSessions = async () => {
   try {
     const result = await query(
-      'UPDATE user_sessions SET is_active = false WHERE expires_at < NOW() AND is_active = true'
+      'UPDATE user_sessions SET is_active = 0 WHERE expires_at < datetime(\'now\') AND is_active = 1'
     );
     console.log(`Cleaned up ${result.rowCount || 0} expired sessions`);
   } catch (error) {

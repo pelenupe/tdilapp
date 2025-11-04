@@ -16,7 +16,7 @@ const register = async (req, res) => {
 
     // Validate invite token
     const tokenCheck = await query(
-      'SELECT * FROM invite_tokens WHERE token = $1 AND is_used = FALSE AND (expires_at IS NULL OR expires_at > NOW())',
+      'SELECT * FROM invite_tokens WHERE token = ? AND is_used = 0 AND (expires_at IS NULL OR expires_at > datetime(\'now\'))',
       [inviteToken]
     );
 
@@ -36,7 +36,7 @@ const register = async (req, res) => {
     }
 
     // Check if email already registered
-    const existingUsers = await query('SELECT id FROM users WHERE email = $1', [email]);
+    const existingUsers = await query('SELECT id FROM users WHERE email = ?', [email]);
     if (existingUsers && existingUsers.length > 0) {
       return res.status(400).json({ message: 'Email already in use.' });
     }
@@ -46,9 +46,8 @@ const register = async (req, res) => {
 
     // Create user and return id
     const inserted = await query(
-      `INSERT INTO users (email, password, firstName, lastName, company, jobTitle, points, level)
-       VALUES ($1, $2, $3, $4, $5, $6, 0, 1)
-       RETURNING id`,
+      `INSERT INTO users (email, password, firstName, lastName, company, jobTitle, points, level, userType)
+       VALUES (?, ?, ?, ?, ?, ?, 0, 1, 'member')`,
       [email, hashedPassword, firstName, lastName, company || '', jobTitle || '']
     );
 
@@ -90,7 +89,7 @@ const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const users = await query('SELECT * FROM users WHERE email = $1', [email]);
+    const users = await query('SELECT * FROM users WHERE email = ?', [email]);
     const user = users[0];
     if (!user) {
       return res.status(400).json({ message: 'Invalid credentials.' });
@@ -127,10 +126,46 @@ const login = async (req, res) => {
   }
 };
 
+// Get current user information
+const me = async (req, res) => {
+  try {
+    // User info is attached by auth middleware
+    const userId = req.user.id;
+
+    const users = await query(
+      'SELECT id, email, firstName, lastName, company, jobTitle, points, level, userType FROM users WHERE id = ?',
+      [userId]
+    );
+    
+    if (!users.length) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    
+    const user = users[0];
+    
+    res.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        company: user.company,
+        jobTitle: user.jobTitle,
+        points: user.points,
+        level: user.level,
+        userType: user.userType || 'member'
+      }
+    });
+  } catch (error) {
+    console.error('Error getting user info:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 // LinkedIn OAuth Placeholder
 const linkedinAuth = async (req, res) => {
   // Here you'd handle OAuth handshake with LinkedIn API
   res.json({ message: 'LinkedIn OAuth not yet implemented.' });
 };
 
-module.exports = { register, login, linkedinAuth };
+module.exports = { register, login, me, linkedinAuth };
