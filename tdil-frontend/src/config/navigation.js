@@ -9,8 +9,6 @@ export const navigationItems = [
   { name: 'Events', href: '/events', icon: '📅', path: '/events' },
   { name: 'Merch Store', href: '/merch-store', icon: '🛒', path: '/merch-store' },
   { name: 'Partner Schools', href: '/partner-schools', icon: '🎓', path: '/partner-schools' },
-  { name: 'Podcasts', href: '/podcasts', icon: '🎙️', path: '/podcasts' },
-  { name: 'Sponsors', href: '/sponsors', icon: '⭐', path: '/sponsors' },
   { name: 'Rewards', href: '/rewards', icon: '🎁', path: '/rewards' },
   { name: 'Donate', href: '/donate', icon: '💝', path: '/donate' }
 ];

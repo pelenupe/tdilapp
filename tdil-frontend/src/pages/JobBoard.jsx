@@ -8,7 +8,7 @@ export default function JobBoard() {
   const [appliedJobs, setAppliedJobs] = useState(new Set());
   const [filter, setFilter] = useState('all');
   const [user, setUser] = useState({ userType: 'member' });
-  const [userPoints, setUserPoints] = useState(2450);
+  const [userPoints, setUserPoints] = useState(0);
 
   // Load user data from localStorage
   useEffect(() => {
@@ -17,7 +17,7 @@ export default function JobBoard() {
       setUser({
         userType: userData.userType || 'member'
       });
-      setUserPoints(userData.points || 2450);
+      setUserPoints(userData.points || 0);
     } catch (error) {
       console.error('Error loading user data:', error);
     }

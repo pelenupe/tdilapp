@@ -8,7 +8,7 @@ export default function MerchStore() {
   const [filter, setFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState({ userType: 'member' });
-  const [userPoints, setUserPoints] = useState(2450);
+  const [userPoints, setUserPoints] = useState(0);
 
   // Load user data from localStorage
   useEffect(() => {
@@ -17,7 +17,7 @@ export default function MerchStore() {
       setUser({
         userType: userData.userType || 'member'
       });
-      setUserPoints(userData.points || 2450);
+      setUserPoints(userData.points || 0);
     } catch (error) {
       console.error('Error loading user data:', error);
     }
@@ -28,11 +28,10 @@ export default function MerchStore() {
     const fetchProducts = async () => {
       try {
         setLoading(true);
-        // Future: call '/api/products' or '/api/merch'
-        setProducts([]); // Show empty state instead of fake data
+        setProducts([]);
       } catch (error) {
         console.error('Error fetching products:', error);
-        setProducts([]); // Show empty state instead of fake data
+        setProducts([]);
       } finally {
         setLoading(false);
       }

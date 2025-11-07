@@ -7,7 +7,7 @@ export default function Community() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState('all');
   const [loading, setLoading] = useState(true);
-  const [userPoints, setUserPoints] = useState(2450);
+  const [userPoints, setUserPoints] = useState(0);
   const [connectionAlerts, setConnectionAlerts] = useState({});
   const [user, setUser] = useState({ userType: 'member' });
 
@@ -59,8 +59,8 @@ export default function Community() {
             level: member.level || Math.floor((member.points || 0) / 500) + 1,
             avatar: member.profilepicurl || member.profilePicUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent((member.firstname || member.firstName || 'User') + '+' + (member.lastname || member.lastName || 'U'))}&background=3B82F6&color=fff`,
             skills: member.skills ? (Array.isArray(member.skills) ? member.skills : member.skills.split(',').map(s => s.trim())) : [],
-            connections: Math.floor(Math.random() * 200) + 50, // Temporary until connections system
-            isOnline: Math.random() > 0.5, // Temporary until online status system
+            connections: member.connections_count || 0,
+            isOnline: member.is_online || false,
             joinedDate: member.created_at || member.createdAt || new Date().toISOString()
           }));
           console.log('Fetched members:', transformedMembers); // Debug log

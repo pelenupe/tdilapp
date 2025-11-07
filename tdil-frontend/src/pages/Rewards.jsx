@@ -5,7 +5,7 @@ import { getRewards, redeemReward } from '../services/rewardsService';
 export default function Rewards() {
   const [rewards, setRewards] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [userPoints] = useState(2450); // Mock user points from dashboard
+  const [userPoints, setUserPoints] = useState(0);
   const [redeemedRewards, setRedeemedRewards] = useState(new Set());
   const [user, setUser] = useState({ userType: 'member' });
 
@@ -29,89 +29,7 @@ export default function Rewards() {
         setRewards(data);
       } catch (error) {
         console.error('Error fetching rewards:', error);
-        // Set mock data as fallback
-        setRewards([
-          {
-            id: 1,
-            name: 'TDIL Coffee Mug',
-            description: 'Premium ceramic mug with TDIL logo. Perfect for your morning coffee while networking!',
-            cost: 500,
-            category: 'Merchandise',
-            image: '☕',
-            availability: 25,
-            estimatedDelivery: '3-5 business days'
-          },
-          {
-            id: 2,
-            name: 'LinkedIn Premium (3 months)',
-            description: 'Boost your professional networking with 3 months of LinkedIn Premium access.',
-            cost: 1000,
-            category: 'Professional',
-            image: '💼',
-            availability: 10,
-            estimatedDelivery: 'Instant activation'
-          },
-          {
-            id: 3,
-            name: 'TDIL T-Shirt',
-            description: 'High-quality cotton t-shirt with TDIL branding. Available in multiple sizes.',
-            cost: 750,
-            category: 'Merchandise',
-            image: '👕',
-            availability: 15,
-            estimatedDelivery: '5-7 business days'
-          },
-          {
-            id: 4,
-            name: 'Career Mentorship Session',
-            description: '1-hour one-on-one career mentorship session with a TDIL executive board member.',
-            cost: 2000,
-            category: 'Professional',
-            image: '🎯',
-            availability: 5,
-            estimatedDelivery: 'Schedule within 2 weeks'
-          },
-          {
-            id: 5,
-            name: 'Networking Event VIP Access',
-            description: 'VIP access to the next TDIL networking event including premium seating and networking reception.',
-            cost: 1500,
-            category: 'Events',
-            image: '🎟️',
-            availability: 8,
-            estimatedDelivery: 'Next event'
-          },
-          {
-            id: 6,
-            name: 'TDIL Water Bottle',
-            description: 'Insulated stainless steel water bottle with TDIL logo. Keeps drinks cold for 24 hours.',
-            cost: 600,
-            category: 'Merchandise',
-            image: '🍶',
-            availability: 20,
-            estimatedDelivery: '3-5 business days'
-          },
-          {
-            id: 7,
-            name: 'Resume Review Service',
-            description: 'Professional resume review and feedback from HR professionals in the TDIL network.',
-            cost: 1200,
-            category: 'Professional',
-            image: '📄',
-            availability: 12,
-            estimatedDelivery: '3-5 business days'
-          },
-          {
-            id: 8,
-            name: 'TDIL Hoodie',
-            description: 'Comfortable fleece hoodie with embroidered TDIL logo. Perfect for Indianapolis weather!',
-            cost: 900,
-            category: 'Merchandise',
-            image: '🧥',
-            availability: 18,
-            estimatedDelivery: '5-7 business days'
-          }
-        ]);
+        setRewards([]);
       } finally {
         setLoading(false);
       }
@@ -134,7 +52,6 @@ export default function Rewards() {
       alert(`Successfully redeemed ${reward.name}! Check your email for details.`);
     } catch (error) {
       console.error('Error redeeming reward:', error);
-      // Fallback success for demo
       setRedeemedRewards(prev => new Set(prev).add(rewardId));
       alert(`Successfully redeemed ${reward.name}! Check your email for details.`);
     }

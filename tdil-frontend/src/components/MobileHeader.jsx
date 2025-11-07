@@ -36,7 +36,6 @@ export default function MobileHeader({ userType = 'member' }) {
           { label: 'Job Board', path: '/jobs' },
           { label: 'Rewards', path: '/rewards' },
           { label: 'Merch Store', path: '/merch-store' },
-          { label: 'Podcasts', path: '/podcasts' },
           { label: 'Profile', path: '/profile' }
         ];
     }

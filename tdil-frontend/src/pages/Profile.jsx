@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { Camera, Upload, User, Mail, Building, Briefcase, Award, Star } from 'lucide-react';
 import PageLayout from '../components/PageLayout';
 import PointsService from '../services/pointsService';
 import { getMyProfile, updateProfile } from '../services/profileService';
 
 export default function Profile() {
+  const { id } = useParams(); // Get user ID from URL parameter
   const [profile, setProfile] = useState({
     firstName: '',
     lastName: '',
@@ -22,15 +24,38 @@ export default function Profile() {
   const [isSaving, setIsSaving] = useState(false);
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
+  const [isOwnProfile, setIsOwnProfile] = useState(true);
 
   useEffect(() => {
     loadProfile();
-    // Note: Only award PROFILE_VIEW points when viewing OTHER users' profiles, not your own
-  }, []);
+  }, [id]);
 
   const loadProfile = async () => {
     try {
-      const response = await getMyProfile();
+      const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+      const isViewingOwnProfile = !id || id === currentUser.id?.toString();
+      setIsOwnProfile(isViewingOwnProfile);
+
+      let response;
+      if (isViewingOwnProfile) {
+        // Load current user's profile
+        response = await getMyProfile();
+      } else {
+        // Load other user's profile
+        const token = localStorage.getItem('token');
+        response = await fetch(`/api/members/${id}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        if (!response.ok) throw new Error('Failed to fetch profile');
+        response = { data: await response.json() };
+        
+        // Award PROFILE_VIEW points for viewing another user's profile
+        PointsService.awardPoints('PROFILE_VIEW', `Viewed ${response.data.firstName} ${response.data.lastName}'s profile`);
+      }
+
       const userData = response.data;
       setProfile({
         firstName: userData.firstName || '',
@@ -47,23 +72,25 @@ export default function Profile() {
       setIsLoading(false);
     } catch (error) {
       console.error('Error loading profile:', error);
-      // Fallback to localStorage if API fails
-      try {
-        const userData = JSON.parse(localStorage.getItem('user') || '{}');
-        setProfile({
-          firstName: userData.firstName || '',
-          lastName: userData.lastName || '',
-          email: userData.email || '',
-          company: userData.company || '',
-          jobTitle: userData.jobTitle || '',
-          bio: userData.bio || '',
-          points: userData.points || 0,
-          level: userData.level || 1,
-          profilePicUrl: userData.profileImage || userData.profilePicUrl || '',
-          userType: userData.userType || 'member'
-        });
-      } catch (fallbackError) {
-        console.error('Fallback error:', fallbackError);
+      // Fallback to localStorage if API fails (for own profile only)
+      if (!id) {
+        try {
+          const userData = JSON.parse(localStorage.getItem('user') || '{}');
+          setProfile({
+            firstName: userData.firstName || '',
+            lastName: userData.lastName || '',
+            email: userData.email || '',
+            company: userData.company || '',
+            jobTitle: userData.jobTitle || '',
+            bio: userData.bio || '',
+            points: userData.points || 0,
+            level: userData.level || 1,
+            profilePicUrl: userData.profileImage || userData.profilePicUrl || '',
+            userType: userData.userType || 'member'
+          });
+        } catch (fallbackError) {
+          console.error('Fallback error:', fallbackError);
+        }
       }
       setIsLoading(false);
     }
@@ -159,7 +186,7 @@ export default function Profile() {
     );
   }
 
-  const headerActions = (
+  const headerActions = isOwnProfile ? (
     <div className="flex items-center gap-3">
       {!isEditing ? (
         <button
@@ -189,13 +216,13 @@ export default function Profile() {
         </div>
       )}
     </div>
-  );
+  ) : null;
 
   return (
     <PageLayout
       userType={profile.userType}
-      title="My Profile"
-      subtitle="Manage your personal information and preferences"
+      title={isOwnProfile ? "My Profile" : `${profile.firstName} ${profile.lastName}`}
+      subtitle={isOwnProfile ? "Manage your personal information and preferences" : "Member Profile"}
       userPoints={profile.points}
       headerActions={headerActions}
     >
@@ -235,7 +262,7 @@ export default function Profile() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
-                  {isEditing ? (
+                  {isOwnProfile && isEditing ? (
                     <input
                       type="text"
                       name="firstName"
@@ -250,7 +277,7 @@ export default function Profile() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
-                  {isEditing ? (
+                  {isOwnProfile && isEditing ? (
                     <input
                       type="text"
                       name="lastName"
@@ -273,7 +300,7 @@ export default function Profile() {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Company</label>
-                  {isEditing ? (
+                  {isOwnProfile && isEditing ? (
                     <input
                       type="text"
                       name="company"
@@ -291,7 +318,7 @@ export default function Profile() {
 
                 <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Job Title</label>
-                  {isEditing ? (
+                  {isOwnProfile && isEditing ? (
                     <input
                       type="text"
                       name="jobTitle"
@@ -313,7 +340,7 @@ export default function Profile() {
           {/* Bio Section */}
           <div className="mt-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">Bio</label>
-            {isEditing ? (
+            {isOwnProfile && isEditing ? (
               <textarea
                 name="bio"
                 value={profile.bio}

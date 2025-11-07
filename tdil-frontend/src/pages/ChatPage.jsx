@@ -6,11 +6,10 @@ export default function ChatPage() {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
-  const [onlineUsers] = useState([]); // Empty - no fake users
+  const [onlineUsers] = useState([]);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
-    // No fake messages - start with empty chat
     setMessages([]);
     setLoading(false);
   }, []);

@@ -14,8 +14,6 @@ import Events from './pages/Events';
 import Community from './pages/Community';
 import MerchStore from './pages/MerchStore';
 import PartnerSchools from './pages/PartnerSchools';
-import Podcasts from './pages/Podcasts';
-import Sponsors from './pages/Sponsors';
 import Donate from './pages/Donate';
 import Settings from './pages/Settings';
 
@@ -88,10 +86,9 @@ function App() {
         <Route path="/merch-store" element={isAuthenticated ? <MerchStore /> : <Navigate to="/login" />} />
         <Route path="/partner-schools" element={isAuthenticated ? <PartnerSchools /> : <Navigate to="/login" />} />
         <Route path="/profile" element={isAuthenticated ? <Profile /> : <Navigate to="/login" />} />
+        <Route path="/profile/:id" element={isAuthenticated ? <Profile /> : <Navigate to="/login" />} />
         <Route path="/chat" element={isAuthenticated ? <ChatPage /> : <Navigate to="/login" />} />
         <Route path="/rewards" element={isAuthenticated ? <Rewards /> : <Navigate to="/login" />} />
-        <Route path="/podcasts" element={isAuthenticated ? <Podcasts /> : <Navigate to="/login" />} />
-        <Route path="/sponsors" element={isAuthenticated ? <Sponsors /> : <Navigate to="/login" />} />
         <Route path="/donate" element={isAuthenticated ? <Donate /> : <Navigate to="/login" />} />
         <Route path="/settings" element={isAuthenticated ? <Settings /> : <Navigate to="/login" />} />
       </Routes>

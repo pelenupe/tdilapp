@@ -6,7 +6,7 @@ export default function Events() {
   const [events, setEvents] = useState([]);
   const [filter, setFilter] = useState('all');
   const [loading, setLoading] = useState(true);
-  const [userPoints, setUserPoints] = useState(2450);
+  const [userPoints, setUserPoints] = useState(0);
   const [user, setUser] = useState({ userType: 'member' });
 
   // Load user data from localStorage
@@ -16,6 +16,7 @@ export default function Events() {
       setUser({
         userType: userData.userType || 'member'
       });
+      setUserPoints(userData.points || 0);
     } catch (error) {
       console.error('Error loading user data:', error);
     }
@@ -39,20 +40,20 @@ export default function Events() {
             location: event.location || 'TBD',
             type: event.category === 'virtual' ? 'Virtual' : 'In-person',
             points: event.points || 50,
-            attendees: Math.floor(Math.random() * 20) + 5, // Temporary until attendee system
+            attendees: event.current_attendees || 0,
             maxAttendees: event.max_attendees || 50,
             description: event.description || 'Join us for this exciting tDIL event.',
             image: event.image_url || 'https://images.unsplash.com/photo-1511795409834-ef04bbd61622?w=400&h=250&fit=crop',
-            registered: false // Temporary until registration system
+            registered: false
           }));
           setEvents(transformedEvents);
         } else {
           console.error('Failed to fetch events');
-          setEvents([]); // Show empty state instead of fake data
+          setEvents([]);
         }
       } catch (error) {
         console.error('Error fetching events:', error);
-        setEvents([]); // Show empty state instead of fake data
+        setEvents([]);
       } finally {
         setLoading(false);
       }

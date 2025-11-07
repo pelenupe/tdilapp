@@ -6,7 +6,6 @@ const POINT_VALUES = {
   CHAT_MESSAGE: 5,
   PARTNER_SCHOOL_VIEW: 15,
   JOB_APPLICATION: 30,
-  PODCAST_LISTEN: 20,
   DONATION: 100,
   EVENT_ATTENDANCE: 40,
   REWARD_REDEMPTION: -50, // Points spent
@@ -106,9 +105,6 @@ class PointsService {
           return timeDiff < oneHour && activity.activityType === activityType;
         case 'CHAT_MESSAGE':
           return false; // Allow multiple chat messages
-        case 'PODCAST_LISTEN':
-          return activity.activityType === activityType && 
-                 activity.metadata?.podcastId === metadata?.podcastId;
         case 'PARTNER_SCHOOL_VIEW':
           return timeDiff < oneHour && activity.activityType === activityType &&
                  activity.metadata?.schoolId === metadata?.schoolId;
@@ -131,7 +127,6 @@ class PointsService {
       CHAT_MESSAGE: 'Sent a chat message',
       PARTNER_SCHOOL_VIEW: 'Viewed partner school information',
       JOB_APPLICATION: 'Applied for a job',
-      PODCAST_LISTEN: 'Listened to a podcast',
       DONATION: 'Made a donation',
       EVENT_ATTENDANCE: 'Attended an event',
       REWARD_REDEMPTION: 'Redeemed a reward',

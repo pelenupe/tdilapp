@@ -43,7 +43,7 @@ const getProfile = async (req, res) => {
 // Update profile
 const updateProfile = async (req, res) => {
   try {
-    const { firstName, lastName, company, jobTitle, bio } = req.body;
+    const { firstName, lastName, company, jobTitle, bio, profileImage, profilePicUrl } = req.body;
     const userId = req.user.id;
 
     // Build update query dynamically based on provided fields
@@ -71,9 +71,14 @@ const updateProfile = async (req, res) => {
       params.push(bio);
     }
 
-    // Handle file uploads (simplified for now - can enhance later)
+    // Handle profileImage from frontend (either profileImage or profilePicUrl)
+    if (profileImage !== undefined || profilePicUrl !== undefined) {
+      updates.push(`profileImage = ?`);
+      params.push(profileImage || profilePicUrl || null);
+    }
+
+    // Handle file uploads (if sent as multipart)
     if (req.files && req.files.profilePic) {
-      // For now, just store a placeholder. In production, upload to S3 or similar
       updates.push(`profileImage = ?`);
       params.push('/uploads/profile-pics/' + Date.now() + '.jpg');
     }
