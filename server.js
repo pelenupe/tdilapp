@@ -190,7 +190,9 @@ app.use(express.json({ limit: maxFileSize }));
 app.use(express.urlencoded({ extended: true, limit: maxFileSize }));
 
 // Serve static files from frontend build
-const frontendPath = path.join(__dirname, 'tdil-frontend/dist');
+const frontendPath = process.env.NODE_ENV === 'production' 
+  ? path.join(__dirname, 'public') 
+  : path.join(__dirname, 'tdil-frontend/dist');
 app.use(express.static(frontendPath, {
   maxAge: process.env.NODE_ENV === 'production' ? '1y' : '0',
   etag: true,
@@ -267,7 +269,10 @@ app.get('/api', (req, res) => {
 
 // Serve frontend for all non-API routes
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'tdil-frontend/dist', 'index.html'));
+  const indexPath = process.env.NODE_ENV === 'production' 
+    ? path.join(__dirname, 'public', 'index.html')
+    : path.join(__dirname, 'tdil-frontend/dist', 'index.html');
+  res.sendFile(indexPath);
 });
 
 // Initialize Socket.IO with authentication
