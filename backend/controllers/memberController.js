@@ -1,4 +1,5 @@
 const { query } = require('../config/database');
+const { uploadFile } = require('../services/s3Service');
 
 // Fetch all members (with optional filters)
 const getMembers = async (req, res) => {
@@ -77,10 +78,17 @@ const updateProfile = async (req, res) => {
       params.push(profileImage || profilePicUrl || null);
     }
 
-    // Handle file uploads (if sent as multipart)
+    // Handle file uploads (if sent as multipart) - Upload to S3
     if (req.files && req.files.profilePic) {
-      updates.push(`profileImage = ?`);
-      params.push('/uploads/profile-pics/' + Date.now() + '.jpg');
+      try {
+        const profilePicUrl = await uploadFile(req.files.profilePic[0]);
+        updates.push(`profileImage = ?`);
+        params.push(profilePicUrl);
+        console.log('Profile picture uploaded to S3:', profilePicUrl);
+      } catch (error) {
+        console.error('S3 upload error:', error);
+        return res.status(500).json({ message: 'Failed to upload profile picture' });
+      }
     }
 
     if (updates.length === 0) {
