@@ -2,6 +2,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { memberNavigation } from '../config/navigation';
 import { useUser } from '../contexts/UserContext';
 import Logo from './Logo';
+import ProfilePictureUpload from './ProfilePictureUpload';
 
 export default function SidebarMember() {
   const { user, clearUser } = useUser();
@@ -22,17 +23,29 @@ export default function SidebarMember() {
             <Logo variant="compact" size="md" />
           </div>
 
-          {/* User info */}
-          <div className="px-4 py-3 border-b border-gray-200">
-            <div className="flex items-center">
-              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                <span className="text-blue-600 font-semibold text-sm">
-                  {user.firstName?.[0]}{user.lastName?.[0]}
-                </span>
-              </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-700">{user.firstName} {user.lastName}</p>
-                <p className="text-xs text-gray-500">{user.points?.toLocaleString() || 0} points</p>
+          {/* User info with Profile Picture */}
+          <div className="px-4 py-4 border-b border-gray-200">
+            <div className="flex items-center space-x-3">
+              {user.profileImage ? (
+                <img 
+                  src={user.profileImage} 
+                  alt={`${user.firstName} ${user.lastName}`}
+                  className="w-12 h-12 rounded-full object-cover border-2 border-gray-200"
+                />
+              ) : (
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center border-2 border-gray-200">
+                  <span className="text-blue-600 font-semibold text-sm">
+                    {user.firstName?.[0]}{user.lastName?.[0]}
+                  </span>
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-700 truncate">
+                  {user.firstName} {user.lastName}
+                </p>
+                <p className="text-xs text-gray-500">
+                  {user.points?.toLocaleString() || 0} points
+                </p>
               </div>
             </div>
           </div>
