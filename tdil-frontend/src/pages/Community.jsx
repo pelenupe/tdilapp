@@ -24,8 +24,8 @@ export default function Community() {
   }, []);
 
   useEffect(() => {
-    // Fetch real community members from API
-    const fetchMembers = async () => {
+    // Fetch only connected members from API
+    const fetchConnectedMembers = async () => {
       try {
         setLoading(true);
         
@@ -38,7 +38,7 @@ export default function Community() {
           return;
         }
 
-        const response = await fetch('/api/members', {
+        const response = await fetch('/api/connections', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -47,41 +47,41 @@ export default function Community() {
         
         if (response.ok) {
           const data = await response.json();
-          // Transform data to match frontend format
-          const transformedMembers = data.map(member => ({
-            id: member.id,
-            firstName: member.firstname || member.firstName || 'User',
-            lastName: member.lastname || member.lastName || `${member.id}`.slice(0, 8),
-            title: member.jobtitle || member.jobTitle || member.job_title || 'Member',
-            company: member.company || 'tDIL Community',
+          // Transform connection data to match frontend format
+          const transformedMembers = data.map(connection => ({
+            id: connection.id,
+            firstName: connection.firstName || 'User',
+            lastName: connection.lastName || `${connection.id}`.slice(0, 8),
+            title: connection.jobTitle || 'Member',
+            company: connection.company || 'tDIL Community',
             location: 'Indianapolis, IN', // Add location field to database later
-            points: member.points || 0,
-            level: member.level || Math.floor((member.points || 0) / 500) + 1,
-            avatar: member.profilepicurl || member.profilePicUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent((member.firstname || member.firstName || 'User') + '+' + (member.lastname || member.lastName || 'U'))}&background=3B82F6&color=fff`,
-            skills: member.skills ? (Array.isArray(member.skills) ? member.skills : member.skills.split(',').map(s => s.trim())) : [],
-            connections: member.connections_count || 0,
-            isOnline: member.is_online || false,
-            joinedDate: member.created_at || member.createdAt || new Date().toISOString()
+            points: connection.points || 0,
+            level: connection.level || Math.floor((connection.points || 0) / 500) + 1,
+            avatar: connection.profileImage || `https://ui-avatars.com/api/?name=${encodeURIComponent((connection.firstName || 'User') + '+' + (connection.lastName || 'U'))}&background=3B82F6&color=fff`,
+            skills: [], // Add skills to connections later if needed
+            connections: 0, // Could add connection count later
+            isOnline: Math.random() > 0.5, // Random for demo - add real status later
+            joinedDate: connection.created_at || new Date().toISOString(),
+            connectionDate: connection.created_at
           }));
-          console.log('Fetched members:', transformedMembers); // Debug log
+          console.log('Fetched connected members:', transformedMembers); // Debug log
           setMembers(transformedMembers);
         } else if (response.status === 401) {
           console.error('Authentication failed - redirecting to login');
-          // Could redirect to login here
           setMembers([]);
         } else {
-          console.error('Failed to fetch members:', response.status, response.statusText);
+          console.error('Failed to fetch connections:', response.status, response.statusText);
           setMembers([]);
         }
       } catch (error) {
-        console.error('Error fetching members:', error);
+        console.error('Error fetching connections:', error);
         setMembers([]);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchMembers();
+    fetchConnectedMembers();
   }, []);
 
   const filteredMembers = members.filter(member => {
