@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import API from './services/api';
+import { UserProvider } from './contexts/UserContext';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -73,26 +74,28 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen">
-      <Routes>
-        <Route path="/" element={!isAuthenticated ? <Home /> : <Navigate to="/dashboard" replace />} />
-        <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/dashboard" replace />} />
-        <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to="/dashboard" replace />} />
-        <Route path="/dashboard" element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} />
-        <Route path="/community" element={isAuthenticated ? <Community /> : <Navigate to="/login" />} />
-        <Route path="/directory" element={isAuthenticated ? <Directory /> : <Navigate to="/login" />} />
-        <Route path="/jobs" element={isAuthenticated ? <JobBoard /> : <Navigate to="/login" />} />
-        <Route path="/events" element={isAuthenticated ? <Events /> : <Navigate to="/login" />} />
-        <Route path="/merch-store" element={isAuthenticated ? <MerchStore /> : <Navigate to="/login" />} />
-        <Route path="/partner-schools" element={isAuthenticated ? <PartnerSchools /> : <Navigate to="/login" />} />
-        <Route path="/profile" element={isAuthenticated ? <Profile /> : <Navigate to="/login" />} />
-        <Route path="/profile/:id" element={isAuthenticated ? <Profile /> : <Navigate to="/login" />} />
-        <Route path="/chat" element={isAuthenticated ? <ChatPage /> : <Navigate to="/login" />} />
-        <Route path="/rewards" element={isAuthenticated ? <Rewards /> : <Navigate to="/login" />} />
-        <Route path="/donate" element={isAuthenticated ? <Donate /> : <Navigate to="/login" />} />
-        <Route path="/settings" element={isAuthenticated ? <Settings /> : <Navigate to="/login" />} />
-      </Routes>
-    </div>
+    <UserProvider>
+      <div className="min-h-screen">
+        <Routes>
+          <Route path="/" element={!isAuthenticated ? <Home /> : <Navigate to="/dashboard" replace />} />
+          <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/dashboard" replace />} />
+          <Route path="/register" element={!isAuthenticated ? <Register /> : <Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} />
+          <Route path="/community" element={isAuthenticated ? <Community /> : <Navigate to="/login" />} />
+          <Route path="/directory" element={isAuthenticated ? <Directory /> : <Navigate to="/login" />} />
+          <Route path="/jobs" element={isAuthenticated ? <JobBoard /> : <Navigate to="/login" />} />
+          <Route path="/events" element={isAuthenticated ? <Events /> : <Navigate to="/login" />} />
+          <Route path="/merch-store" element={isAuthenticated ? <MerchStore /> : <Navigate to="/login" />} />
+          <Route path="/partner-schools" element={isAuthenticated ? <PartnerSchools /> : <Navigate to="/login" />} />
+          <Route path="/profile" element={isAuthenticated ? <Profile /> : <Navigate to="/login" />} />
+          <Route path="/profile/:id" element={isAuthenticated ? <Profile /> : <Navigate to="/login" />} />
+          <Route path="/chat" element={isAuthenticated ? <ChatPage /> : <Navigate to="/login" />} />
+          <Route path="/rewards" element={isAuthenticated ? <Rewards /> : <Navigate to="/login" />} />
+          <Route path="/donate" element={isAuthenticated ? <Donate /> : <Navigate to="/login" />} />
+          <Route path="/settings" element={isAuthenticated ? <Settings /> : <Navigate to="/login" />} />
+        </Routes>
+      </div>
+    </UserProvider>
   );
 }
 

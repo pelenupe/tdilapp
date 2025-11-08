@@ -1,22 +1,14 @@
-import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { memberNavigation } from '../config/navigation';
+import { useUser } from '../contexts/UserContext';
 import Logo from './Logo';
 
 export default function SidebarMember() {
-  const [user, setUser] = useState(null);
+  const { user, clearUser } = useUser();
   const location = useLocation();
 
-  useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      setUser(JSON.parse(userData));
-    }
-  }, []);
-
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    clearUser();
     window.location.href = '/login';
   };
 

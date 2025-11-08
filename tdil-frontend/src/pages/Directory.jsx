@@ -1,30 +1,49 @@
 import { useEffect, useState } from 'react';
 import { getMembers } from '../services/profileService';
+import { useUser } from '../contexts/UserContext';
 import PageLayout from '../components/PageLayout';
 
 export default function Directory() {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState({ userType: 'member' });
-
-  // Load user data from localStorage
-  useEffect(() => {
-    try {
-      const userData = JSON.parse(localStorage.getItem('user') || '{}');
-      setUser({
-        userType: userData.userType || 'member'
-      });
-    } catch (error) {
-      console.error('Error loading user data:', error);
-    }
-  }, []);
+  const [connectedUsers, setConnectedUsers] = useState(new Set());
+  const { user, updateUser } = useUser();
 
   useEffect(() => {
-    const fetchMembers = async () => {
+    const fetchMembersAndConnections = async () => {
       try {
         setLoading(true);
-        const { data } = await getMembers();
-        setMembers(data || []);
+        
+        const token = localStorage.getItem('token');
+        if (!token) {
+          setMembers([]);
+          return;
+        }
+
+        // Fetch all members
+        const { data: allMembers } = await getMembers();
+        
+        // Fetch current user's connections
+        const connectionsResponse = await fetch('/api/connections', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        let connectedUserIds = new Set();
+        if (connectionsResponse.ok) {
+          const connections = await connectionsResponse.json();
+          connectedUserIds = new Set(connections.map(conn => conn.id));
+          setConnectedUsers(connectedUserIds);
+        }
+
+        // Filter out connected users from members list
+        const unconnectedMembers = (allMembers || []).filter(member => 
+          !connectedUserIds.has(member.id) && member.id !== user?.id
+        );
+        
+        setMembers(unconnectedMembers);
       } catch (error) {
         console.error('Error fetching members:', error);
         setMembers([]);
@@ -33,8 +52,10 @@ export default function Directory() {
       }
     };
 
-    fetchMembers();
-  }, []);
+    if (user) {
+      fetchMembersAndConnections();
+    }
+  }, [user]);
 
   const handleConnect = async (memberId) => {
     try {
@@ -57,16 +78,20 @@ export default function Directory() {
         const result = await response.json();
         console.log('Connection successful:', result);
         
-        // Update the local storage user data with new points and level
-        const userData = JSON.parse(localStorage.getItem('user') || '{}');
-        userData.points = result.users.find(u => u.id === parseInt(userData.id))?.points || userData.points;
-        userData.level = result.userLevel;
-        localStorage.setItem('user', JSON.stringify(userData));
+        // Update user points using the context
+        const userUpdate = result.users.find(u => u.id === parseInt(user.id));
+        if (userUpdate) {
+          updateUser({
+            points: userUpdate.points,
+            level: result.userLevel
+          });
+        }
         
         // Show success message
         alert(`Connected successfully! You earned ${result.pointsAwarded} points!`);
         
-        // Remove the connected member from the list (they're now in Community)
+        // Add to connected users and remove from members list
+        setConnectedUsers(prev => new Set([...prev, memberId]));
         setMembers(members.filter(m => m.id !== memberId));
       } else {
         const error = await response.json();
@@ -100,9 +125,11 @@ export default function Directory() {
 
   return (
     <PageLayout
-      userType={user.userType}
+      userType={user?.userType || 'member'}
       title="Member Directory"
       subtitle="Connect with other members of the tDIL community"
+      userPoints={user?.points || 0}
+      showPointsInHeader={true}
     >
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {members.map((member) => (

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useUser } from '../contexts/UserContext';
 import PageLayout from '../components/PageLayout';
 
 export default function Community() {
@@ -7,21 +8,8 @@ export default function Community() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filter, setFilter] = useState('all');
   const [loading, setLoading] = useState(true);
-  const [userPoints, setUserPoints] = useState(0);
   const [connectionAlerts, setConnectionAlerts] = useState({});
-  const [user, setUser] = useState({ userType: 'member' });
-
-  // Load user data from localStorage
-  useEffect(() => {
-    try {
-      const userData = JSON.parse(localStorage.getItem('user') || '{}');
-      setUser({
-        userType: userData.userType || 'member'
-      });
-    } catch (error) {
-      console.error('Error loading user data:', error);
-    }
-  }, []);
+  const { user } = useUser();
 
   useEffect(() => {
     // Fetch only connected members from API
@@ -124,8 +112,8 @@ export default function Community() {
             : m
         ));
         
-        // Update user's points display
-        setUserPoints(prev => prev + result.pointsAwarded);
+        // Note: This connect function shouldn't be called in Community since they're already connected
+        // But keeping for completeness
         
         // Show connection alert with real points
         setConnectionAlerts(prev => ({
@@ -228,10 +216,11 @@ export default function Community() {
 
   return (
     <PageLayout
-      userType={user.userType}
+      userType={user?.userType || 'member'}
       title="Community"
-      subtitle={`Connect with ${members.length} tDIL members`}
-      userPoints={userPoints}
+      subtitle={members.length > 0 ? `Your ${members.length} connected members` : 'Your connected members'}
+      userPoints={user?.points || 0}
+      showPointsInHeader={true}
       headerContent={searchBar}
     >
       {/* Points notification */}
@@ -340,11 +329,17 @@ export default function Community() {
       </div>
 
       {/* No results state */}
-      {filteredMembers.length === 0 && (
+      {filteredMembers.length === 0 && !loading && (
         <div className="text-center py-12">
-          <div className="text-6xl mb-4">👥</div>
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No members found</h3>
-          <p className="text-gray-500">Try adjusting your search or filter criteria.</p>
+          <div className="text-6xl mb-4">🤝</div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No connections yet</h3>
+          <p className="text-gray-500 mb-4">Start connecting with members to build your network!</p>
+          <Link 
+            to="/directory" 
+            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Browse Directory
+          </Link>
         </div>
       )}
     </PageLayout>
