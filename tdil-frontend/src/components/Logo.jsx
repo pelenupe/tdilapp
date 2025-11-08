@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import logoImg from '../assets/tdil-LOGO.png';
+import logoImg from '../assets/tdil-logo.png';
 
 export default function Logo({ 
   size = 'md', // 'xs', 'sm', 'md', 'lg', 'xl'
