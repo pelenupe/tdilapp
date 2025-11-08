@@ -104,26 +104,9 @@ async function seedPostgreSQL() {
       }
     }
 
-    // Sample rewards
-    const rewards = [
-      ['Coffee Gift Card', '$10 Starbucks gift card', 100, 'gift-cards', 50, true, null],
-      ['Tech Conference Ticket', 'Free ticket to local tech conference', 500, 'events', 10, true, null],
-      ['One-on-One Mentorship Session', '30-minute session with industry expert', 300, 'mentorship', 20, true, null],
-      ['Amazon Gift Card ($25)', '$25 Amazon gift card', 250, 'gift-cards', 30, true, null],
-      ['LinkedIn Premium (1 Month)', '1 month of LinkedIn Premium access', 200, 'professional', 25, true, null],
-      ['tDIL Hoodie', 'Official tDIL branded hoodie', 400, 'merchandise', 15, true, null]
-    ];
-
-    for (const reward of rewards) {
-      try {
-        await pool.query(`
-          INSERT INTO rewards (title, description, "pointsCost", category, quantity, "isActive", "imageUrl") 
-          VALUES ($1, $2, $3, $4, $5, $6, $7)
-        `, reward);
-      } catch (err) {
-        console.log(`Reward "${reward[0]}" error:`, err.message);
-      }
-    }
+    // Sample rewards - cleared for production
+    // Rewards will be added by admins through the admin interface
+    console.log('⏭️  Skipping sample rewards - will be managed by admins');
 
     console.log('✅ PostgreSQL sample data inserted successfully');
     
