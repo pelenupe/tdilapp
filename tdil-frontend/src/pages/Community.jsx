@@ -9,7 +9,7 @@ export default function Community() {
   const [filter, setFilter] = useState('all');
   const [loading, setLoading] = useState(true);
   const [connectionAlerts, setConnectionAlerts] = useState({});
-  const { user } = useUser();
+  const { user, updateUser } = useUser();
 
   useEffect(() => {
     // Fetch only connected members from API
@@ -112,8 +112,13 @@ export default function Community() {
             : m
         ));
         
-        // Note: This connect function shouldn't be called in Community since they're already connected
-        // But keeping for completeness
+        // Update user's points in UserContext after successful connection
+        if (result.pointsAwarded) {
+          updateUser({
+            points: (user?.points || 0) + result.pointsAwarded,
+            level: result.userLevel
+          });
+        }
         
         // Show connection alert with real points
         setConnectionAlerts(prev => ({
