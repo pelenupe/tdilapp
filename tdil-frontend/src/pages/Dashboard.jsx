@@ -102,22 +102,6 @@ export default function Dashboard() {
                 <span className="font-bold text-gray-900 text-sm lg:text-base">{(user?.points || 0).toLocaleString()}</span>
               </div>
               <div className="flex items-center gap-1 lg:gap-2">
-                <div className="relative">
-                  <svg className="w-5 h-5 lg:w-6 lg:h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5v-5zM9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <div className="absolute -top-1 -right-1 w-2 h-2 lg:w-3 lg:h-3 bg-red-500 rounded-full flex items-center justify-center">
-                    <span className="text-xs text-white font-bold hidden lg:block">3</span>
-                  </div>
-                </div>
-                <div className="relative">
-                  <svg className="w-5 h-5 lg:w-6 lg:h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-5 5v-5zM9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <div className="absolute -top-1 -right-1 w-2 h-2 lg:w-3 lg:h-3 bg-red-500 rounded-full flex items-center justify-center">
-                    <span className="text-xs text-white font-bold hidden lg:block">1</span>
-                  </div>
-                </div>
                 {user?.profileImage ? (
                   <img src={user.profileImage} alt={displayName} className="w-6 h-6 lg:w-8 lg:h-8 rounded-full object-cover" />
                 ) : (
