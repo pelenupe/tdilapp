@@ -45,7 +45,7 @@ export default function Community() {
             location: 'Indianapolis, IN', // Add location field to database later
             points: connection.points || 0,
             level: connection.level || Math.floor((connection.points || 0) / 500) + 1,
-            avatar: connection.profileImage || `https://ui-avatars.com/api/?name=${encodeURIComponent((connection.firstName || 'User') + '+' + (connection.lastName || 'U'))}&background=3B82F6&color=fff`,
+            avatar: connection.profileImage || null,
             skills: [], // Add skills to connections later if needed
             connections: 0, // Could add connection count later
             isOnline: Math.random() > 0.5, // Random for demo - add real status later
@@ -241,11 +241,19 @@ export default function Community() {
             <div className="p-6 pb-4">
               <div className="flex items-start gap-4">
                 <div className="relative">
-                  <img 
-                    src={member.avatar} 
-                    alt={`${member.firstName} ${member.lastName}`}
-                    className="w-16 h-16 rounded-full"
-                  />
+                  {member.avatar ? (
+                    <img 
+                      src={member.avatar} 
+                      alt={`${member.firstName} ${member.lastName}`}
+                      className="w-16 h-16 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center">
+                      <span className="text-blue-600 font-bold text-lg">
+                        {member.firstName?.[0]}{member.lastName?.[0]}
+                      </span>
+                    </div>
+                  )}
                   {member.isOnline && (
                     <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 border-2 border-white rounded-full"></div>
                   )}

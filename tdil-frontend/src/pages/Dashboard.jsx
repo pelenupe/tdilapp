@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import API from '../services/api';
+import { useUser } from '../contexts/UserContext';
 import SidebarMember from '../components/SidebarMember';
 import SidebarPartnerSchool from '../components/SidebarPartnerSchool';
 import SidebarSponsor from '../components/SidebarSponsor';
@@ -8,17 +9,7 @@ import MobileHeader from '../components/MobileHeader';
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  
-  const [user, setUser] = useState({
-    name: '',
-    firstName: '',
-    lastName: '',
-    points: 0,
-    level: 1,
-    progress: 0,
-    avatar: '',
-    userType: 'member'
-  });
+  const { user } = useUser();
 
   const [leaderboard, setLeaderboard] = useState([]);
 
@@ -32,26 +23,11 @@ export default function Dashboard() {
     navigate(`/profile?member=${encodeURIComponent(memberName)}`);
   };
 
-  // Load user data from localStorage
-  useEffect(() => {
-    try {
-      const userData = JSON.parse(localStorage.getItem('user') || '{}');
-      const fullName = `${userData.firstName || ''} ${userData.lastName || ''}`.trim();
-      
-      setUser({
-        name: fullName || userData.email || 'User',
-        firstName: userData.firstName || '',
-        lastName: userData.lastName || '',
-        points: userData.points || 0,
-        level: userData.level || 1,
-        progress: ((userData.points || 0) % 1000) / 10, // Calculate progress to next level
-        avatar: userData.profilePicUrl || `https://i.pravatar.cc/40?u=${userData.email}`,
-        userType: userData.userType || 'member'
-      });
-    } catch (error) {
-      console.error('Error loading user data:', error);
-    }
-  }, []);
+  // Calculate derived user data from UserContext
+  const fullName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : '';
+  const displayName = fullName || user?.email || 'User';
+  const userLevel = user?.level || Math.floor((user?.points || 0) / 1000) + 1;
+  const levelProgress = ((user?.points || 0) % 1000) / 10;
 
   // Fetch dashboard data
   useEffect(() => {
@@ -88,7 +64,7 @@ export default function Dashboard() {
 
   // Render appropriate sidebar based on user type
   const renderSidebar = () => {
-    switch (user.userType) {
+    switch (user?.userType) {
       case 'partner_school':
         return <SidebarPartnerSchool />;
       case 'sponsor':
@@ -101,7 +77,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Mobile Header */}
-      <MobileHeader userType={user.userType} />
+      <MobileHeader userType={user?.userType} />
       
       {/* Left Sidebar */}
       {renderSidebar()}
@@ -123,7 +99,7 @@ export default function Dashboard() {
                 <svg className="w-5 h-5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
                 </svg>
-                <span className="font-bold text-gray-900 text-sm lg:text-base">{user.points.toLocaleString()}</span>
+                <span className="font-bold text-gray-900 text-sm lg:text-base">{(user?.points || 0).toLocaleString()}</span>
               </div>
               <div className="flex items-center gap-1 lg:gap-2">
                 <div className="relative">
@@ -142,11 +118,19 @@ export default function Dashboard() {
                     <span className="text-xs text-white font-bold hidden lg:block">1</span>
                   </div>
                 </div>
-                <img src={user.avatar} alt={user.name} className="w-6 h-6 lg:w-8 lg:h-8 rounded-full" />
+                {user?.profileImage ? (
+                  <img src={user.profileImage} alt={displayName} className="w-6 h-6 lg:w-8 lg:h-8 rounded-full object-cover" />
+                ) : (
+                  <div className="w-6 h-6 lg:w-8 lg:h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                    <span className="text-blue-600 font-bold text-xs lg:text-sm">
+                      {user?.firstName?.[0]}{user?.lastName?.[0]}
+                    </span>
+                  </div>
+                )}
                 <span className="font-medium text-gray-900 text-sm lg:text-base hidden sm:block">
-                  {user.firstName && user.lastName ? 
+                  {user?.firstName && user?.lastName ? 
                     `${user.firstName.charAt(0)}${user.lastName.charAt(0)}`.toUpperCase() : 
-                    user.name.charAt(0).toUpperCase()
+                    displayName.charAt(0).toUpperCase()
                   }
                 </span>
               </div>
@@ -158,7 +142,7 @@ export default function Dashboard() {
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-3 sm:p-4 lg:p-6 mx-3 sm:mx-4 lg:mx-6 my-3 sm:my-4 lg:my-6 rounded-xl">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 sm:gap-4 lg:gap-0">
             <div className="flex-1 min-w-0">
-              <h1 className="text-lg sm:text-xl lg:text-2xl font-bold mb-2">Welcome back, {user.name}!</h1>
+              <h1 className="text-lg sm:text-xl lg:text-2xl font-bold mb-2">Welcome back, {displayName}!</h1>
               <p className="text-blue-100 mb-3 sm:mb-4 text-sm leading-tight">You're making great progress in building your network. Keep it up!</p>
               <div className="flex flex-col gap-2">
                 <button className="bg-white text-blue-600 px-3 py-2 rounded-lg font-medium hover:bg-blue-50 transition-colors flex items-center justify-center gap-2 text-sm w-full sm:w-auto">
@@ -181,16 +165,16 @@ export default function Dashboard() {
                   <circle cx="50" cy="50" r="40" stroke="rgba(255,255,255,0.2)" strokeWidth="8" fill="none"/>
                   <circle cx="50" cy="50" r="40" stroke="white" strokeWidth="8" fill="none"
                     strokeDasharray={`${2 * Math.PI * 40}`}
-                    strokeDashoffset={`${2 * Math.PI * 40 * (1 - user.progress / 100)}`}
+                    strokeDashoffset={`${2 * Math.PI * 40 * (1 - levelProgress / 100)}`}
                     strokeLinecap="round"/>
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-lg sm:text-xl lg:text-2xl font-bold">{user.progress}%</span>
+                  <span className="text-lg sm:text-xl lg:text-2xl font-bold">{Math.round(levelProgress)}%</span>
                 </div>
               </div>
               <div className="text-xs lg:text-sm">
-                <div className="font-semibold">Level {user.level}</div>
-                <div className="text-blue-200">to Level {user.level + 1}</div>
+                <div className="font-semibold">Level {userLevel}</div>
+                <div className="text-blue-200">to Level {userLevel + 1}</div>
               </div>
             </div>
           </div>
