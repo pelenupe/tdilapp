@@ -121,7 +121,8 @@ const login = async (req, res) => {
         jobTitle: user.jobTitle,
         points: user.points,
         level: user.level,
-        userType: user.userType || 'member'
+        userType: user.userType || 'member',
+        profileImage: user.profileImage
       }
     });
   } catch (err) {
@@ -137,7 +138,7 @@ const me = async (req, res) => {
     const userId = req.user.id;
 
     const users = await query(
-      'SELECT id, email, firstName, lastName, company, jobTitle, points, level, userType FROM users WHERE id = ?',
+      'SELECT id, email, firstName, lastName, company, jobTitle, points, level, userType, profileImage FROM users WHERE id = ?',
       [userId]
     );
     
@@ -157,7 +158,8 @@ const me = async (req, res) => {
         jobTitle: user.jobTitle,
         points: user.points,
         level: user.level,
-        userType: user.userType || 'member'
+        userType: user.userType || 'member',
+        profileImage: user.profileImage
       }
     });
   } catch (error) {
