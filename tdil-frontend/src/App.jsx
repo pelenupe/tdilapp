@@ -17,6 +17,8 @@ import MerchStore from './pages/MerchStore';
 import PartnerSchools from './pages/PartnerSchools';
 import Donate from './pages/Donate';
 import Settings from './pages/Settings';
+import Leaderboard from './pages/Leaderboard';
+import Announcements from './pages/Announcements';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -93,6 +95,8 @@ function App() {
           <Route path="/rewards" element={isAuthenticated ? <Rewards /> : <Navigate to="/login" />} />
           <Route path="/donate" element={isAuthenticated ? <Donate /> : <Navigate to="/login" />} />
           <Route path="/settings" element={isAuthenticated ? <Settings /> : <Navigate to="/login" />} />
+          <Route path="/leaderboard" element={isAuthenticated ? <Leaderboard /> : <Navigate to="/login" />} />
+          <Route path="/announcements" element={isAuthenticated ? <Announcements /> : <Navigate to="/login" />} />
         </Routes>
       </div>
     </UserProvider>

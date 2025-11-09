@@ -129,13 +129,19 @@ export default function Dashboard() {
               <h1 className="text-lg sm:text-xl lg:text-2xl font-bold mb-2">Welcome back, {displayName}!</h1>
               <p className="text-blue-100 mb-3 sm:mb-4 text-sm leading-tight">You're making great progress in building your network. Keep it up!</p>
               <div className="flex flex-col gap-2">
-                <button className="bg-white text-blue-600 px-3 py-2 rounded-lg font-medium hover:bg-blue-50 transition-colors flex items-center justify-center gap-2 text-sm w-full sm:w-auto">
+                <button 
+                  onClick={() => navigate('/directory')}
+                  className="bg-white text-blue-600 px-3 py-2 rounded-lg font-medium hover:bg-blue-50 transition-colors flex items-center justify-center gap-2 text-sm w-full sm:w-auto"
+                >
                   <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3z"/>
                   </svg>
                   <span className="whitespace-nowrap">Connect with Members</span>
                 </button>
-                <button className="bg-blue-500 text-white px-3 py-2 rounded-lg font-medium hover:bg-blue-400 transition-colors flex items-center justify-center gap-2 text-sm w-full sm:w-auto">
+                <button 
+                  onClick={() => navigate('/events')}
+                  className="bg-blue-500 text-white px-3 py-2 rounded-lg font-medium hover:bg-blue-400 transition-colors flex items-center justify-center gap-2 text-sm w-full sm:w-auto"
+                >
                   <svg className="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd"/>
                   </svg>
@@ -198,7 +204,10 @@ export default function Dashboard() {
                 </div>
               ))}
             </div>
-            <button className="w-full mt-4 text-blue-600 font-medium hover:text-blue-700 transition-colors">
+            <button 
+              onClick={() => navigate('/leaderboard')}
+              className="w-full mt-4 text-blue-600 font-medium hover:text-blue-700 transition-colors"
+            >
               View Full Leaderboard
             </button>
           </div>
@@ -210,7 +219,10 @@ export default function Dashboard() {
                 <span className="text-blue-500">📢</span>
                 Community Announcements
               </h2>
-              <button className="text-blue-600 font-medium hover:text-blue-700 transition-colors">
+              <button 
+                onClick={() => navigate('/announcements')}
+                className="text-blue-600 font-medium hover:text-blue-700 transition-colors"
+              >
                 View All
               </button>
             </div>
@@ -284,7 +296,10 @@ export default function Dashboard() {
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-bold text-gray-900">Upcoming Events</h2>
-              <button className="text-blue-600 font-medium hover:text-blue-700 transition-colors">
+              <button 
+                onClick={() => navigate('/events')}
+                className="text-blue-600 font-medium hover:text-blue-700 transition-colors"
+              >
                 View All Events
               </button>
             </div>
