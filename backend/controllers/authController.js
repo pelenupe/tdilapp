@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { query } = require('../config/database');
 const { useToken } = require('./inviteController');
+const { awardPoints } = require('./pointsController');
 
 const register = async (req, res) => {
   try {
@@ -104,8 +105,21 @@ const login = async (req, res) => {
       return res.status(400).json({ message: 'Invalid credentials.' });
     }
 
+    // Award points for login (LOGIN_STREAK logic can be enhanced later)
+    try {
+      await awardPoints(user.id, 'LOGIN_STREAK', 'Daily login bonus');
+      console.log(`✅ Awarded login points to user ${user.id}`);
+    } catch (pointsError) {
+      console.error('Error awarding login points:', pointsError);
+      // Continue with login even if points award fails
+    }
+
+    // Get updated user data after points award
+    const updatedUsers = await query('SELECT * FROM users WHERE id = ?', [user.id]);
+    const updatedUser = updatedUsers[0];
+
     const token = jwt.sign(
-      { id: user.id, email: user.email, userType: user.userType },
+      { id: updatedUser.id, email: updatedUser.email, userType: updatedUser.userType },
       process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '7d' }
     );
@@ -113,16 +127,16 @@ const login = async (req, res) => {
     return res.json({
       token,
       user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        company: user.company,
-        jobTitle: user.jobTitle,
-        points: user.points,
-        level: user.level,
-        userType: user.userType || 'member',
-        profileImage: user.profileImage
+        id: updatedUser.id,
+        email: updatedUser.email,
+        firstName: updatedUser.firstName,
+        lastName: updatedUser.lastName,
+        company: updatedUser.company,
+        jobTitle: updatedUser.jobTitle,
+        points: updatedUser.points,
+        level: updatedUser.level,
+        userType: updatedUser.userType || 'member',
+        profileImage: updatedUser.profileImage
       }
     });
   } catch (err) {
