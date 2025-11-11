@@ -108,7 +108,6 @@ const login = async (req, res) => {
     // Award points for login (LOGIN_STREAK logic can be enhanced later)
     try {
       await awardPoints(user.id, 'LOGIN_STREAK', 'Daily login bonus');
-      console.log(`✅ Awarded login points to user ${user.id}`);
     } catch (pointsError) {
       console.error('Error awarding login points:', pointsError);
       // Continue with login even if points award fails

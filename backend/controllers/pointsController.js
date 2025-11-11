@@ -40,8 +40,8 @@ const awardPoints = async (userId, pointType, description, metadata = {}) => {
 
     // Log the points activity
     await query(
-      'INSERT INTO points_history (user_id, points, activity_type, description, metadata, created_at) VALUES (?, ?, ?, ?, ?, datetime(\'now\'))',
-      [userId, points, pointType, description, JSON.stringify(metadata)]
+      'INSERT INTO points_history (userId, points, type, reason) VALUES (?, ?, ?, ?)',
+      [userId, points, pointType, description]
     );
 
     // Get updated user data and recalculate level
@@ -111,7 +111,7 @@ const getPointsHistory = async (req, res) => {
     const limit = parseInt(req.query.limit) || 50;
     
     const history = await query(
-      'SELECT points, activity_type, description, metadata, created_at FROM points_history WHERE user_id = ? ORDER BY created_at DESC LIMIT ?',
+      'SELECT points, type, reason, createdAt FROM points_history WHERE userId = ? ORDER BY createdAt DESC LIMIT ?',
       [userId, limit]
     );
     
@@ -144,8 +144,8 @@ const awardPointsManually = async (req, res) => {
     
     // Log the manual points award
     await query(
-      'INSERT INTO points_history (user_id, points, activity_type, description, metadata, created_at) VALUES (?, ?, ?, ?, ?, datetime(\'now\'))',
-      [userId, points, 'MANUAL_AWARD', reason, JSON.stringify({ adminId: req.user.id, adminName: `${req.user.firstName} ${req.user.lastName}` })]
+      'INSERT INTO points_history (userId, points, type, reason) VALUES (?, ?, ?, ?)',
+      [userId, points, 'MANUAL_AWARD', reason]
     );
     
     // Get updated user data
@@ -222,8 +222,8 @@ const getPointsStats = async (req, res) => {
         SUM(points) as totalPointsAwarded,
         AVG(points) as avgPoints,
         MAX(points) as maxPoints,
-        (SELECT COUNT(*) FROM points_history WHERE created_at >= datetime('now', '-7 days')) as pointsThisWeek,
-        (SELECT COUNT(*) FROM points_history WHERE created_at >= datetime('now', '-30 days')) as pointsThisMonth
+        (SELECT COUNT(*) FROM points_history WHERE createdAt >= datetime('now', '-7 days')) as pointsThisWeek,
+        (SELECT COUNT(*) FROM points_history WHERE createdAt >= datetime('now', '-30 days')) as pointsThisMonth
       FROM users WHERE userType = 'member'
     `);
     
@@ -236,10 +236,10 @@ const getPointsStats = async (req, res) => {
     `);
     
     const activityBreakdown = await query(`
-      SELECT activity_type, COUNT(*) as count, SUM(points) as totalPoints
+      SELECT type, COUNT(*) as count, SUM(points) as totalPoints
       FROM points_history 
-      WHERE created_at >= datetime('now', '-30 days')
-      GROUP BY activity_type 
+      WHERE createdAt >= datetime('now', '-30 days')
+      GROUP BY type 
       ORDER BY totalPoints DESC
     `);
     
