@@ -144,6 +144,30 @@ const initDatabase = async () => {
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )`;
 
+    const createPointsHistoryTable = isPostgreSQL
+      ? `CREATE TABLE IF NOT EXISTS points_history (
+          id SERIAL PRIMARY KEY,
+          userId INTEGER NOT NULL REFERENCES users(id),
+          points INTEGER NOT NULL,
+          reason VARCHAR(500),
+          type VARCHAR(50) DEFAULT 'earned',
+          referenceId INTEGER,
+          referenceType VARCHAR(50),
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`
+      : `CREATE TABLE IF NOT EXISTS points_history (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          userId INTEGER NOT NULL,
+          points INTEGER NOT NULL,
+          reason TEXT,
+          type TEXT DEFAULT 'earned',
+          referenceId INTEGER,
+          referenceType TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`;
+
     const createInviteTokenTable = isPostgreSQL
       ? `CREATE TABLE IF NOT EXISTS invite_tokens (
           id SERIAL PRIMARY KEY,
@@ -168,6 +192,7 @@ const initDatabase = async () => {
 
     console.log('🔄 Creating database tables...');
     await query(createUserTable);
+    await query(createPointsHistoryTable);
     await query(createInviteTokenTable);
 
     // Insert default admin user if none exists
