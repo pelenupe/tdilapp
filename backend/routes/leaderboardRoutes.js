@@ -2,6 +2,11 @@ const express = require('express');
 const { query } = require('../config/database');
 const router = express.Router();
 
+// Detect database type for proper SQL syntax
+const isPostgreSQL = () => {
+  return process.env.DATABASE_URL && process.env.DATABASE_URL.includes('postgres');
+};
+
 // Get full leaderboard with timeframe filtering
 router.get('/full', async (req, res) => {
   try {
@@ -22,11 +27,19 @@ router.get('/full', async (req, res) => {
       LEFT JOIN points_history p ON u.id = p.userId
     `;
     
-    // Add timeframe filtering
+    // Add timeframe filtering with proper SQL syntax
     if (timeframe === 'weekly') {
-      sql += ` WHERE p.createdAt >= datetime('now', '-7 days') OR p.createdAt IS NULL`;
+      if (isPostgreSQL()) {
+        sql += ` WHERE p.created_at >= NOW() - INTERVAL '7 days' OR p.created_at IS NULL`;
+      } else {
+        sql += ` WHERE p.createdAt >= datetime('now', '-7 days') OR p.createdAt IS NULL`;
+      }
     } else if (timeframe === 'monthly') {
-      sql += ` WHERE p.createdAt >= datetime('now', '-30 days') OR p.createdAt IS NULL`;
+      if (isPostgreSQL()) {
+        sql += ` WHERE p.created_at >= NOW() - INTERVAL '30 days' OR p.created_at IS NULL`;
+      } else {
+        sql += ` WHERE p.createdAt >= datetime('now', '-30 days') OR p.createdAt IS NULL`;
+      }
     }
     
     sql += `
@@ -36,10 +49,11 @@ router.get('/full', async (req, res) => {
     `;
     
     const rows = await query(sql);
-    res.json(rows);
+    console.log('Full leaderboard response:', rows); // Debug logging
+    res.json(Array.isArray(rows) ? rows : []);
   } catch (err) {
     console.error('Error fetching full leaderboard:', err);
-    res.status(500).json({ error: 'Failed to fetch leaderboard' });
+    res.status(500).json({ error: 'Failed to fetch leaderboard', details: err.message });
   }
 });
 
@@ -66,10 +80,11 @@ router.get('/top', async (req, res) => {
     `;
     
     const rows = await query(sql);
-    res.json(rows);
+    console.log('Top leaderboard response:', rows); // Debug logging
+    res.json(Array.isArray(rows) ? rows : []);
   } catch (err) {
     console.error('Error fetching top leaderboard:', err);
-    res.status(500).json({ error: 'Failed to fetch leaderboard' });
+    res.status(500).json({ error: 'Failed to fetch leaderboard', details: err.message });
   }
 });
 
@@ -92,10 +107,11 @@ router.get('/', async (req, res) => {
     `;
     
     const rows = await query(sql);
-    res.json(rows);
+    console.log('Basic leaderboard response:', rows); // Debug logging
+    res.json(Array.isArray(rows) ? rows : []);
   } catch (err) {
     console.error('Error fetching leaderboard:', err);
-    res.status(500).json({ error: 'Failed to fetch leaderboard' });
+    res.status(500).json({ error: 'Failed to fetch leaderboard', details: err.message });
   }
 });
 
