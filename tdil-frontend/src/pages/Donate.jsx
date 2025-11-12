@@ -1,7 +1,11 @@
-import Sidebar from '../components/Sidebar';
+import { useState } from 'react';
+import { useUser } from '../contexts/UserContext';
+import PageLayout from '../components/PageLayout';
 import PointsService from '../services/pointsService';
 
 export default function Donate() {
+  const { user } = useUser();
+
   const handleDonation = (amount) => {
     // Award points for donation
     PointsService.awardPoints('DONATION', `Made a donation of $${amount}`, {
@@ -11,10 +15,14 @@ export default function Donate() {
   };
 
   return (
-    <div className="flex">
-      <Sidebar />
-      <div className="flex-1 ml-64 p-8">
-        <div className="max-w-4xl mx-auto">
+    <PageLayout
+      userType={user?.userType || 'member'}
+      title="Support Our Mission"
+      subtitle="Your donation helps us continue to provide valuable resources and networking opportunities"
+      showPointsInHeader={true}
+      userPoints={user?.points || 0}
+    >
+      <div className="max-w-4xl mx-auto">
           <h1 className="text-3xl font-bold text-gray-900 mb-6">Donate</h1>
           
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 mb-6">
@@ -109,8 +117,7 @@ export default function Donate() {
               </div>
             </div>
           </div>
-        </div>
       </div>
-    </div>
+    </PageLayout>
   );
 }

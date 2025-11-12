@@ -1,11 +1,18 @@
-import Sidebar from '../components/Sidebar';
+import { useUser } from '../contexts/UserContext';
+import PageLayout from '../components/PageLayout';
 
 export default function Sponsors() {
+  const { user } = useUser();
+
   return (
-    <div className="flex">
-      <Sidebar />
-      <div className="flex-1 ml-64 p-8">
-        <div className="max-w-6xl mx-auto">
+    <PageLayout
+      userType={user?.userType || 'member'}
+      title="Our Sponsors"
+      subtitle="We're grateful for the support of our sponsors who help make tDIL possible"
+      showPointsInHeader={true}
+      userPoints={user?.points || 0}
+    >
+      <div className="max-w-6xl mx-auto">
           <h1 className="text-3xl font-bold text-gray-900 mb-6">Sponsors</h1>
           
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
@@ -58,8 +65,7 @@ export default function Sponsors() {
               Learn More
             </button>
           </div>
-        </div>
       </div>
-    </div>
+    </PageLayout>
   );
 }
