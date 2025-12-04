@@ -10,7 +10,7 @@ const getMembers = async (req, res) => {
     const params = [];
 
     if (role) {
-      sql += ' AND userType = ?';
+      sql += ' AND userType = $' + (params.length + 1);
       params.push(role);
     }
     const members = await query(sql, params);
@@ -27,7 +27,7 @@ const getProfile = async (req, res) => {
     const userId = req.params.id === 'me' ? req.user.id : req.params.id;
     
     const users = await query(
-      'SELECT id, email, firstName, lastName, company, jobTitle, points, level, userType, bio, profileImage FROM users WHERE id = ?',
+      'SELECT id, email, firstName, lastName, company, jobTitle, points, level, userType, bio, profileImage FROM users WHERE id = $1',
       [userId]
     );
     const user = users[0];
@@ -52,29 +52,29 @@ const updateProfile = async (req, res) => {
     const params = [];
 
     if (firstName !== undefined) {
-      updates.push(`firstName = ?`);
+      updates.push(`firstName = $${params.length + 1}`);
       params.push(firstName);
     }
     if (lastName !== undefined) {
-      updates.push(`lastName = ?`);
+      updates.push(`lastName = $${params.length + 1}`);
       params.push(lastName);
     }
     if (company !== undefined) {
-      updates.push(`company = ?`);
+      updates.push(`company = $${params.length + 1}`);
       params.push(company);
     }
     if (jobTitle !== undefined) {
-      updates.push(`jobTitle = ?`);
+      updates.push(`jobTitle = $${params.length + 1}`);
       params.push(jobTitle);
     }
     if (bio !== undefined) {
-      updates.push(`bio = ?`);
+      updates.push(`bio = $${params.length + 1}`);
       params.push(bio);
     }
 
     // Handle profileImage from frontend (either profileImage or profilePicUrl)
     if (profileImage !== undefined || profilePicUrl !== undefined) {
-      updates.push(`profileImage = ?`);
+      updates.push(`profileImage = $${params.length + 1}`);
       params.push(profileImage || profilePicUrl || null);
     }
 
@@ -82,7 +82,7 @@ const updateProfile = async (req, res) => {
     if (req.files && req.files.profilePic) {
       try {
         const profilePicUrl = await uploadFile(req.files.profilePic[0]);
-        updates.push(`profileImage = ?`);
+        updates.push(`profileImage = $${params.length + 1}`);
         params.push(profilePicUrl);
         console.log('Profile picture uploaded to S3:', profilePicUrl);
       } catch (error) {
@@ -96,11 +96,11 @@ const updateProfile = async (req, res) => {
     }
 
     params.push(userId);
-    const updateSql = `UPDATE users SET ${updates.join(', ')} WHERE id = ?`;
+    const updateSql = `UPDATE users SET ${updates.join(', ')} WHERE id = $${params.length}`;
     await query(updateSql, params);
 
     const updatedUsers = await query(
-      'SELECT id, email, firstName, lastName, company, jobTitle, points, level, userType, bio, profileImage FROM users WHERE id = ?',
+      'SELECT id, email, firstName, lastName, company, jobTitle, points, level, userType, bio, profileImage FROM users WHERE id = $1',
       [userId]
     );
     const updatedUser = updatedUsers[0];

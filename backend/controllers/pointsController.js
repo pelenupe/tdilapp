@@ -34,23 +34,23 @@ const awardPoints = async (userId, pointType, description, metadata = {}) => {
 
     // Update user points
     await query(
-      'UPDATE users SET points = points + ? WHERE id = ?',
+      'UPDATE users SET points = points + $1 WHERE id = $2',
       [points, userId]
     );
 
     // Log the points activity
     await query(
-      'INSERT INTO points_history (userId, points, type, reason) VALUES (?, ?, ?, ?)',
+      'INSERT INTO points_history (userId, points, type, reason) VALUES ($1, $2, $3, $4)',
       [userId, points, pointType, description]
     );
 
     // Get updated user data and recalculate level
-    const users = await query('SELECT points FROM users WHERE id = ?', [userId]);
+    const users = await query('SELECT points FROM users WHERE id = $1', [userId]);
     const userPoints = users[0].points;
     const newLevel = calculateLevel(userPoints);
 
     // Update user level if changed
-    await query('UPDATE users SET level = ? WHERE id = ?', [newLevel.level, userId]);
+    await query('UPDATE users SET level = $1 WHERE id = $2', [newLevel.level, userId]);
 
     return {
       pointsAwarded: points,
@@ -84,7 +84,7 @@ const getUserPoints = async (req, res) => {
     const userId = req.user.id;
     
     const users = await query(
-      'SELECT points, level FROM users WHERE id = ?',
+      'SELECT points, level FROM users WHERE id = $1',
       [userId]
     );
     
@@ -111,7 +111,7 @@ const getPointsHistory = async (req, res) => {
     const limit = parseInt(req.query.limit) || 50;
     
     const history = await query(
-      'SELECT points, type, reason, createdAt FROM points_history WHERE userId = ? ORDER BY createdAt DESC LIMIT ?',
+      'SELECT points, type, reason, createdAt FROM points_history WHERE userId = $1 ORDER BY createdAt DESC LIMIT $2',
       [userId, limit]
     );
     
@@ -138,23 +138,23 @@ const awardPointsManually = async (req, res) => {
     
     // Update user points directly
     await query(
-      'UPDATE users SET points = points + ? WHERE id = ?',
+      'UPDATE users SET points = points + $1 WHERE id = $2',
       [points, userId]
     );
     
     // Log the manual points award
     await query(
-      'INSERT INTO points_history (userId, points, type, reason) VALUES (?, ?, ?, ?)',
+      'INSERT INTO points_history (userId, points, type, reason) VALUES ($1, $2, $3, $4)',
       [userId, points, 'MANUAL_AWARD', reason]
     );
     
     // Get updated user data
-    const users = await query('SELECT points FROM users WHERE id = ?', [userId]);
+    const users = await query('SELECT points FROM users WHERE id = $1', [userId]);
     const userPoints = users[0].points;
     const newLevel = calculateLevel(userPoints);
     
     // Update user level
-    await query('UPDATE users SET level = ? WHERE id = ?', [newLevel.level, userId]);
+    await query('UPDATE users SET level = $1 WHERE id = $2', [newLevel.level, userId]);
     
     res.json({
       message: 'Points awarded successfully',
@@ -174,7 +174,7 @@ const getLeaderboard = async (req, res) => {
     const limit = parseInt(req.query.limit) || 20;
     
     const leaderboard = await query(
-      'SELECT id, firstName, lastName, points, level, profileImage FROM users WHERE userType = \'member\' ORDER BY points DESC LIMIT ?',
+      'SELECT id, firstName, lastName, points, level, profileImage FROM users WHERE userType = \'member\' ORDER BY points DESC LIMIT $1',
       [limit]
     );
     

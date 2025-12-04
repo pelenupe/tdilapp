@@ -21,7 +21,7 @@ const register = async (req, res) => {
     const booleanCheck = isPostgreSQL ? 'is_used = FALSE' : 'is_used = 0';
     
     const tokenCheck = await query(
-      `SELECT * FROM invite_tokens WHERE token = ? AND ${booleanCheck} AND (expires_at IS NULL OR ${dateCheck})`,
+      `SELECT * FROM invite_tokens WHERE token = $1 AND ${booleanCheck} AND (expires_at IS NULL OR ${dateCheck})`,
       [inviteToken]
     );
 
@@ -41,7 +41,7 @@ const register = async (req, res) => {
     }
 
     // Check if email already registered
-    const existingUsers = await query('SELECT id FROM users WHERE email = ?', [email]);
+    const existingUsers = await query('SELECT id FROM users WHERE email = $1', [email]);
     if (existingUsers && existingUsers.length > 0) {
       return res.status(400).json({ message: 'Email already in use.' });
     }
@@ -52,7 +52,7 @@ const register = async (req, res) => {
     // Create user and return id
     const inserted = await query(
       `INSERT INTO users (email, password, firstName, lastName, company, jobTitle, points, level, userType)
-       VALUES (?, ?, ?, ?, ?, ?, 0, 1, 'member')`,
+       VALUES ($1, $2, $3, $4, $5, $6, 0, 1, 'member')`,
       [email, hashedPassword, firstName, lastName, company || '', jobTitle || '']
     );
 
@@ -94,7 +94,7 @@ const login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const users = await query('SELECT * FROM users WHERE email = ?', [email]);
+    const users = await query('SELECT * FROM users WHERE email = $1', [email]);
     const user = users[0];
     if (!user) {
       return res.status(400).json({ message: 'Invalid credentials.' });
@@ -114,7 +114,7 @@ const login = async (req, res) => {
     }
 
     // Get updated user data after points award
-    const updatedUsers = await query('SELECT * FROM users WHERE id = ?', [user.id]);
+    const updatedUsers = await query('SELECT * FROM users WHERE id = $1', [user.id]);
     const updatedUser = updatedUsers[0];
 
     const token = jwt.sign(
@@ -151,7 +151,7 @@ const me = async (req, res) => {
     const userId = req.user.id;
 
     const users = await query(
-      'SELECT id, email, firstName, lastName, company, jobTitle, points, level, userType, profileImage FROM users WHERE id = ?',
+      'SELECT id, email, firstName, lastName, company, jobTitle, points, level, userType, profileImage FROM users WHERE id = $1',
       [userId]
     );
     

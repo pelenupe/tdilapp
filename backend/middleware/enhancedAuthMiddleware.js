@@ -20,7 +20,7 @@ const authenticateToken = async (req, res, next) => {
     
     // For simple JWT tokens (no session tracking), just validate user exists and is active
     const userCheck = await query(
-      'SELECT id, email, userType, is_active FROM users WHERE id = ?',
+      'SELECT id, email, userType, is_active FROM users WHERE id = $1',
       [decoded.id]
     );
 
@@ -48,7 +48,7 @@ const authenticateToken = async (req, res, next) => {
 
     // Update last activity
     await query(
-      'UPDATE users SET updatedAt = datetime(\'now\') WHERE id = ?',
+      'UPDATE users SET updatedAt = datetime(\'now\') WHERE id = $1',
       [decoded.id]
     );
 
@@ -279,7 +279,7 @@ const refreshTokenMiddleware = async (req, res, next) => {
 const logoutUser = async (userId, sessionId) => {
   try {
     await query(
-      'UPDATE user_sessions SET is_active = 0 WHERE user_id = ? AND id = ?',
+      'UPDATE user_sessions SET is_active = 0 WHERE user_id = $1 AND id = $2',
       [userId, sessionId]
     );
     return true;
@@ -293,7 +293,7 @@ const logoutUser = async (userId, sessionId) => {
 const logoutAllSessions = async (userId) => {
   try {
     await query(
-      'UPDATE user_sessions SET is_active = 0 WHERE user_id = ?',
+      'UPDATE user_sessions SET is_active = 0 WHERE user_id = $1',
       [userId]
     );
     return true;

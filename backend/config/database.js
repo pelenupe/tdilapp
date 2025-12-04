@@ -1,12 +1,23 @@
 const { Pool } = require('pg');
-const sqlite3 = require('sqlite3').verbose();
-const { Database } = require('sqlite3');
+
+// Conditionally import sqlite3 only for development
+let sqlite3, Database;
+const dbType = process.env.DB_TYPE || 'sqlite';
+const isProduction = process.env.NODE_ENV === 'production';
+
+if (!isProduction && dbType === 'sqlite') {
+  try {
+    sqlite3 = require('sqlite3').verbose();
+    Database = require('sqlite3').Database;
+  } catch (error) {
+    console.log('⚠️ SQLite not available - using PostgreSQL only');
+  }
+}
 
 // Database configuration
 let db;
 let isPostgreSQL;
 
-const dbType = process.env.DB_TYPE || 'sqlite';
 const connectionString = process.env.DATABASE_URL || process.env.DB_CONNECTION_STRING;
 const sqliteDbPath = process.env.DB_PATH || './backend/database.sqlite';
 
@@ -23,7 +34,7 @@ if (connectionString && (process.env.NODE_ENV === 'production' || dbType === 'po
   isPostgreSQL = true;
   db = new Pool({
     connectionString: connectionString,
-    ssl: process.env.NODE_ENV === 'production' ? {
+    ssl: isProduction && connectionString.includes("amazonaws") ? {
       rejectUnauthorized: false
     } : false,
     connectionTimeoutMillis: 30000,
@@ -204,19 +215,36 @@ const initDatabase = async () => {
       const hashedPassword = await bcrypt.hash('TempAdmin2024!', 10);
       
       console.log('👤 Creating default admin user...');
-      await query(
-        `INSERT INTO users (email, password, firstName, lastName, userType, points, level) 
-         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        ['admin@tdil.com', hashedPassword, 'Admin', 'User', 'admin', 100, 5]
-      );
+      
+      if (isPostgreSQL) {
+        await query(
+          `INSERT INTO users (email, password, firstName, lastName, userType, points, level) 
+           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          ['admin@tdil.com', hashedPassword, 'Admin', 'User', 'admin', 100, 5]
+        );
 
-      // Create a sample invite token
-      const crypto = require('crypto');
-      const inviteToken = crypto.randomBytes(32).toString('hex');
-      await query(
-        `INSERT INTO invite_tokens (token, created_by, is_used) VALUES (?, 1, ?)`,
-        [inviteToken, isPostgreSQL ? false : 0]
-      );
+        // Create a sample invite token
+        const crypto = require('crypto');
+        const inviteToken = crypto.randomBytes(32).toString('hex');
+        await query(
+          `INSERT INTO invite_tokens (token, created_by, is_used) VALUES ($1, 1, $2)`,
+          [inviteToken, false]
+        );
+      } else {
+        await query(
+          `INSERT INTO users (email, password, firstName, lastName, userType, points, level) 
+           VALUES (?, ?, ?, ?, ?, ?, ?)`,
+          ['admin@tdil.com', hashedPassword, 'Admin', 'User', 'admin', 100, 5]
+        );
+
+        // Create a sample invite token
+        const crypto = require('crypto');
+        const inviteToken = crypto.randomBytes(32).toString('hex');
+        await query(
+          `INSERT INTO invite_tokens (token, created_by, is_used) VALUES (?, 1, ?)`,
+          [inviteToken, 0]
+        );
+      }
       
       console.log(`✅ Default admin user created (admin@tdil.com / TempAdmin2024!)`);
       console.log(`✅ Sample invite token created: ${inviteToken}`);

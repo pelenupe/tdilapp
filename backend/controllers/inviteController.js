@@ -8,7 +8,7 @@ const generateToken = async (req, res) => {
     const createdBy = req.user.id;
 
     // Check if user has admin permissions (compatible with both databases)
-    const userCheck = await query('SELECT userType FROM users WHERE id = ?', [createdBy]);
+    const userCheck = await query('SELECT userType FROM users WHERE id = $1', [createdBy]);
     const userType = userCheck[0]?.userType?.toLowerCase();
     if (!userCheck.length || (userType !== 'admin' && userType !== 'founder')) {
       return res.status(403).json({ message: 'Insufficient permissions to create invite tokens' });
@@ -24,12 +24,12 @@ const generateToken = async (req, res) => {
 
     // Insert token (compatible with both databases)
     const result = await query(
-      'INSERT INTO invite_tokens (token, email, created_by, expires_at) VALUES (?, ?, ?, ?)',
+      'INSERT INTO invite_tokens (token, email, created_by, expires_at) VALUES ($1, $2, $3, $4)',
       [token, email, createdBy, expiresAtString]
     );
 
     // Get the inserted token for response
-    const insertedToken = await query('SELECT * FROM invite_tokens WHERE token = ?', [token]);
+    const insertedToken = await query('SELECT * FROM invite_tokens WHERE token = $1', [token]);
 
     return res.status(201).json({
       message: 'Invite token created successfully',
@@ -54,7 +54,7 @@ const validateToken = async (req, res) => {
     const booleanCheck = isPostgreSQL ? 'is_used = FALSE' : 'is_used = 0';
 
     const result = await query(
-      `SELECT * FROM invite_tokens WHERE token = ? AND ${booleanCheck} AND (expires_at IS NULL OR ${dateCheck})`,
+      `SELECT * FROM invite_tokens WHERE token = $1 AND ${booleanCheck} AND (expires_at IS NULL OR ${dateCheck})`,
       [token]
     );
 
@@ -83,7 +83,7 @@ const useToken = async (token, userId) => {
     const booleanCheck = isPostgreSQL ? 'is_used = FALSE' : 'is_used = 0';
     
     const result = await query(
-      `UPDATE invite_tokens SET is_used = ${booleanValue}, used_by = ? WHERE token = ? AND ${booleanCheck}`,
+      `UPDATE invite_tokens SET is_used = ${booleanValue}, used_by = $1 WHERE token = $2 AND ${booleanCheck}`,
       [userId, token]
     );
 
@@ -100,7 +100,7 @@ const getAllTokens = async (req, res) => {
     const createdBy = req.user.id;
 
     // Check admin permissions (compatible with both databases)
-    const userCheck = await query('SELECT userType FROM users WHERE id = ?', [createdBy]);
+    const userCheck = await query('SELECT userType FROM users WHERE id = $1', [createdBy]);
     const userType = userCheck[0]?.userType?.toLowerCase();
     if (!userCheck.length || (userType !== 'admin' && userType !== 'founder')) {
       return res.status(403).json({ message: 'Insufficient permissions' });
@@ -134,13 +134,13 @@ const revokeToken = async (req, res) => {
     const userId = req.user.id;
 
     // Check admin permissions (compatible with both databases)
-    const userCheck = await query('SELECT userType FROM users WHERE id = ?', [userId]);
+    const userCheck = await query('SELECT userType FROM users WHERE id = $1', [userId]);
     const userType = userCheck[0]?.userType?.toLowerCase();
     if (!userCheck.length || (userType !== 'admin' && userType !== 'founder')) {
       return res.status(403).json({ message: 'Insufficient permissions' });
     }
 
-    const result = await query('DELETE FROM invite_tokens WHERE id = ?', [tokenId]);
+    const result = await query('DELETE FROM invite_tokens WHERE id = $1', [tokenId]);
     
     // Check result based on database type
     const deletedCount = isPostgreSQL ? result.rowCount : result.changes;
