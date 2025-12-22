@@ -15,13 +15,9 @@ const register = async (req, res) => {
       });
     }
 
-    // Validate invite token (compatible with both SQLite and PostgreSQL)
-    const { isPostgreSQL } = require('../config/database');
-    const dateCheck = isPostgreSQL ? 'expires_at > NOW()' : 'expires_at > datetime(\'now\')';
-    const booleanCheck = isPostgreSQL ? 'is_used = FALSE' : 'is_used = 0';
-    
+    // Validate invite token (PostgreSQL only - we're in production)
     const tokenCheck = await query(
-      `SELECT * FROM invite_tokens WHERE token = $1 AND ${booleanCheck} AND (expires_at IS NULL OR ${dateCheck})`,
+      'SELECT * FROM invite_tokens WHERE token = $1 AND is_used = FALSE AND (expires_at IS NULL OR expires_at > NOW())',
       [inviteToken]
     );
 
