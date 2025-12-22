@@ -51,7 +51,7 @@ const register = async (req, res) => {
 
     // Create user and return id
     const inserted = await query(
-      `INSERT INTO users (email, password, firstName, lastName, company, jobTitle, points, level, userType)
+      `INSERT INTO users (email, password, firstname, lastname, company, jobtitle, points, level, usertype)
        VALUES ($1, $2, $3, $4, $5, $6, 0, 1, 'member')`,
       [email, hashedPassword, firstName, lastName, company || '', jobTitle || '']
     );
@@ -120,7 +120,7 @@ const login = async (req, res) => {
     const updatedUser = updatedUsers[0];
 
     const token = jwt.sign(
-      { id: updatedUser.id, email: updatedUser.email, userType: updatedUser.userType },
+      { id: updatedUser.id, email: updatedUser.email, userType: updatedUser.usertype },
       process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '7d' }
     );
@@ -130,14 +130,14 @@ const login = async (req, res) => {
       user: {
         id: updatedUser.id,
         email: updatedUser.email,
-        firstName: updatedUser.firstName,
-        lastName: updatedUser.lastName,
+        firstName: updatedUser.firstname,
+        lastName: updatedUser.lastname,
         company: updatedUser.company,
-        jobTitle: updatedUser.jobTitle,
+        jobTitle: updatedUser.jobtitle,
         points: updatedUser.points,
         level: updatedUser.level,
-        userType: updatedUser.userType || 'member',
-        profileImage: updatedUser.profileImage
+        userType: updatedUser.usertype || 'member',
+        profileImage: updatedUser.profile_image
       }
     });
   } catch (err) {
@@ -153,7 +153,7 @@ const me = async (req, res) => {
     const userId = req.user.id;
 
     const users = await query(
-      'SELECT id, email, firstName, lastName, company, jobTitle, points, level, userType, profileImage FROM users WHERE id = $1',
+      'SELECT id, email, firstname, lastname, company, jobtitle, points, level, usertype, profile_image FROM users WHERE id = $1',
       [userId]
     );
     
@@ -167,14 +167,14 @@ const me = async (req, res) => {
       user: {
         id: user.id,
         email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
+        firstName: user.firstname,
+        lastName: user.lastname,
         company: user.company,
-        jobTitle: user.jobTitle,
+        jobTitle: user.jobtitle,
         points: user.points,
         level: user.level,
-        userType: user.userType || 'member',
-        profileImage: user.profileImage
+        userType: user.usertype || 'member',
+        profileImage: user.profile_image
       }
     });
   } catch (error) {
