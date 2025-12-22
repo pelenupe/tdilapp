@@ -56,7 +56,7 @@ router.get('/detailed', async (req, res) => {
     const recentRegistrations = await query(`
       SELECT COUNT(*) as count
       FROM users 
-      WHERE createdAt >= datetime('now', '-30 days')
+      WHERE createdAt >= NOW() - INTERVAL '30 days'
     `);
 
     // Get top companies by member count
@@ -73,8 +73,8 @@ router.get('/detailed', async (req, res) => {
     const eventStats = await query(`
       SELECT 
         COUNT(*) as total_events,
-        COUNT(CASE WHEN date >= datetime('now') THEN 1 END) as upcoming_events,
-        COUNT(CASE WHEN date < datetime('now') THEN 1 END) as past_events
+        COUNT(CASE WHEN date >= NOW() THEN 1 END) as upcoming_events,
+        COUNT(CASE WHEN date < NOW() THEN 1 END) as past_events
       FROM events
     `);
 

@@ -27,19 +27,11 @@ router.get('/full', async (req, res) => {
       LEFT JOIN points_history p ON u.id = p.userId
     `;
     
-    // Add timeframe filtering with proper SQL syntax
+    // Add timeframe filtering with PostgreSQL syntax (we're in production)
     if (timeframe === 'weekly') {
-      if (isPostgreSQL()) {
-        sql += ` WHERE p.created_at >= NOW() - INTERVAL '7 days' OR p.created_at IS NULL`;
-      } else {
-        sql += ` WHERE p.createdAt >= datetime('now', '-7 days') OR p.createdAt IS NULL`;
-      }
+      sql += ` WHERE p.created_at >= NOW() - INTERVAL '7 days' OR p.created_at IS NULL`;
     } else if (timeframe === 'monthly') {
-      if (isPostgreSQL()) {
-        sql += ` WHERE p.created_at >= NOW() - INTERVAL '30 days' OR p.created_at IS NULL`;
-      } else {
-        sql += ` WHERE p.createdAt >= datetime('now', '-30 days') OR p.createdAt IS NULL`;
-      }
+      sql += ` WHERE p.created_at >= NOW() - INTERVAL '30 days' OR p.created_at IS NULL`;
     }
     
     sql += `
