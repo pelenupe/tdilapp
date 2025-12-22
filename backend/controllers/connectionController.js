@@ -17,7 +17,7 @@ const createConnection = async (req, res) => {
 
     // Check if connection already exists
     const existingConnection = await query(
-      'SELECT id FROM connections WHERE (user_id = ? AND connected_user_id = ?) OR (user_id = ? AND connected_user_id = ?)',
+      'SELECT id FROM connections WHERE (user_id = $1 AND connected_user_id = $2) OR (user_id = $3 AND connected_user_id = $4)',
       [userId, targetUserId, targetUserId, userId]
     );
 
@@ -27,7 +27,7 @@ const createConnection = async (req, res) => {
 
     // Create the connection
     await query(
-      'INSERT INTO connections (user_id, connected_user_id, status, created_at) VALUES (?, ?, ?, datetime(\'now\'))',
+      'INSERT INTO connections (user_id, connected_user_id, status, created_at) VALUES ($1, $2, $3, NOW())',
       [userId, targetUserId, 'connected']
     );
 
@@ -37,7 +37,7 @@ const createConnection = async (req, res) => {
 
     // Get updated user data
     const users = await query(
-      'SELECT id, firstName, lastName, points, level FROM users WHERE id = ? OR id = ?',
+      'SELECT id, firstName, lastName, points, level FROM users WHERE id = $1 OR id = $2',
       [userId, targetUserId]
     );
 
@@ -74,11 +74,11 @@ const getUserConnections = async (req, res) => {
       FROM connections c
       JOIN users u ON (
         CASE 
-          WHEN c.user_id = ? THEN u.id = c.connected_user_id
+          WHEN c.user_id = $1 THEN u.id = c.connected_user_id
           ELSE u.id = c.user_id
         END
       )
-      WHERE (c.user_id = ? OR c.connected_user_id = ?)
+      WHERE (c.user_id = $2 OR c.connected_user_id = $3)
       AND c.status = 'connected'
       ORDER BY c.created_at DESC`,
       [userId, userId, userId]
@@ -97,7 +97,7 @@ const getConnectionStats = async (req, res) => {
     const userId = req.user.id;
 
     const stats = await query(
-      'SELECT COUNT(*) as connectionCount FROM connections WHERE (user_id = ? OR connected_user_id = ?) AND status = \'connected\'',
+      'SELECT COUNT(*) as connectionCount FROM connections WHERE (user_id = $1 OR connected_user_id = $2) AND status = \'connected\'',
       [userId, userId]
     );
 

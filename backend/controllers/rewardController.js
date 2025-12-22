@@ -3,7 +3,7 @@ const { query } = require('../config/database');
 // Get all available rewards
 const getRewards = async (req, res) => {
   try {
-    const rewards = await query('SELECT * FROM rewards WHERE isActive = 1');
+    const rewards = await query('SELECT * FROM rewards WHERE isActive = $1', [true]);
     res.json(rewards);
   } catch (err) {
     console.error(err);
@@ -17,53 +17,42 @@ const redeemReward = async (req, res) => {
     const { rewardId } = req.body;
 
     // Get reward details
-    db.get('SELECT * FROM rewards WHERE id = ? AND isActive = 1', [rewardId], (err, reward) => {
-      if (err) {
-        console.error(err);
-        return res.status(500).json({ message: 'Error fetching reward' });
-      }
+    const rewardResult = await query('SELECT * FROM rewards WHERE id = $1 AND isActive = $2', [rewardId, true]);
+    
+    if (rewardResult.length === 0) {
+      return res.status(404).json({ message: 'Reward not found' });
+    }
 
-      if (!reward) {
-        return res.status(404).json({ message: 'Reward not found' });
-      }
+    const reward = rewardResult[0];
 
-      // Get user details
-      db.get('SELECT * FROM users WHERE id = ?', [req.user.id], (err, user) => {
-        if (err) {
-          console.error(err);
-          return res.status(500).json({ message: 'Error fetching user' });
-        }
+    // Get user details
+    const userResult = await query('SELECT * FROM users WHERE id = $1', [req.user.id]);
+    
+    if (userResult.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
 
-        if (user.points < reward.pointsCost) {
-          return res.status(400).json({ message: 'Not enough points to redeem this reward.' });
-        }
+    const user = userResult[0];
 
-        // Deduct points from user
-        const newPoints = user.points - reward.pointsCost;
-        db.run('UPDATE users SET points = ? WHERE id = ?', [newPoints, req.user.id], (err) => {
-          if (err) {
-            console.error(err);
-            return res.status(500).json({ message: 'Error updating user points' });
-          }
+    if (user.points < reward.pointsCost) {
+      return res.status(400).json({ message: 'Not enough points to redeem this reward.' });
+    }
 
-          // Record the redemption in points history
-          db.run(
-            'INSERT INTO points_history (userId, points, reason, type) VALUES (?, ?, ?, ?)',
-            [req.user.id, -reward.pointsCost, `Redeemed: ${reward.title}`, 'redemption'],
-            (err) => {
-              if (err) {
-                console.error('Error recording points history:', err);
-              }
-            }
-          );
+    // Deduct points from user
+    const newPoints = user.points - reward.pointsCost;
+    await query('UPDATE users SET points = $1 WHERE id = $2', [newPoints, req.user.id]);
 
-          res.json({ 
-            message: `Successfully redeemed ${reward.title}!`,
-            pointsRemaining: newPoints
-          });
-        });
-      });
+    // Record the redemption in points history
+    await query(
+      'INSERT INTO points_history (userId, points, reason, type) VALUES ($1, $2, $3, $4)',
+      [req.user.id, -reward.pointsCost, `Redeemed: ${reward.title}`, 'redemption']
+    );
+
+    res.json({ 
+      message: `Successfully redeemed ${reward.title}!`,
+      pointsRemaining: newPoints
     });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Error redeeming reward' });
