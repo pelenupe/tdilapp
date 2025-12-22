@@ -167,14 +167,13 @@ const getSystemHealth = async () => {
 // Detailed metrics endpoint
 const getDetailedMetrics = async () => {
   try {
-    // Update user metrics
+    // Update user metrics (using database-agnostic syntax)
     const userStats = await query(`
       SELECT 
         COUNT(*) as total,
-        COUNT(CASE WHEN is_active = true THEN 1 END) as active,
-        COUNT(CASE WHEN created_at >= NOW() - INTERVAL '24 hours' THEN 1 END) as new_today
+        COUNT(CASE WHEN is_active = $1 THEN 1 END) as active
       FROM users
-    `);
+    `, [true]);
 
     if (userStats.length > 0) {
       metrics.users.total = parseInt(userStats[0].total);
@@ -265,8 +264,8 @@ const getReadinessCheck = async () => {
     const adminCheck = await query(`
       SELECT COUNT(*) as count 
       FROM users 
-      WHERE user_type = 'admin' AND is_active = true
-    `);
+      WHERE userType = $1 AND is_active = true
+    `, ['admin']);
     checks.essential_data = parseInt(adminCheck[0].count) > 0;
 
   } catch (error) {
