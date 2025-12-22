@@ -222,23 +222,23 @@ const getPointsStats = async (req, res) => {
         SUM(points) as totalPointsAwarded,
         AVG(points) as avgPoints,
         MAX(points) as maxPoints,
-        (SELECT COUNT(*) FROM points_history WHERE createdAt >= datetime('now', '-7 days')) as pointsThisWeek,
-        (SELECT COUNT(*) FROM points_history WHERE createdAt >= datetime('now', '-30 days')) as pointsThisMonth
-      FROM users WHERE userType = 'member'
-    `);
+        (SELECT COUNT(*) FROM points_history WHERE createdAt >= NOW() - INTERVAL '7 days') as pointsThisWeek,
+        (SELECT COUNT(*) FROM points_history WHERE createdAt >= NOW() - INTERVAL '30 days') as pointsThisMonth
+      FROM users WHERE userType = $1
+    `, ['member']);
     
     const levelDistribution = await query(`
       SELECT level, COUNT(*) as count 
       FROM users 
-      WHERE userType = 'member' 
+      WHERE userType = $1 
       GROUP BY level 
       ORDER BY level
-    `);
+    `, ['member']);
     
     const activityBreakdown = await query(`
       SELECT type, COUNT(*) as count, SUM(points) as totalPoints
       FROM points_history 
-      WHERE createdAt >= datetime('now', '-30 days')
+      WHERE createdAt >= NOW() - INTERVAL '30 days'
       GROUP BY type 
       ORDER BY totalPoints DESC
     `);
