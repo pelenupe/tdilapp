@@ -262,9 +262,9 @@ const getReadinessCheck = async () => {
 
     // Check if essential data exists (at least one admin user)
     const adminCheck = await query(`
-      SELECT COUNT(*) as count 
-      FROM users 
-      WHERE userType = $1 AND is_active = true
+      SELECT COUNT(*) as count
+      FROM users
+      WHERE usertype = $1 AND is_active = true
     `, ['admin']);
     checks.essential_data = parseInt(adminCheck[0].count) > 0;
 
