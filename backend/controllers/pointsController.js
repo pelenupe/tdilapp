@@ -40,7 +40,7 @@ const awardPoints = async (userId, pointType, description, metadata = {}) => {
 
     // Log the points activity
     await query(
-      'INSERT INTO points_history (userId, points, type, reason) VALUES ($1, $2, $3, $4)',
+      'INSERT INTO points_history (userid, points, type, reason) VALUES ($1, $2, $3, $4)',
       [userId, points, pointType, description]
     );
 
@@ -111,7 +111,7 @@ const getPointsHistory = async (req, res) => {
     const limit = parseInt(req.query.limit) || 50;
     
     const history = await query(
-      'SELECT points, type, reason, createdAt FROM points_history WHERE userId = $1 ORDER BY createdAt DESC LIMIT $2',
+      'SELECT points, type, reason, createdat FROM points_history WHERE userid = $1 ORDER BY createdat DESC LIMIT $2',
       [userId, limit]
     );
     
@@ -144,7 +144,7 @@ const awardPointsManually = async (req, res) => {
     
     // Log the manual points award
     await query(
-      'INSERT INTO points_history (userId, points, type, reason) VALUES ($1, $2, $3, $4)',
+      'INSERT INTO points_history (userid, points, type, reason) VALUES ($1, $2, $3, $4)',
       [userId, points, 'MANUAL_AWARD', reason]
     );
     
@@ -222,8 +222,8 @@ const getPointsStats = async (req, res) => {
         SUM(points) as totalPointsAwarded,
         AVG(points) as avgPoints,
         MAX(points) as maxPoints,
-        (SELECT COUNT(*) FROM points_history WHERE createdAt >= NOW() - INTERVAL '7 days') as pointsThisWeek,
-        (SELECT COUNT(*) FROM points_history WHERE createdAt >= NOW() - INTERVAL '30 days') as pointsThisMonth
+        (SELECT COUNT(*) FROM points_history WHERE createdat >= NOW() - INTERVAL '7 days') as pointsThisWeek,
+        (SELECT COUNT(*) FROM points_history WHERE createdat >= NOW() - INTERVAL '30 days') as pointsThisMonth
       FROM users WHERE userType = $1
     `, ['member']);
     
@@ -238,7 +238,7 @@ const getPointsStats = async (req, res) => {
     const activityBreakdown = await query(`
       SELECT type, COUNT(*) as count, SUM(points) as totalPoints
       FROM points_history 
-      WHERE createdAt >= NOW() - INTERVAL '30 days'
+      WHERE createdat >= NOW() - INTERVAL '30 days'
       GROUP BY type 
       ORDER BY totalPoints DESC
     `);
