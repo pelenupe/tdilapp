@@ -227,7 +227,7 @@ const refreshTokenMiddleware = async (req, res, next) => {
       `SELECT us.*, u.userType, u.is_active 
        FROM user_sessions us 
        JOIN users u ON us.user_id = u.id 
-       WHERE us.id = $1 AND us.refresh_token = $2 AND us.is_active = 1 AND us.expires_at > NOW()`,
+       WHERE us.id = $1 AND us.refresh_token = $2 AND us.is_active = TRUE AND us.expires_at > NOW()`,
       [decoded.sessionId, refreshToken]
     );
 
@@ -279,7 +279,7 @@ const refreshTokenMiddleware = async (req, res, next) => {
 const logoutUser = async (userId, sessionId) => {
   try {
     await query(
-      'UPDATE user_sessions SET is_active = 0 WHERE user_id = $1 AND id = $2',
+      'UPDATE user_sessions SET is_active = FALSE WHERE user_id = $1 AND id = $2',
       [userId, sessionId]
     );
     return true;
@@ -293,7 +293,7 @@ const logoutUser = async (userId, sessionId) => {
 const logoutAllSessions = async (userId) => {
   try {
     await query(
-      'UPDATE user_sessions SET is_active = 0 WHERE user_id = $1',
+      'UPDATE user_sessions SET is_active = FALSE WHERE user_id = $1',
       [userId]
     );
     return true;
@@ -321,7 +321,7 @@ const logAuditEvent = async (userId, action, resourceType, resourceId, details, 
 const cleanupExpiredSessions = async () => {
   try {
     const result = await query(
-      'UPDATE user_sessions SET is_active = 0 WHERE expires_at < NOW() AND is_active = 1'
+      'UPDATE user_sessions SET is_active = FALSE WHERE expires_at < NOW() AND is_active = TRUE'
     );
     console.log(`Cleaned up ${result.rowCount || 0} expired sessions`);
   } catch (error) {
