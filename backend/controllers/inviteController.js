@@ -8,8 +8,8 @@ const generateToken = async (req, res) => {
     const createdBy = req.user.id;
 
     // Check if user has admin permissions (compatible with both databases)
-    const userCheck = await query('SELECT userType FROM users WHERE id = $1', [createdBy]);
-    const userType = userCheck[0]?.userType?.toLowerCase();
+    const userCheck = await query('SELECT usertype FROM users WHERE id = $1', [createdBy]);
+    const userType = userCheck[0]?.usertype?.toLowerCase();
     if (!userCheck.length || (userType !== 'admin' && userType !== 'founder')) {
       return res.status(403).json({ message: 'Insufficient permissions to create invite tokens' });
     }
@@ -100,8 +100,8 @@ const getAllTokens = async (req, res) => {
     const createdBy = req.user.id;
 
     // Check admin permissions (compatible with both databases)
-    const userCheck = await query('SELECT userType FROM users WHERE id = $1', [createdBy]);
-    const userType = userCheck[0]?.userType?.toLowerCase();
+    const userCheck = await query('SELECT usertype FROM users WHERE id = $1', [createdBy]);
+    const userType = userCheck[0]?.usertype?.toLowerCase();
     if (!userCheck.length || (userType !== 'admin' && userType !== 'founder')) {
       return res.status(403).json({ message: 'Insufficient permissions' });
     }
@@ -111,8 +111,8 @@ const getAllTokens = async (req, res) => {
     const tokens = await query(`
       SELECT 
         it.*,
-        creator.firstName ${concatOperator} ' ' ${concatOperator} creator.lastName as created_by_name,
-        user_used.firstName ${concatOperator} ' ' ${concatOperator} user_used.lastName as used_by_name
+        creator.firstname ${concatOperator} ' ' ${concatOperator} creator.lastname as created_by_name,
+        user_used.firstname ${concatOperator} ' ' ${concatOperator} user_used.lastname as used_by_name
       FROM invite_tokens it
       LEFT JOIN users creator ON it.created_by = creator.id
       LEFT JOIN users user_used ON it.used_by = user_used.id
@@ -134,8 +134,8 @@ const revokeToken = async (req, res) => {
     const userId = req.user.id;
 
     // Check admin permissions (compatible with both databases)
-    const userCheck = await query('SELECT userType FROM users WHERE id = $1', [userId]);
-    const userType = userCheck[0]?.userType?.toLowerCase();
+    const userCheck = await query('SELECT usertype FROM users WHERE id = $1', [userId]);
+    const userType = userCheck[0]?.usertype?.toLowerCase();
     if (!userCheck.length || (userType !== 'admin' && userType !== 'founder')) {
       return res.status(403).json({ message: 'Insufficient permissions' });
     }
