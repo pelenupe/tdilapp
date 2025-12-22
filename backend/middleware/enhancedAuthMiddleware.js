@@ -189,7 +189,7 @@ const createUserSession = async (userId, refreshToken, req) => {
   const sessionResult = await query(
     `INSERT INTO user_sessions 
      (user_id, refresh_token, expires_at) 
-     VALUES (?, ?, ?)`,
+     VALUES ($1, $2, $3)`,
     [
       userId,
       refreshToken,
@@ -227,7 +227,7 @@ const refreshTokenMiddleware = async (req, res, next) => {
       `SELECT us.*, u.userType, u.is_active 
        FROM user_sessions us 
        JOIN users u ON us.user_id = u.id 
-       WHERE us.id = ? AND us.refresh_token = ? AND us.is_active = 1 AND us.expires_at > datetime('now')`,
+       WHERE us.id = $1 AND us.refresh_token = $2 AND us.is_active = 1 AND us.expires_at > NOW()`,
       [decoded.sessionId, refreshToken]
     );
 
@@ -309,7 +309,7 @@ const logAuditEvent = async (userId, action, resourceType, resourceId, details, 
     await query(
       `INSERT INTO audit_log 
        (user_id, action, resource_type, resource_id, details, ip_address, user_agent) 
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
       [userId, action, resourceType, resourceId, JSON.stringify(details), ipAddress, userAgent]
     );
   } catch (error) {
@@ -321,7 +321,7 @@ const logAuditEvent = async (userId, action, resourceType, resourceId, details, 
 const cleanupExpiredSessions = async () => {
   try {
     const result = await query(
-      'UPDATE user_sessions SET is_active = 0 WHERE expires_at < datetime(\'now\') AND is_active = 1'
+      'UPDATE user_sessions SET is_active = 0 WHERE expires_at < NOW() AND is_active = 1'
     );
     console.log(`Cleaned up ${result.rowCount || 0} expired sessions`);
   } catch (error) {

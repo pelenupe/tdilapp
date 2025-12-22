@@ -22,8 +22,8 @@ router.get('/overview', async (req, res) => {
     const eventsResult = await query(`
       SELECT COUNT(*) as count 
       FROM events 
-      WHERE strftime('%Y', date) = ?
-    `, [currentYear.toString()]);
+      WHERE EXTRACT(YEAR FROM date) = $1
+    `, [currentYear]);
     const totalEvents = parseInt(eventsResult[0].count || eventsResult[0]['COUNT(*)']) || 0;
 
     res.json({
