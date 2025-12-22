@@ -48,7 +48,7 @@ const authenticateToken = async (req, res, next) => {
 
     // Update last activity
     await query(
-      'UPDATE users SET updatedAt = datetime(\'now\') WHERE id = $1',
+      'UPDATE users SET updatedAt = NOW() WHERE id = $1',
       [decoded.id]
     );
 
