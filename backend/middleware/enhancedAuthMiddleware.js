@@ -46,11 +46,16 @@ const authenticateToken = async (req, res, next) => {
       sessionId: null // Simple JWT doesn't have sessions
     };
 
-    // Update last activity
-    await query(
-      'UPDATE users SET updatedat = NOW() WHERE id = $1',
-      [decoded.id]
-    );
+    // Update last activity (non-critical - silently ignore errors)
+    try {
+      await query(
+        'UPDATE users SET updatedat = NOW() WHERE id = $1',
+        [decoded.id]
+      );
+    } catch (updateErr) {
+      // Column may not exist - non-critical, just log
+      console.log('Note: updatedat column not available');
+    }
 
     next();
   } catch (error) {
