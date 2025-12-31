@@ -1,14 +1,16 @@
 -- Invite tokens table
+-- Note: Column names match backend controller expectations
+
 CREATE TABLE IF NOT EXISTS invite_tokens (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  id SERIAL PRIMARY KEY,
   token VARCHAR(255) UNIQUE NOT NULL,
   email VARCHAR(255),
-  created_by UUID REFERENCES users(id),
-  used_by UUID REFERENCES users(id),
+  created_by INTEGER REFERENCES users(id),
+  used_by INTEGER REFERENCES users(id),
   is_used BOOLEAN DEFAULT FALSE,
   expires_at TIMESTAMP WITH TIME ZONE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Index for faster token lookups
@@ -20,7 +22,7 @@ CREATE INDEX IF NOT EXISTS idx_invite_tokens_used ON invite_tokens(is_used);
 CREATE OR REPLACE FUNCTION update_invite_tokens_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
-  NEW.updated_at = NOW();
+  NEW.updated_at = CURRENT_TIMESTAMP;
   RETURN NEW;
 END;
 $$ language 'plpgsql';
