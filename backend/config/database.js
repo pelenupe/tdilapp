@@ -117,21 +117,23 @@ const initDatabase = async () => {
     console.log('✅ Database connected successfully');
 
     // Define schema based on database type
+    // NOTE: Using lowercase column names to match PostgreSQL identifier folding and controller queries
     const createUserTable = isPostgreSQL 
       ? `CREATE TABLE IF NOT EXISTS users (
           id SERIAL PRIMARY KEY,
           email VARCHAR(255) UNIQUE NOT NULL,
           password VARCHAR(255) NOT NULL,
-          firstName VARCHAR(255) NOT NULL,
-          lastName VARCHAR(255) NOT NULL,
+          firstname VARCHAR(255) NOT NULL,
+          lastname VARCHAR(255) NOT NULL,
           company VARCHAR(255),
-          jobTitle VARCHAR(255),
+          jobtitle VARCHAR(255),
           location VARCHAR(255),
           linkedin_url VARCHAR(500),
           profile_image VARCHAR(500),
+          bio TEXT,
           points INTEGER DEFAULT 0,
           level INTEGER DEFAULT 1,
-          userType VARCHAR(50) DEFAULT 'member',  
+          usertype VARCHAR(50) DEFAULT 'member',  
           is_active BOOLEAN DEFAULT true,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -140,16 +142,17 @@ const initDatabase = async () => {
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           email TEXT UNIQUE NOT NULL,
           password TEXT NOT NULL,
-          firstName TEXT NOT NULL,
-          lastName TEXT NOT NULL,
+          firstname TEXT NOT NULL,
+          lastname TEXT NOT NULL,
           company TEXT,
-          jobTitle TEXT,
+          jobtitle TEXT,
           location TEXT,
           linkedin_url TEXT,
           profile_image TEXT,
+          bio TEXT,
           points INTEGER DEFAULT 0,
           level INTEGER DEFAULT 1,
-          userType TEXT DEFAULT 'member',
+          usertype TEXT DEFAULT 'member',
           is_active INTEGER DEFAULT 1,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -158,25 +161,23 @@ const initDatabase = async () => {
     const createPointsHistoryTable = isPostgreSQL
       ? `CREATE TABLE IF NOT EXISTS points_history (
           id SERIAL PRIMARY KEY,
-          userId INTEGER NOT NULL REFERENCES users(id),
+          userid INTEGER NOT NULL REFERENCES users(id),
           points INTEGER NOT NULL,
           reason VARCHAR(500),
           type VARCHAR(50) DEFAULT 'earned',
-          referenceId INTEGER,
-          referenceType VARCHAR(50),
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+          referenceid INTEGER,
+          referencetype VARCHAR(50),
+          createdat TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`
       : `CREATE TABLE IF NOT EXISTS points_history (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
-          userId INTEGER NOT NULL,
+          userid INTEGER NOT NULL,
           points INTEGER NOT NULL,
           reason TEXT,
           type TEXT DEFAULT 'earned',
-          referenceId INTEGER,
-          referenceType TEXT,
-          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-          createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+          referenceid INTEGER,
+          referencetype TEXT,
+          createdat DATETIME DEFAULT CURRENT_TIMESTAMP
         )`;
 
     const createInviteTokenTable = isPostgreSQL
@@ -218,7 +219,7 @@ const initDatabase = async () => {
       
       if (isPostgreSQL) {
         await query(
-          `INSERT INTO users (email, password, firstName, lastName, userType, points, level) 
+          `INSERT INTO users (email, password, firstname, lastname, usertype, points, level) 
            VALUES ($1, $2, $3, $4, $5, $6, $7)`,
           ['admin@tdil.com', hashedPassword, 'Admin', 'User', 'admin', 100, 5]
         );
@@ -232,7 +233,7 @@ const initDatabase = async () => {
         );
       } else {
         await query(
-          `INSERT INTO users (email, password, firstName, lastName, userType, points, level) 
+          `INSERT INTO users (email, password, firstname, lastname, usertype, points, level) 
            VALUES (?, ?, ?, ?, ?, ?, ?)`,
           ['admin@tdil.com', hashedPassword, 'Admin', 'User', 'admin', 100, 5]
         );
