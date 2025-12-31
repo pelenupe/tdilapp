@@ -141,7 +141,9 @@ const generalLimiter = rateLimit({
   skip: (req) => {
     // Skip rate limiting for health checks
     return req.path.startsWith('/api/health') || req.path.startsWith('/health');
-  }
+  },
+  // Disable trust proxy validation to allow running behind nginx
+  validate: { trustProxy: false }
 });
 
 // Apply rate limiting conditionally

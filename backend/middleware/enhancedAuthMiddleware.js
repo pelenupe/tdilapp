@@ -107,6 +107,8 @@ const authRateLimit = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  // Disable trust proxy validation to allow running behind nginx
+  validate: { trustProxy: false },
   handler: (req, res) => {
     // Log suspicious activity
     logAuditEvent(null, 'RATE_LIMIT_EXCEEDED', 'auth', null, {
