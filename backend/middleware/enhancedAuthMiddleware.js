@@ -20,7 +20,7 @@ const authenticateToken = async (req, res, next) => {
     
     // For simple JWT tokens (no session tracking), just validate user exists and is active
     const userCheck = await query(
-      'SELECT id, email, userType, is_active FROM users WHERE id = $1',
+      'SELECT id, email, usertype, is_active FROM users WHERE id = $1',
       [decoded.id]
     );
 
@@ -42,13 +42,13 @@ const authenticateToken = async (req, res, next) => {
     req.user = {
       id: decoded.id,
       email: user.email,
-      userType: decoded.userType || user.userType,
+      userType: decoded.userType || user.usertype,
       sessionId: null // Simple JWT doesn't have sessions
     };
 
     // Update last activity
     await query(
-      'UPDATE users SET updatedAt = NOW() WHERE id = $1',
+      'UPDATE users SET updatedat = NOW() WHERE id = $1',
       [decoded.id]
     );
 
@@ -226,7 +226,7 @@ const refreshTokenMiddleware = async (req, res, next) => {
 
     // Check if session exists and is active
     const session = await query(
-      `SELECT us.*, u.userType, u.is_active 
+      `SELECT us.*, u.usertype, u.is_active 
        FROM user_sessions us 
        JOIN users u ON us.user_id = u.id 
        WHERE us.id = $1 AND us.refresh_token = $2 AND us.is_active = TRUE AND us.expires_at > NOW()`,
@@ -249,7 +249,7 @@ const refreshTokenMiddleware = async (req, res, next) => {
 
     req.user = {
       id: decoded.id,
-      userType: session[0].userType,
+      userType: session[0].usertype,
       sessionId: decoded.sessionId
     };
 
