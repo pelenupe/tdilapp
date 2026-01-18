@@ -15,27 +15,27 @@ ALTER TABLE invite_tokens ADD COLUMN IF NOT EXISTS use_count INTEGER DEFAULT 0;
 
 -- Member invite token
 INSERT INTO invite_tokens (token, user_type, is_reusable, is_used, expires_at, created_by)
-SELECT 'TDIL-MEMBER-2024-INVITE', 'member', TRUE, FALSE, NULL, 
+SELECT 'TDIL-MEMBER-INVITE', 'member', TRUE, FALSE, NULL, 
        (SELECT id FROM users WHERE usertype = 'admin' LIMIT 1)
-WHERE NOT EXISTS (SELECT 1 FROM invite_tokens WHERE token = 'TDIL-MEMBER-2024-INVITE');
+WHERE NOT EXISTS (SELECT 1 FROM invite_tokens WHERE token = 'TDIL-MEMBER-INVITE');
 
 -- Partner School invite token
 INSERT INTO invite_tokens (token, user_type, is_reusable, is_used, expires_at, created_by)
-SELECT 'TDIL-PARTNER-2024-INVITE', 'partner_school', TRUE, FALSE, NULL,
+SELECT 'TDIL-PARTNER-INVITE', 'partner_school', TRUE, FALSE, NULL,
        (SELECT id FROM users WHERE usertype = 'admin' LIMIT 1)
-WHERE NOT EXISTS (SELECT 1 FROM invite_tokens WHERE token = 'TDIL-PARTNER-2024-INVITE');
+WHERE NOT EXISTS (SELECT 1 FROM invite_tokens WHERE token = 'TDIL-PARTNER-INVITE');
 
 -- Sponsor invite token
 INSERT INTO invite_tokens (token, user_type, is_reusable, is_used, expires_at, created_by)
-SELECT 'TDIL-SPONSOR-2024-INVITE', 'sponsor', TRUE, FALSE, NULL,
+SELECT 'TDIL-SPONSOR-INVITE', 'sponsor', TRUE, FALSE, NULL,
        (SELECT id FROM users WHERE usertype = 'admin' LIMIT 1)
-WHERE NOT EXISTS (SELECT 1 FROM invite_tokens WHERE token = 'TDIL-SPONSOR-2024-INVITE');
+WHERE NOT EXISTS (SELECT 1 FROM invite_tokens WHERE token = 'TDIL-SPONSOR-INVITE');
 
 -- Admin invite token (for creating new admins - use sparingly)
 INSERT INTO invite_tokens (token, user_type, is_reusable, is_used, expires_at, created_by)
-SELECT 'TDIL-ADMIN-2024-SECURE', 'admin', TRUE, FALSE, NULL,
+SELECT 'TDIL-ADMIN-SECURE', 'admin', TRUE, FALSE, NULL,
        (SELECT id FROM users WHERE usertype = 'admin' LIMIT 1)
-WHERE NOT EXISTS (SELECT 1 FROM invite_tokens WHERE token = 'TDIL-ADMIN-2024-SECURE');
+WHERE NOT EXISTS (SELECT 1 FROM invite_tokens WHERE token = 'TDIL-ADMIN-SECURE');
 
 -- Create index for user_type lookups
 CREATE INDEX IF NOT EXISTS idx_invite_tokens_user_type ON invite_tokens(user_type);
