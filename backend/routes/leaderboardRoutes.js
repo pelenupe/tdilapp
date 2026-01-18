@@ -15,16 +15,16 @@ router.get('/full', async (req, res) => {
     let sql = `
       SELECT 
         u.id,
-        u.firstName,
-        u.lastName,
+        u.firstname as "firstName",
+        u.lastname as "lastName",
         u.email,
-        u.jobTitle,
+        u.jobtitle as "jobTitle",
         u.company,
-        u.profileImage,
+        u.profile_image as "profileImage",
         COALESCE(SUM(p.points), 0) as points,
         CAST(COALESCE(SUM(p.points), 0) / 1000 AS INTEGER) + 1 as level
       FROM users u
-      LEFT JOIN points_history p ON u.id = p.userId
+      LEFT JOIN points_history p ON u.id = p.userid
     `;
     
     // Add timeframe filtering with PostgreSQL syntax (we're in production)
@@ -36,7 +36,7 @@ router.get('/full', async (req, res) => {
     
     sql += `
       GROUP BY u.id
-      ORDER BY points DESC, u.firstName ASC
+      ORDER BY points DESC, u.firstname ASC
       LIMIT 100
     `;
     
@@ -55,19 +55,19 @@ router.get('/top', async (req, res) => {
     const sql = `
       SELECT 
         u.id,
-        u.firstName,
-        u.lastName,
+        u.firstname as "firstName",
+        u.lastname as "lastName",
         u.email,
-        u.jobTitle,
+        u.jobtitle as "jobTitle",
         u.company,
-        u.profileImage,
+        u.profile_image as "profileImage",
         COALESCE(SUM(p.points), 0) as points,
         CAST(COALESCE(SUM(p.points), 0) / 1000 AS INTEGER) + 1 as level,
         ROW_NUMBER() OVER (ORDER BY COALESCE(SUM(p.points), 0) DESC) as rank
       FROM users u
-      LEFT JOIN points_history p ON u.id = p.userId
+      LEFT JOIN points_history p ON u.id = p.userid
       GROUP BY u.id
-      ORDER BY points DESC, u.firstName ASC
+      ORDER BY points DESC, u.firstname ASC
       LIMIT 10
     `;
     
@@ -86,15 +86,15 @@ router.get('/', async (req, res) => {
     const sql = `
       SELECT 
         u.id,
-        u.firstName,
-        u.lastName,
+        u.firstname as "firstName",
+        u.lastname as "lastName",
         u.email,
         COALESCE(SUM(p.points), 0) as points,
         CAST(COALESCE(SUM(p.points), 0) / 1000 AS INTEGER) + 1 as level
       FROM users u
-      LEFT JOIN points_history p ON u.id = p.userId
+      LEFT JOIN points_history p ON u.id = p.userid
       GROUP BY u.id
-      ORDER BY points DESC, u.firstName ASC
+      ORDER BY points DESC, u.firstname ASC
       LIMIT 50
     `;
     
