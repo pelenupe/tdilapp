@@ -54,12 +54,30 @@ const validateToken = async (req, res) => {
   try {
     const { token } = req.params;
 
-    // For reusable tokens, don't check is_used
-    // For single-use tokens, check is_used = FALSE
+    // Query that works with or without new columns
+    // Check for permanent tokens first (hardcoded list)
+    const permanentTokens = {
+      'TDIL-MEMBER-INVITE': 'member',
+      'TDIL-PARTNER-INVITE': 'partner_school',
+      'TDIL-SPONSOR-INVITE': 'sponsor',
+      'TDIL-ADMIN-SECURE': 'admin'
+    };
+
+    if (permanentTokens[token]) {
+      return res.json({
+        valid: true,
+        email: null,
+        userType: permanentTokens[token],
+        isReusable: true,
+        message: 'Token is valid'
+      });
+    }
+
+    // For other tokens, use simple query
     const result = await query(
       `SELECT * FROM invite_tokens 
        WHERE token = $1 
-       AND (is_reusable = TRUE OR is_used = FALSE)
+       AND is_used = FALSE
        AND (expires_at IS NULL OR expires_at > NOW())`,
       [token]
     );
@@ -71,8 +89,8 @@ const validateToken = async (req, res) => {
     return res.json({
       valid: true,
       email: result[0].email,
-      userType: result[0].user_type,
-      isReusable: result[0].is_reusable,
+      userType: result[0].user_type || 'member',
+      isReusable: result[0].is_reusable || false,
       message: 'Token is valid'
     });
 
@@ -83,30 +101,35 @@ const validateToken = async (req, res) => {
 };
 
 // Mark token as used (called during registration)
-// For reusable tokens, just increment use_count
+// For reusable tokens (permanent), just return true
 // For single-use tokens, mark as used
 const useToken = async (token, userId) => {
   try {
-    // First check if token is reusable
-    const tokenCheck = await query('SELECT is_reusable FROM invite_tokens WHERE token = $1', [token]);
+    // Check for permanent tokens first (hardcoded list) - no tracking needed
+    const permanentTokens = [
+      'TDIL-MEMBER-INVITE',
+      'TDIL-PARTNER-INVITE',
+      'TDIL-SPONSOR-INVITE',
+      'TDIL-ADMIN-SECURE'
+    ];
+
+    if (permanentTokens.includes(token)) {
+      // Permanent tokens are always valid, no DB update needed
+      return true;
+    }
+
+    // For database tokens, mark as used
+    const tokenCheck = await query('SELECT * FROM invite_tokens WHERE token = $1', [token]);
     
     if (!tokenCheck.length) {
       return false;
     }
 
-    if (tokenCheck[0].is_reusable) {
-      // For reusable tokens, just increment the use count
-      await query(
-        'UPDATE invite_tokens SET use_count = COALESCE(use_count, 0) + 1 WHERE token = $1',
-        [token]
-      );
-    } else {
-      // For single-use tokens, mark as used
-      await query(
-        'UPDATE invite_tokens SET is_used = TRUE, used_by = $1 WHERE token = $2 AND is_used = FALSE',
-        [userId, token]
-      );
-    }
+    // Mark as used
+    await query(
+      'UPDATE invite_tokens SET is_used = TRUE, used_by = $1 WHERE token = $2 AND is_used = FALSE',
+      [userId, token]
+    );
 
     return true;
   } catch (error) {
@@ -118,10 +141,30 @@ const useToken = async (token, userId) => {
 // Get token info (for registration - returns user_type)
 const getTokenInfo = async (token) => {
   try {
+    // Check for permanent tokens first (hardcoded list)
+    const permanentTokens = {
+      'TDIL-MEMBER-INVITE': 'member',
+      'TDIL-PARTNER-INVITE': 'partner_school',
+      'TDIL-SPONSOR-INVITE': 'sponsor',
+      'TDIL-ADMIN-SECURE': 'admin'
+    };
+
+    if (permanentTokens[token]) {
+      return {
+        id: 0,
+        token: token,
+        email: null,
+        userType: permanentTokens[token],
+        isReusable: true,
+        expiresAt: null
+      };
+    }
+
+    // For other tokens, use simple query without new columns
     const result = await query(
       `SELECT * FROM invite_tokens 
        WHERE token = $1 
-       AND (is_reusable = TRUE OR is_used = FALSE)
+       AND is_used = FALSE
        AND (expires_at IS NULL OR expires_at > NOW())`,
       [token]
     );
@@ -135,7 +178,7 @@ const getTokenInfo = async (token) => {
       token: result[0].token,
       email: result[0].email,
       userType: result[0].user_type || 'member',
-      isReusable: result[0].is_reusable,
+      isReusable: result[0].is_reusable || false,
       expiresAt: result[0].expires_at
     };
   } catch (error) {
