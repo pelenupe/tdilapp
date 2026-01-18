@@ -1,7 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { query } = require('../config/database');
-const { useToken } = require('./inviteController');
+const { useToken, getTokenInfo } = require('./inviteController');
 const { awardPoints } = require('./pointsController');
 
 const register = async (req, res) => {
@@ -15,22 +15,17 @@ const register = async (req, res) => {
       });
     }
 
-    // Validate invite token (PostgreSQL only - we're in production)
-    const tokenCheck = await query(
-      'SELECT * FROM invite_tokens WHERE token = $1 AND is_used = FALSE AND (expires_at IS NULL OR expires_at > NOW())',
-      [inviteToken]
-    );
+    // Get token info (supports both reusable and single-use tokens)
+    const tokenInfo = await getTokenInfo(inviteToken);
 
-    if (!tokenCheck.length) {
+    if (!tokenInfo) {
       return res.status(400).json({ 
         message: 'Invalid or expired invite token. Please contact an administrator for a new invitation.' 
       });
     }
 
-    const inviteTokenData = tokenCheck[0];
-
     // If token is associated with a specific email, validate it matches
-    if (inviteTokenData.email && inviteTokenData.email.toLowerCase() !== email.toLowerCase()) {
+    if (tokenInfo.email && tokenInfo.email.toLowerCase() !== email.toLowerCase()) {
       return res.status(400).json({ 
         message: 'This invite token is associated with a different email address.' 
       });
@@ -45,17 +40,20 @@ const register = async (req, res) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user and return id (RETURNING id is required for PostgreSQL)
+    // Use the user type from the invite token
+    const userType = tokenInfo.userType || 'member';
+
+    // Create user with the user type from the invite token (RETURNING id is required for PostgreSQL)
     const inserted = await query(
       `INSERT INTO users (email, password, firstname, lastname, company, jobtitle, points, level, usertype)
-       VALUES ($1, $2, $3, $4, $5, $6, 0, 1, 'member')
+       VALUES ($1, $2, $3, $4, $5, $6, 0, 1, $7)
        RETURNING id`,
-      [email, hashedPassword, firstName, lastName, company || '', jobTitle || '']
+      [email, hashedPassword, firstName, lastName, company || '', jobTitle || '', userType]
     );
 
     const newUserId = inserted[0].id;
 
-    // Mark invite token as used
+    // Mark invite token as used (or increment count for reusable tokens)
     const tokenUsed = await useToken(inviteToken, newUserId);
     if (!tokenUsed) {
       console.error('Failed to mark invite token as used:', inviteToken);
@@ -63,7 +61,7 @@ const register = async (req, res) => {
     }
 
     const jwtToken = jwt.sign(
-      { id: newUserId, email: email },
+      { id: newUserId, email: email, userType: userType },
       process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '7d' }
     );
@@ -78,7 +76,8 @@ const register = async (req, res) => {
         company: company || '',
         jobTitle: jobTitle || '',
         points: 0,
-        level: 1
+        level: 1,
+        userType: userType
       }
     });
   } catch (err) {
