@@ -7,35 +7,35 @@ router.get('/', async (req, res) => {
   try {
     const sql = `
       SELECT 
-        'points' as activityType,
-        u.id as userId,
-        u.firstName,
-        u.lastName,
-        u.profileImage,
+        'points' as "activityType",
+        u.id as "userId",
+        u.firstname as "firstName",
+        u.lastname as "lastName",
+        u.profile_image as "profileImage",
         ph.points,
         ph.reason,
-        ph.createdAt as timestamp,
-        'earned ' || ph.points || ' points for ' || ph.reason as action
+        ph.createdat as "timestamp",
+        'earned ' || ph.points || ' points for ' || COALESCE(ph.reason, 'activity') as action
       FROM points_history ph
-      JOIN users u ON ph.userId = u.id
+      JOIN users u ON ph.userid = u.id
       
       UNION ALL
       
       SELECT 
-        'connection' as activityType,
-        u.id as userId,
-        u.firstName,
-        u.lastName,
-        u.profileImage,
+        'connection' as "activityType",
+        u.id as "userId",
+        u.firstname as "firstName",
+        u.lastname as "lastName",
+        u.profile_image as "profileImage",
         null as points,
-        'Connected with ' || u2.firstName || ' ' || u2.lastName as reason,
-        c.createdAt as timestamp,
+        'Connected with ' || u2.firstname || ' ' || u2.lastname as reason,
+        c.created_at as "timestamp",
         'connected with' as action
       FROM connections c
-      JOIN users u ON c.userId = u.id
-      JOIN users u2 ON c.connectedToId = u2.id
+      JOIN users u ON c.user_id = u.id
+      JOIN users u2 ON c.connected_user_id = u2.id
       
-      ORDER BY timestamp DESC
+      ORDER BY "timestamp" DESC
       LIMIT 20
     `;
     
@@ -55,7 +55,7 @@ router.get('/', async (req, res) => {
     res.json(formattedActivity);
   } catch (err) {
     console.error('Error fetching recent activity:', err);
-    res.status(500).json({ error: 'Failed to fetch activity' });
+    res.status(500).json({ error: 'Failed to fetch activity', details: err.message });
   }
 });
 
@@ -68,33 +68,33 @@ router.get('/:type', async (req, res) => {
     if (type === 'connections') {
       sql = `
         SELECT 
-          u.id as userId,
-          u.firstName,
-          u.lastName,
-          u.profileImage,
-          'Connected with ' || u2.firstName || ' ' || u2.lastName as reason,
-          c.createdAt as timestamp,
+          u.id as "userId",
+          u.firstname as "firstName",
+          u.lastname as "lastName",
+          u.profile_image as "profileImage",
+          'Connected with ' || u2.firstname || ' ' || u2.lastname as reason,
+          c.created_at as "timestamp",
           'connected with' as action
         FROM connections c
-        JOIN users u ON c.userId = u.id
-        JOIN users u2 ON c.connectedToId = u2.id
-        ORDER BY c.createdAt DESC
+        JOIN users u ON c.user_id = u.id
+        JOIN users u2 ON c.connected_user_id = u2.id
+        ORDER BY c.created_at DESC
         LIMIT 20
       `;
     } else if (type === 'points') {
       sql = `
         SELECT 
-          u.id as userId,
-          u.firstName,
-          u.lastName,
-          u.profileImage,
+          u.id as "userId",
+          u.firstname as "firstName",
+          u.lastname as "lastName",
+          u.profile_image as "profileImage",
           ph.points,
           ph.reason,
-          ph.createdAt as timestamp,
-          'earned ' || ph.points || ' points for ' || ph.reason as action
+          ph.createdat as "timestamp",
+          'earned ' || ph.points || ' points for ' || COALESCE(ph.reason, 'activity') as action
         FROM points_history ph
-        JOIN users u ON ph.userId = u.id
-        ORDER BY ph.createdAt DESC
+        JOIN users u ON ph.userid = u.id
+        ORDER BY ph.createdat DESC
         LIMIT 20
       `;
     } else {
@@ -117,7 +117,7 @@ router.get('/:type', async (req, res) => {
     res.json(formattedActivity);
   } catch (err) {
     console.error(`Error fetching ${req.params.type} activity:`, err);
-    res.status(500).json({ error: 'Failed to fetch activity' });
+    res.status(500).json({ error: 'Failed to fetch activity', details: err.message });
   }
 });
 

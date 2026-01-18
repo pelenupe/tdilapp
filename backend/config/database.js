@@ -227,11 +227,33 @@ const initDatabase = async () => {
           UNIQUE(user_id, connected_user_id)
         )`;
 
+    // Create events table
+    const createEventsTable = isPostgreSQL
+      ? `CREATE TABLE IF NOT EXISTS events (
+          id SERIAL PRIMARY KEY,
+          title VARCHAR(255) NOT NULL,
+          description TEXT,
+          date TIMESTAMP NOT NULL,
+          location VARCHAR(255),
+          created_by INTEGER REFERENCES users(id),
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`
+      : `CREATE TABLE IF NOT EXISTS events (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          title TEXT NOT NULL,
+          description TEXT,
+          date DATETIME NOT NULL,
+          location TEXT,
+          created_by INTEGER,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`;
+
     console.log('🔄 Creating database tables...');
     await query(createUserTable);
     await query(createPointsHistoryTable);
     await query(createInviteTokenTable);
     await query(createConnectionsTable);
+    await query(createEventsTable);
 
     // Add missing columns to existing invite_tokens table (for production DB updates)
     if (isPostgreSQL) {
