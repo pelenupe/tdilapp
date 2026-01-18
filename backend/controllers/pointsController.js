@@ -47,15 +47,16 @@ const awardPoints = async (userId, pointType, description, metadata = {}) => {
     // Get updated user data and recalculate level
     const users = await query('SELECT points FROM users WHERE id = $1', [userId]);
     const userPoints = users[0].points;
-    const newLevel = calculateLevel(userPoints);
+    const newLevelInfo = calculateLevel(userPoints);
 
     // Update user level if changed
-    await query('UPDATE users SET level = $1 WHERE id = $2', [newLevel.level, userId]);
+    await query('UPDATE users SET level = $1 WHERE id = $2', [newLevelInfo.level, userId]);
 
     return {
       pointsAwarded: points,
       totalPoints: userPoints,
-      level: newLevel,
+      level: newLevelInfo.level,  // Return just the level number
+      levelInfo: newLevelInfo,     // Return full info separately if needed
       levelUp: false // TODO: Check if level increased
     };
   } catch (error) {
