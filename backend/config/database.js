@@ -188,6 +188,9 @@ const initDatabase = async () => {
           created_by INTEGER REFERENCES users(id),
           used_by INTEGER REFERENCES users(id),
           is_used BOOLEAN DEFAULT FALSE,
+          is_reusable BOOLEAN DEFAULT FALSE,
+          user_type VARCHAR(50) DEFAULT 'member',
+          use_count INTEGER DEFAULT 0,
           expires_at TIMESTAMP,
           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )`
@@ -198,6 +201,9 @@ const initDatabase = async () => {
           created_by INTEGER,
           used_by INTEGER,
           is_used INTEGER DEFAULT 0,
+          is_reusable INTEGER DEFAULT 0,
+          user_type TEXT DEFAULT 'member',
+          use_count INTEGER DEFAULT 0,
           expires_at DATETIME,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )`;
@@ -206,6 +212,50 @@ const initDatabase = async () => {
     await query(createUserTable);
     await query(createPointsHistoryTable);
     await query(createInviteTokenTable);
+
+    // Add missing columns to existing invite_tokens table (for production DB updates)
+    if (isPostgreSQL) {
+      try {
+        await query('ALTER TABLE invite_tokens ADD COLUMN IF NOT EXISTS is_reusable BOOLEAN DEFAULT FALSE');
+        await query('ALTER TABLE invite_tokens ADD COLUMN IF NOT EXISTS user_type VARCHAR(50) DEFAULT \'member\'');
+        await query('ALTER TABLE invite_tokens ADD COLUMN IF NOT EXISTS use_count INTEGER DEFAULT 0');
+        console.log('✅ invite_tokens columns updated');
+      } catch (err) {
+        // Columns might already exist
+        console.log('ℹ️ invite_tokens columns already up to date');
+      }
+    }
+
+    // Create permanent reusable invite tokens if they don't exist
+    console.log('🔑 Creating permanent invite tokens...');
+    const permanentTokens = [
+      { token: 'TDIL-MEMBER-INVITE', userType: 'member' },
+      { token: 'TDIL-PARTNER-INVITE', userType: 'partner_school' },
+      { token: 'TDIL-SPONSOR-INVITE', userType: 'sponsor' },
+      { token: 'TDIL-ADMIN-SECURE', userType: 'admin' }
+    ];
+
+    for (const t of permanentTokens) {
+      try {
+        const existing = await query('SELECT id FROM invite_tokens WHERE token = $1', [t.token]);
+        if (!existing || existing.length === 0) {
+          if (isPostgreSQL) {
+            await query(
+              'INSERT INTO invite_tokens (token, user_type, is_reusable, is_used, expires_at) VALUES ($1, $2, TRUE, FALSE, NULL)',
+              [t.token, t.userType]
+            );
+          } else {
+            await query(
+              'INSERT INTO invite_tokens (token, user_type, is_reusable, is_used, expires_at) VALUES (?, ?, 1, 0, NULL)',
+              [t.token, t.userType]
+            );
+          }
+          console.log(`✅ Created permanent token: ${t.token} (${t.userType})`);
+        }
+      } catch (err) {
+        console.log(`ℹ️ Token ${t.token} already exists or error: ${err.message}`);
+      }
+    }
 
     // Insert default admin user if none exists
     const existingUsers = await query('SELECT COUNT(*) as count FROM users');

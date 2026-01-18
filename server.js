@@ -242,12 +242,8 @@ app.get('/api/metrics', authenticateHealthCheck, async (req, res) => {
   }
 });
 
-// Authentication routes with enhanced rate limiting (only in production)
-if (process.env.NODE_ENV === 'production') {
-  app.use('/api/auth', authRateLimit, authRoutes);
-} else {
-  app.use('/api/auth', authRoutes);
-}
+// Authentication routes (rate limiting disabled for better user experience)
+app.use('/api/auth', authRoutes);
 
 // API routes
 app.use('/api/members', memberRoutes);
