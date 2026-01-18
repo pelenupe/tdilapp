@@ -7,11 +7,15 @@ router.get('/', async (req, res) => {
   try {
     const announcements = await query(`
       SELECT * FROM announcements 
-      ORDER BY featured DESC, createdAt DESC
+      ORDER BY featured DESC, createdat DESC
     `);
-    res.json(announcements);
+    res.json(announcements || []);
   } catch (err) {
     console.error('Error fetching announcements:', err);
+    // Return empty array if table doesn't exist
+    if (err.code === '42P01') {
+      return res.json([]);
+    }
     res.status(500).json({ error: 'Failed to fetch announcements' });
   }
 });
@@ -22,11 +26,15 @@ router.get('/featured', async (req, res) => {
     const announcements = await query(`
       SELECT * FROM announcements 
       WHERE featured = $1
-      ORDER BY createdAt DESC
+      ORDER BY createdat DESC
     `, [true]);
-    res.json(announcements);
+    res.json(announcements || []);
   } catch (err) {
     console.error('Error fetching featured announcements:', err);
+    // Return empty array if table doesn't exist
+    if (err.code === '42P01') {
+      return res.json([]);
+    }
     res.status(500).json({ error: 'Failed to fetch featured announcements' });
   }
 });
