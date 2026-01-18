@@ -165,7 +165,9 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS ?
     'http://localhost:5176',
     'http://localhost:5177',
     'https://tdilapp.onrender.com',
+    'http://104.131.63.244',
     'http://104.131.63.244:5001',
+    'http://104.131.63.244:80',
     process.env.FRONTEND_URL
   ].filter(Boolean);
 
