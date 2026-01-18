@@ -6,7 +6,8 @@ import PageLayout from '../components/PageLayout';
 export default function Directory() {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [connectedUsers, setConnectedUsers] = useState(new Set());
+  const [connectedUsers, setConnectedUsers] = useState({});
+  const [connectingTo, setConnectingTo] = useState(null);
   const { user, updateUser } = useUser();
 
   useEffect(() => {
@@ -23,27 +24,27 @@ export default function Directory() {
         // Fetch all members
         const { data: allMembers } = await getMembers();
         
-        // Fetch current user's connections
-        const connectionsResponse = await fetch('/api/connections', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
+        // Filter out current user
+        const otherMembers = (allMembers || []).filter(member => member.id !== user?.id);
+        setMembers(otherMembers);
+
+        // Fetch connection statuses for all members using batch API
+        if (otherMembers.length > 0) {
+          const memberIds = otherMembers.map(m => m.id);
+          const statusResponse = await fetch('/api/connections/statuses', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ userIds: memberIds })
+          });
+
+          if (statusResponse.ok) {
+            const statusMap = await statusResponse.json();
+            setConnectedUsers(statusMap);
           }
-        });
-
-        let connectedUserIds = new Set();
-        if (connectionsResponse.ok) {
-          const connections = await connectionsResponse.json();
-          connectedUserIds = new Set(connections.map(conn => conn.id));
-          setConnectedUsers(connectedUserIds);
         }
-
-        // Filter out connected users from members list
-        const unconnectedMembers = (allMembers || []).filter(member => 
-          !connectedUserIds.has(member.id) && member.id !== user?.id
-        );
-        
-        setMembers(unconnectedMembers);
       } catch (error) {
         console.error('Error fetching members:', error);
         setMembers([]);
@@ -59,6 +60,7 @@ export default function Directory() {
 
   const handleConnect = async (memberId) => {
     try {
+      setConnectingTo(memberId);
       const token = localStorage.getItem('token');
       if (!token) {
         console.error('No authentication token found');
@@ -87,12 +89,14 @@ export default function Directory() {
           });
         }
         
-        // Show success message
-        alert(`Connected successfully! You earned ${result.pointsAwarded} points!`);
+        // Update the connected status for this user
+        setConnectedUsers(prev => ({
+          ...prev,
+          [memberId]: { connectionId: true, status: 'connected' }
+        }));
         
-        // Add to connected users and remove from members list
-        setConnectedUsers(prev => new Set([...prev, memberId]));
-        setMembers(members.filter(m => m.id !== memberId));
+        // Show success notification
+        alert(`Connected successfully! You earned ${result.pointsAwarded} points!`);
       } else {
         const error = await response.json();
         console.error('Connection failed:', error.message);
@@ -101,7 +105,52 @@ export default function Directory() {
     } catch (error) {
       console.error('Connection error:', error);
       alert('Connection failed. Please check your internet connection and try again.');
+    } finally {
+      setConnectingTo(null);
     }
+  };
+
+  const handleDisconnect = async (memberId) => {
+    try {
+      setConnectingTo(memberId);
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error('No authentication token found');
+        return;
+      }
+
+      const response = await fetch(`/api/connections/${memberId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        // Remove from connected status
+        setConnectedUsers(prev => {
+          const updated = { ...prev };
+          delete updated[memberId];
+          return updated;
+        });
+        
+        alert('Disconnected successfully.');
+      } else {
+        const error = await response.json();
+        console.error('Disconnect failed:', error.message);
+        alert(error.message || 'Failed to disconnect.');
+      }
+    } catch (error) {
+      console.error('Disconnect error:', error);
+      alert('Disconnect failed. Please try again.');
+    } finally {
+      setConnectingTo(null);
+    }
+  };
+
+  const isConnected = (memberId) => {
+    return connectedUsers[memberId]?.status === 'connected';
   };
 
   if (loading) {
@@ -165,12 +214,30 @@ export default function Directory() {
                 <div className="text-xs text-blue-600 font-medium">
                   {member.points || 0} points
                 </div>
-                <button
-                  onClick={() => handleConnect(member.id)}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-                >
-                  Connect
-                </button>
+                
+                {isConnected(member.id) ? (
+                  <div className="flex items-center gap-2">
+                    <span className="px-3 py-2 bg-green-100 text-green-700 rounded-lg text-sm font-medium flex items-center gap-1">
+                      <span>✓</span> Connected
+                    </span>
+                    <button
+                      onClick={() => handleDisconnect(member.id)}
+                      disabled={connectingTo === member.id}
+                      className="px-3 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-red-100 hover:text-red-600 transition-colors text-sm font-medium"
+                      title="Disconnect"
+                    >
+                      {connectingTo === member.id ? '...' : '✕'}
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => handleConnect(member.id)}
+                    disabled={connectingTo === member.id}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium disabled:opacity-50"
+                  >
+                    {connectingTo === member.id ? 'Connecting...' : 'Connect'}
+                  </button>
+                )}
               </div>
             </div>
           </div>
