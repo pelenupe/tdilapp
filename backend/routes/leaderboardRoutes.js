@@ -28,10 +28,11 @@ router.get('/full', async (req, res) => {
     `;
     
     // Add timeframe filtering with PostgreSQL syntax (we're in production)
+    // Note: points_history uses 'createdat' (no underscore) column
     if (timeframe === 'weekly') {
-      sql += ` WHERE p.created_at >= NOW() - INTERVAL '7 days' OR p.created_at IS NULL`;
+      sql += ` WHERE p.createdat >= NOW() - INTERVAL '7 days' OR p.createdat IS NULL`;
     } else if (timeframe === 'monthly') {
-      sql += ` WHERE p.created_at >= NOW() - INTERVAL '30 days' OR p.created_at IS NULL`;
+      sql += ` WHERE p.createdat >= NOW() - INTERVAL '30 days' OR p.createdat IS NULL`;
     }
     
     sql += `
