@@ -3,10 +3,11 @@ const { query } = require('../config/database');
 // Get all available rewards
 const getRewards = async (req, res) => {
   try {
+    // Check if rewards table exists and get data
     const rewards = await query('SELECT id, title, description, pointscost, category, quantity, isactive, image_url FROM rewards WHERE isactive = $1', [true]);
     
     // Transform to camelCase for frontend
-    const transformedRewards = rewards.map(r => ({
+    const transformedRewards = (rewards || []).map(r => ({
       id: r.id,
       title: r.title,
       description: r.description,
@@ -19,7 +20,11 @@ const getRewards = async (req, res) => {
     
     res.json(transformedRewards);
   } catch (err) {
-    console.error(err);
+    console.error('Error fetching rewards:', err);
+    // Return empty array instead of 500 if table doesn't exist or is empty
+    if (err.code === '42P01') { // Table doesn't exist
+      return res.json([]);
+    }
     res.status(500).json({ message: 'Error fetching rewards' });
   }
 };

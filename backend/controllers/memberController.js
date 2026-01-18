@@ -40,7 +40,8 @@ const getMembers = async (req, res) => {
 // Fetch a single profile
 const getProfile = async (req, res) => {
   try {
-    const userId = req.params.id === 'me' ? req.user.id : req.params.id;
+    // If req.params.id is undefined (from /me route) or 'me', use the authenticated user's ID
+    const userId = (!req.params.id || req.params.id === 'me') ? req.user.id : req.params.id;
     
     const users = await query(
       'SELECT id, email, firstname, lastname, company, jobtitle, points, level, usertype, bio, profile_image FROM users WHERE id = $1',
