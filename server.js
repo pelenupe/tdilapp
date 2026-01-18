@@ -113,6 +113,17 @@ const helmetOptions = process.env.NODE_ENV === 'production' ? {
 
 app.use(helmet(helmetOptions));
 
+// Serve static files from frontend build BEFORE CORS
+// This ensures static assets are served without CORS headers
+const frontendPath = process.env.NODE_ENV === 'production' 
+  ? path.join(__dirname, 'public') 
+  : path.join(__dirname, 'tdil-frontend/dist');
+app.use(express.static(frontendPath, {
+  maxAge: process.env.NODE_ENV === 'production' ? '1y' : '0',
+  etag: true,
+  lastModified: true
+}));
+
 // Enable compression if configured
 if (process.env.COMPRESSION_ENABLED === 'true') {
   app.use(compression());
@@ -192,16 +203,6 @@ app.use(cors({
 const maxFileSize = parseInt(process.env.MAX_FILE_SIZE) || 10 * 1024 * 1024; // 10MB
 app.use(express.json({ limit: maxFileSize }));
 app.use(express.urlencoded({ extended: true, limit: maxFileSize }));
-
-// Serve static files from frontend build
-const frontendPath = process.env.NODE_ENV === 'production' 
-  ? path.join(__dirname, 'public') 
-  : path.join(__dirname, 'tdil-frontend/dist');
-app.use(express.static(frontendPath, {
-  maxAge: process.env.NODE_ENV === 'production' ? '1y' : '0',
-  etag: true,
-  lastModified: true
-}));
 
 // Health check routes (with authentication for detailed checks)
 app.get('/health', getLivenessCheck);
