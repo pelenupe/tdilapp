@@ -208,10 +208,30 @@ const initDatabase = async () => {
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )`;
 
+    // Create connections table
+    const createConnectionsTable = isPostgreSQL
+      ? `CREATE TABLE IF NOT EXISTS connections (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id),
+          connected_user_id INTEGER NOT NULL REFERENCES users(id),
+          status VARCHAR(50) DEFAULT 'connected',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(user_id, connected_user_id)
+        )`
+      : `CREATE TABLE IF NOT EXISTS connections (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          connected_user_id INTEGER NOT NULL,
+          status TEXT DEFAULT 'connected',
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(user_id, connected_user_id)
+        )`;
+
     console.log('🔄 Creating database tables...');
     await query(createUserTable);
     await query(createPointsHistoryTable);
     await query(createInviteTokenTable);
+    await query(createConnectionsTable);
 
     // Add missing columns to existing invite_tokens table (for production DB updates)
     if (isPostgreSQL) {
