@@ -88,6 +88,8 @@ const adminRoutes = require('./backend/routes/adminRoutes');
 const statsRoutes = require('./backend/routes/statsRoutes');
 const inviteRoutes = require('./backend/routes/inviteRoutes');
 const connectionRoutes = require('./backend/routes/connectionRoutes');
+const jobRoutes = require('./backend/routes/jobRoutes');
+const merchRoutes = require('./backend/routes/merchRoutes');
 
 // Security middleware configuration
 const helmetOptions = process.env.NODE_ENV === 'production' ? {
@@ -252,6 +254,8 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/invites', inviteRoutes);
 app.use('/api/connections', connectionRoutes);
+app.use('/api/jobs', jobRoutes);
+app.use('/api/merch', merchRoutes);
 
 // API info endpoint for development
 app.get('/api', (req, res) => {

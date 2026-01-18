@@ -248,12 +248,94 @@ const initDatabase = async () => {
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )`;
 
+    // Create jobs table
+    const createJobsTable = isPostgreSQL
+      ? `CREATE TABLE IF NOT EXISTS jobs (
+          id SERIAL PRIMARY KEY,
+          title VARCHAR(255) NOT NULL,
+          description TEXT,
+          location VARCHAR(255),
+          company VARCHAR(255),
+          salary VARCHAR(100),
+          job_type VARCHAR(50) DEFAULT 'full-time',
+          requirements TEXT,
+          contact_email VARCHAR(255),
+          posted_by INTEGER REFERENCES users(id),
+          is_active BOOLEAN DEFAULT true,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`
+      : `CREATE TABLE IF NOT EXISTS jobs (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          title TEXT NOT NULL,
+          description TEXT,
+          location TEXT,
+          company TEXT,
+          salary TEXT,
+          job_type TEXT DEFAULT 'full-time',
+          requirements TEXT,
+          contact_email TEXT,
+          posted_by INTEGER,
+          is_active INTEGER DEFAULT 1,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`;
+
+    // Create job applications table
+    const createJobApplicationsTable = isPostgreSQL
+      ? `CREATE TABLE IF NOT EXISTS job_applications (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id),
+          job_id INTEGER NOT NULL REFERENCES jobs(id),
+          cover_letter TEXT,
+          status VARCHAR(50) DEFAULT 'pending',
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`
+      : `CREATE TABLE IF NOT EXISTS job_applications (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          job_id INTEGER NOT NULL,
+          cover_letter TEXT,
+          status TEXT DEFAULT 'pending',
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`;
+
+    // Create merch table
+    const createMerchTable = isPostgreSQL
+      ? `CREATE TABLE IF NOT EXISTS merch (
+          id SERIAL PRIMARY KEY,
+          name VARCHAR(255) NOT NULL,
+          description TEXT,
+          price DECIMAL(10,2),
+          points_cost INTEGER,
+          image_url VARCHAR(500),
+          category VARCHAR(100),
+          stock_quantity INTEGER DEFAULT 0,
+          is_active BOOLEAN DEFAULT true,
+          created_by INTEGER REFERENCES users(id),
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`
+      : `CREATE TABLE IF NOT EXISTS merch (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          description TEXT,
+          price REAL,
+          points_cost INTEGER,
+          image_url TEXT,
+          category TEXT,
+          stock_quantity INTEGER DEFAULT 0,
+          is_active INTEGER DEFAULT 1,
+          created_by INTEGER,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`;
+
     console.log('🔄 Creating database tables...');
     await query(createUserTable);
     await query(createPointsHistoryTable);
     await query(createInviteTokenTable);
     await query(createConnectionsTable);
     await query(createEventsTable);
+    await query(createJobsTable);
+    await query(createJobApplicationsTable);
+    await query(createMerchTable);
 
     // Add missing columns to existing invite_tokens table (for production DB updates)
     if (isPostgreSQL) {

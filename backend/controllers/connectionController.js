@@ -132,8 +132,96 @@ const getConnectionStats = async (req, res) => {
   }
 };
 
+// Check connection status with a specific user
+const checkConnectionStatus = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { targetUserId } = req.params;
+
+    const connection = await query(
+      'SELECT id, status FROM connections WHERE (user_id = $1 AND connected_user_id = $2) OR (user_id = $3 AND connected_user_id = $4)',
+      [userId, targetUserId, targetUserId, userId]
+    );
+
+    if (connection.length > 0) {
+      res.json({ connected: true, connectionId: connection[0].id, status: connection[0].status });
+    } else {
+      res.json({ connected: false });
+    }
+  } catch (error) {
+    console.error('Check connection error:', error);
+    res.status(500).json({ message: 'Error checking connection status' });
+  }
+};
+
+// Get connection status for multiple users (batch)
+const getConnectionStatuses = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { userIds } = req.body;
+
+    if (!userIds || !Array.isArray(userIds)) {
+      return res.status(400).json({ message: 'userIds array is required' });
+    }
+
+    const connections = await query(
+      `SELECT 
+        CASE WHEN user_id = $1 THEN connected_user_id ELSE user_id END as connected_to,
+        id as connection_id,
+        status
+       FROM connections 
+       WHERE (user_id = $1 OR connected_user_id = $2)
+       AND status = 'connected'`,
+      [userId, userId]
+    );
+
+    // Create a map of connected user IDs
+    const connectedMap = {};
+    connections.forEach(c => {
+      connectedMap[c.connected_to] = { connectionId: c.connection_id, status: c.status };
+    });
+
+    res.json(connectedMap);
+  } catch (error) {
+    console.error('Get connection statuses error:', error);
+    res.status(500).json({ message: 'Error fetching connection statuses' });
+  }
+};
+
+// Disconnect from a user
+const removeConnection = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { targetUserId } = req.params;
+
+    // Check if connection exists
+    const connection = await query(
+      'SELECT id FROM connections WHERE (user_id = $1 AND connected_user_id = $2) OR (user_id = $3 AND connected_user_id = $4)',
+      [userId, targetUserId, targetUserId, userId]
+    );
+
+    if (connection.length === 0) {
+      return res.status(404).json({ message: 'Connection not found' });
+    }
+
+    // Delete the connection
+    await query(
+      'DELETE FROM connections WHERE (user_id = $1 AND connected_user_id = $2) OR (user_id = $3 AND connected_user_id = $4)',
+      [userId, targetUserId, targetUserId, userId]
+    );
+
+    res.json({ message: 'Connection removed successfully' });
+  } catch (error) {
+    console.error('Remove connection error:', error);
+    res.status(500).json({ message: 'Error removing connection' });
+  }
+};
+
 module.exports = {
   createConnection,
   getUserConnections,
-  getConnectionStats
+  getConnectionStats,
+  checkConnectionStatus,
+  getConnectionStatuses,
+  removeConnection
 };
