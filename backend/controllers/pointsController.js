@@ -174,13 +174,18 @@ const getLeaderboard = async (req, res) => {
     const limit = parseInt(req.query.limit) || 20;
     
     const leaderboard = await query(
-      'SELECT id, firstName, lastName, points, level, profileImage FROM users WHERE userType = \'member\' ORDER BY points DESC LIMIT $1',
+      'SELECT id, firstname, lastname, points, level, profile_image FROM users WHERE usertype = \'member\' ORDER BY points DESC LIMIT $1',
       [limit]
     );
     
-    // Add level info and rank
+    // Add level info, rank, and transform to camelCase for frontend
     const leaderboardWithRanks = leaderboard.map((user, index) => ({
-      ...user,
+      id: user.id,
+      firstName: user.firstname,
+      lastName: user.lastname,
+      points: user.points,
+      level: user.level,
+      profileImage: user.profile_image,
       rank: index + 1,
       levelInfo: calculateLevel(user.points)
     }));
@@ -224,13 +229,13 @@ const getPointsStats = async (req, res) => {
         MAX(points) as maxPoints,
         (SELECT COUNT(*) FROM points_history WHERE createdat >= NOW() - INTERVAL '7 days') as pointsThisWeek,
         (SELECT COUNT(*) FROM points_history WHERE createdat >= NOW() - INTERVAL '30 days') as pointsThisMonth
-      FROM users WHERE userType = $1
+      FROM users WHERE usertype = $1
     `, ['member']);
     
     const levelDistribution = await query(`
       SELECT level, COUNT(*) as count 
       FROM users 
-      WHERE userType = $1 
+      WHERE usertype = $1 
       GROUP BY level 
       ORDER BY level
     `, ['member']);

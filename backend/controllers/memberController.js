@@ -6,15 +6,31 @@ const getMembers = async (req, res) => {
   try {
     const { school, role, skills } = req.query;
 
-    let sql = 'SELECT id, email, firstName, lastName, company, jobTitle, points, level, userType, bio, profileImage FROM users WHERE 1=1';
+    let sql = `SELECT id, email, firstname, lastname, company, jobtitle, points, level, usertype, bio, profile_image FROM users WHERE 1=1`;
     const params = [];
 
     if (role) {
-      sql += ' AND userType = $' + (params.length + 1);
+      sql += ' AND usertype = $' + (params.length + 1);
       params.push(role);
     }
     const members = await query(sql, params);
-    return res.json(members);
+    
+    // Transform to camelCase for frontend
+    const transformedMembers = members.map(m => ({
+      id: m.id,
+      email: m.email,
+      firstName: m.firstname,
+      lastName: m.lastname,
+      company: m.company,
+      jobTitle: m.jobtitle,
+      points: m.points,
+      level: m.level,
+      userType: m.usertype,
+      bio: m.bio,
+      profileImage: m.profile_image
+    }));
+    
+    return res.json(transformedMembers);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Error fetching members' });
@@ -27,14 +43,28 @@ const getProfile = async (req, res) => {
     const userId = req.params.id === 'me' ? req.user.id : req.params.id;
     
     const users = await query(
-      'SELECT id, email, firstName, lastName, company, jobTitle, points, level, userType, bio, profileImage FROM users WHERE id = $1',
+      'SELECT id, email, firstname, lastname, company, jobtitle, points, level, usertype, bio, profile_image FROM users WHERE id = $1',
       [userId]
     );
     const user = users[0];
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    return res.json(user);
+    
+    // Transform to camelCase for frontend
+    return res.json({
+      id: user.id,
+      email: user.email,
+      firstName: user.firstname,
+      lastName: user.lastname,
+      company: user.company,
+      jobTitle: user.jobtitle,
+      points: user.points,
+      level: user.level,
+      userType: user.usertype,
+      bio: user.bio,
+      profileImage: user.profile_image
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Error fetching profile' });
@@ -52,11 +82,11 @@ const updateProfile = async (req, res) => {
     const params = [];
 
     if (firstName !== undefined) {
-      updates.push(`firstName = $${params.length + 1}`);
+      updates.push(`firstname = $${params.length + 1}`);
       params.push(firstName);
     }
     if (lastName !== undefined) {
-      updates.push(`lastName = $${params.length + 1}`);
+      updates.push(`lastname = $${params.length + 1}`);
       params.push(lastName);
     }
     if (company !== undefined) {
@@ -64,7 +94,7 @@ const updateProfile = async (req, res) => {
       params.push(company);
     }
     if (jobTitle !== undefined) {
-      updates.push(`jobTitle = $${params.length + 1}`);
+      updates.push(`jobtitle = $${params.length + 1}`);
       params.push(jobTitle);
     }
     if (bio !== undefined) {
@@ -74,17 +104,17 @@ const updateProfile = async (req, res) => {
 
     // Handle profileImage from frontend (either profileImage or profilePicUrl)
     if (profileImage !== undefined || profilePicUrl !== undefined) {
-      updates.push(`profileImage = $${params.length + 1}`);
+      updates.push(`profile_image = $${params.length + 1}`);
       params.push(profileImage || profilePicUrl || null);
     }
 
     // Handle file uploads (if sent as multipart) - Upload to S3
     if (req.files && req.files.profilePic) {
       try {
-        const profilePicUrl = await uploadFile(req.files.profilePic[0]);
-        updates.push(`profileImage = $${params.length + 1}`);
-        params.push(profilePicUrl);
-        console.log('Profile picture uploaded to S3:', profilePicUrl);
+        const uploadedUrl = await uploadFile(req.files.profilePic[0]);
+        updates.push(`profile_image = $${params.length + 1}`);
+        params.push(uploadedUrl);
+        console.log('Profile picture uploaded to S3:', uploadedUrl);
       } catch (error) {
         console.error('S3 upload error:', error);
         return res.status(500).json({ message: 'Failed to upload profile picture' });
@@ -100,13 +130,27 @@ const updateProfile = async (req, res) => {
     await query(updateSql, params);
 
     const updatedUsers = await query(
-      'SELECT id, email, firstName, lastName, company, jobTitle, points, level, userType, bio, profileImage FROM users WHERE id = $1',
+      'SELECT id, email, firstname, lastname, company, jobtitle, points, level, usertype, bio, profile_image FROM users WHERE id = $1',
       [userId]
     );
-    const updatedUser = updatedUsers[0];
+    const user = updatedUsers[0];
+    
+    // Transform to camelCase for frontend
     return res.json({ 
       message: 'Profile updated successfully',
-      user: updatedUser 
+      user: {
+        id: user.id,
+        email: user.email,
+        firstName: user.firstname,
+        lastName: user.lastname,
+        company: user.company,
+        jobTitle: user.jobtitle,
+        points: user.points,
+        level: user.level,
+        userType: user.usertype,
+        bio: user.bio,
+        profileImage: user.profile_image
+      }
     });
   } catch (err) {
     console.error(err);

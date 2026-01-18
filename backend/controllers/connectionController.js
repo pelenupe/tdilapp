@@ -35,11 +35,20 @@ const createConnection = async (req, res) => {
     const userPointsResult = await awardPoints(userId, 'CONNECTION', `Connected with user ${targetUserId}`, { targetUserId });
     const targetPointsResult = await awardPoints(targetUserId, 'CONNECTION', `Connected with user ${userId}`, { userId });
 
-    // Get updated user data
-    const users = await query(
-      'SELECT id, firstName, lastName, points, level FROM users WHERE id = $1 OR id = $2',
+    // Get updated user data (use lowercase column names for PostgreSQL)
+    const usersData = await query(
+      'SELECT id, firstname, lastname, points, level FROM users WHERE id = $1 OR id = $2',
       [userId, targetUserId]
     );
+    
+    // Transform to camelCase for frontend
+    const users = usersData.map(u => ({
+      id: u.id,
+      firstName: u.firstname,
+      lastName: u.lastname,
+      points: u.points,
+      level: u.level
+    }));
 
     res.json({ 
       message: 'Connection created successfully',
@@ -59,18 +68,18 @@ const getUserConnections = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    const connections = await query(
+    const connectionsData = await query(
       `SELECT 
         c.id as connection_id,
         c.created_at,
         u.id,
-        u.firstName,
-        u.lastName,
+        u.firstname,
+        u.lastname,
         u.company,
-        u.jobTitle,
+        u.jobtitle,
         u.points,
         u.level,
-        u.profileImage
+        u.profile_image
       FROM connections c
       JOIN users u ON (
         CASE 
@@ -83,6 +92,20 @@ const getUserConnections = async (req, res) => {
       ORDER BY c.created_at DESC`,
       [userId, userId, userId]
     );
+
+    // Transform to camelCase for frontend
+    const connections = connectionsData.map(c => ({
+      connectionId: c.connection_id,
+      createdAt: c.created_at,
+      id: c.id,
+      firstName: c.firstname,
+      lastName: c.lastname,
+      company: c.company,
+      jobTitle: c.jobtitle,
+      points: c.points,
+      level: c.level,
+      profileImage: c.profile_image
+    }));
 
     res.json(connections);
   } catch (error) {
@@ -97,11 +120,12 @@ const getConnectionStats = async (req, res) => {
     const userId = req.user.id;
 
     const stats = await query(
-      'SELECT COUNT(*) as connectionCount FROM connections WHERE (user_id = $1 OR connected_user_id = $2) AND status = \'connected\'',
+      'SELECT COUNT(*) as connection_count FROM connections WHERE (user_id = $1 OR connected_user_id = $2) AND status = \'connected\'',
       [userId, userId]
     );
 
-    res.json({ connectionCount: stats[0].connectionCount });
+    // PostgreSQL returns lowercase column names
+    res.json({ connectionCount: parseInt(stats[0].connection_count) || 0 });
   } catch (error) {
     console.error('Connection stats error:', error);
     res.status(500).json({ message: 'Error fetching connection stats' });

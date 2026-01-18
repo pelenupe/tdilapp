@@ -45,10 +45,11 @@ const register = async (req, res) => {
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Create user and return id
+    // Create user and return id (RETURNING id is required for PostgreSQL)
     const inserted = await query(
       `INSERT INTO users (email, password, firstname, lastname, company, jobtitle, points, level, usertype)
-       VALUES ($1, $2, $3, $4, $5, $6, 0, 1, 'member')`,
+       VALUES ($1, $2, $3, $4, $5, $6, 0, 1, 'member')
+       RETURNING id`,
       [email, hashedPassword, firstName, lastName, company || '', jobTitle || '']
     );
 
