@@ -1,6 +1,6 @@
 const express = require('express');
 const { query } = require('../config/database');
-const { authenticateToken } = require('../middleware/authMiddleware');
+const { protect } = require('../middleware/authMiddleware');
 const router = express.Router();
 
 // Get all events
@@ -42,7 +42,7 @@ router.get('/upcoming', async (req, res) => {
 });
 
 // Create a new event (authenticated users only)
-router.post('/', authenticateToken, async (req, res) => {
+router.post('/', protect, async (req, res) => {
   try {
     const { title, description, date, location } = req.body;
     const createdBy = req.user.id;
@@ -93,7 +93,7 @@ router.get('/:id', async (req, res) => {
 });
 
 // Delete event (authenticated, creator or admin only)
-router.delete('/:id', authenticateToken, async (req, res) => {
+router.delete('/:id', protect, async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
