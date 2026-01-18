@@ -182,18 +182,9 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS ?
     process.env.FRONTEND_URL
   ].filter(Boolean);
 
+// Allow all origins for now since front/backend are on same server
 app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, etc.)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      logger.warn('CORS blocked request', { origin });
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: true,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Health-Token']
