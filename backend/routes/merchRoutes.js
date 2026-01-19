@@ -11,7 +11,7 @@ router.get('/', async (req, res) => {
        FROM merch m
        LEFT JOIN users u ON m.created_by = u.id
        WHERE m.is_active = true
-       ORDER BY m.created_at DESC`
+       ORDER BY m.featured DESC, m.created_at DESC`
     );
 
     const formatted = items.map(item => ({
@@ -19,10 +19,13 @@ router.get('/', async (req, res) => {
       name: item.name,
       description: item.description,
       price: item.price,
-      pointsCost: item.points_cost,
-      imageUrl: item.image_url,
+      points_price: item.points_cost,
+      image_url: item.image_url,
       category: item.category,
-      stockQuantity: item.stock_quantity,
+      stock: item.stock_quantity || 0,
+      sizes: item.sizes || 'S,M,L,XL',
+      featured: item.featured || false,
+      redeemable_with_points: item.redeemable_with_points || false,
       addedByName: item.addedByName,
       createdAt: item.created_at
     }));
@@ -30,6 +33,10 @@ router.get('/', async (req, res) => {
     res.json(formatted);
   } catch (err) {
     console.error('Error fetching merch:', err);
+    // Return empty array if table doesn't exist
+    if (err.code === '42P01') {
+      return res.json([]);
+    }
     res.status(500).json({ error: 'Failed to fetch merch', details: err.message });
   }
 });
@@ -66,7 +73,7 @@ router.get('/:id', async (req, res) => {
 // Add merch item (admin/founder only)
 router.post('/', protect, async (req, res) => {
   try {
-    const { name, description, price, pointsCost, imageUrl, category, stockQuantity } = req.body;
+    const { name, description, price, points_price, image_url, category, stock, sizes, featured, redeemable_with_points } = req.body;
     const userType = req.user.userType;
 
     // Only admin/founder can add merch
@@ -79,9 +86,9 @@ router.post('/', protect, async (req, res) => {
     }
 
     const result = await query(
-      `INSERT INTO merch (name, description, price, points_cost, image_url, category, stock_quantity, created_by) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,
-      [name, description || null, price || null, pointsCost || null, imageUrl || null, category || null, stockQuantity || 0, req.user.id]
+      `INSERT INTO merch (name, description, price, points_cost, image_url, category, stock_quantity, sizes, featured, redeemable_with_points, created_by, is_active) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, true) RETURNING id`,
+      [name, description || null, price || 0, points_price || null, image_url || null, category || 'apparel', stock || 10, sizes || 'S,M,L,XL', featured || false, redeemable_with_points || false, req.user.id]
     );
 
     res.status(201).json({

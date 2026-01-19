@@ -44,7 +44,7 @@ router.get('/upcoming', async (req, res) => {
 // Create a new event (authenticated users only)
 router.post('/', protect, async (req, res) => {
   try {
-    const { title, description, date, location } = req.body;
+    const { title, description, date, location, category, max_attendees, points } = req.body;
     const createdBy = req.user.id;
 
     if (!title || !date) {
@@ -52,9 +52,9 @@ router.post('/', protect, async (req, res) => {
     }
 
     const result = await query(
-      `INSERT INTO events (title, description, date, location, created_by) 
-       VALUES ($1, $2, $3, $4, $5) RETURNING id`,
-      [title, description || null, date, location || null, createdBy]
+      `INSERT INTO events (title, description, date, location, category, max_attendees, points, created_by, current_attendees) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 0) RETURNING id`,
+      [title, description || null, date, location || null, category || 'in-person', max_attendees || 50, points || 50, createdBy]
     );
 
     const eventId = result[0]?.id;
@@ -62,11 +62,56 @@ router.post('/', protect, async (req, res) => {
     res.status(201).json({
       message: 'Event created successfully',
       eventId: eventId,
-      event: { id: eventId, title, description, date, location, created_by: createdBy }
+      event: { id: eventId, title, description, date, location, category, max_attendees, points, created_by: createdBy }
     });
   } catch (err) {
     console.error('Error creating event:', err);
     res.status(500).json({ error: 'Failed to create event', details: err.message });
+  }
+});
+
+// Register for an event
+router.post('/:id/register', protect, async (req, res) => {
+  try {
+    const eventId = req.params.id;
+    const userId = req.user.id;
+
+    // Check if already registered
+    const existing = await query(
+      'SELECT id FROM event_registrations WHERE event_id = $1 AND user_id = $2',
+      [eventId, userId]
+    );
+
+    if (existing.length > 0) {
+      return res.status(400).json({ message: 'Already registered for this event' });
+    }
+
+    // Check event capacity
+    const event = await query('SELECT max_attendees, current_attendees FROM events WHERE id = $1', [eventId]);
+    if (event.length === 0) {
+      return res.status(404).json({ message: 'Event not found' });
+    }
+
+    if (event[0].current_attendees >= event[0].max_attendees) {
+      return res.status(400).json({ message: 'Event is full' });
+    }
+
+    // Register user
+    await query(
+      'INSERT INTO event_registrations (event_id, user_id, registered_at) VALUES ($1, $2, NOW())',
+      [eventId, userId]
+    );
+
+    // Update attendee count
+    await query(
+      'UPDATE events SET current_attendees = current_attendees + 1 WHERE id = $1',
+      [eventId]
+    );
+
+    res.json({ message: 'Successfully registered for event' });
+  } catch (err) {
+    console.error('Error registering for event:', err);
+    res.status(500).json({ error: 'Failed to register', details: err.message });
   }
 });
 
