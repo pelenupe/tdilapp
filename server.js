@@ -90,6 +90,11 @@ const inviteRoutes = require('./backend/routes/inviteRoutes');
 const connectionRoutes = require('./backend/routes/connectionRoutes');
 const jobRoutes = require('./backend/routes/jobRoutes');
 const merchRoutes = require('./backend/routes/merchRoutes');
+const cohortRoutes = require('./backend/routes/cohortRoutes');
+const groupChatRoutes = require('./backend/routes/groupChatRoutes');
+const analyticsRoutes = require('./backend/routes/analyticsRoutes');
+const checkInRoutes = require('./backend/routes/checkInRoutes');
+const placesRoutes = require('./backend/routes/placesRoutes');
 
 // Security middleware configuration
 const helmetOptions = process.env.NODE_ENV === 'production' ? {
@@ -114,6 +119,9 @@ const helmetOptions = process.env.NODE_ENV === 'production' ? {
 };
 
 app.use(helmet(helmetOptions));
+
+// Serve uploaded files FIRST (before frontend static)
+app.use('/uploads', express.static(path.join(__dirname, 'data/uploads')));
 
 // Serve static files from frontend build BEFORE CORS
 // This ensures static assets are served without CORS headers
@@ -256,6 +264,11 @@ app.use('/api/invites', inviteRoutes);
 app.use('/api/connections', connectionRoutes);
 app.use('/api/jobs', jobRoutes);
 app.use('/api/merch', merchRoutes);
+app.use('/api/cohorts', cohortRoutes);
+app.use('/api/chats', groupChatRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/checkins', checkInRoutes);
+app.use('/api/places', placesRoutes);
 
 // API info endpoint for development
 app.get('/api', (req, res) => {
@@ -267,8 +280,13 @@ app.get('/api', (req, res) => {
   });
 });
 
-// Serve frontend for all non-API routes
-app.get('*', (req, res) => {
+// Serve frontend for all non-API, non-upload routes
+app.get('*', (req, res, next) => {
+  // Don't intercept uploads or API routes
+  if (req.path.startsWith('/uploads') || req.path.startsWith('/api')) {
+    return next();
+  }
+  
   const indexPath = process.env.NODE_ENV === 'production' 
     ? path.join(__dirname, 'public', 'index.html')
     : path.join(__dirname, 'tdil-frontend/dist', 'index.html');

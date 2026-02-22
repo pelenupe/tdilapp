@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
-import { Camera, Upload, User, Mail, Building, Briefcase, Award, Star } from 'lucide-react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Camera, Upload, User, Mail, Building, Briefcase, Award, Star, MessageCircle } from 'lucide-react';
 import PageLayout from '../components/PageLayout';
 import PointsService from '../services/pointsService';
 import { getMyProfile, updateProfile } from '../services/profileService';
+import API from '../services/api';
 
 export default function Profile() {
   const { id } = useParams(); // Get user ID from URL parameter
+  const navigate = useNavigate();
   const [profile, setProfile] = useState({
     firstName: '',
     lastName: '',
@@ -14,6 +16,7 @@ export default function Profile() {
     company: '',
     jobTitle: '',
     bio: '',
+    cohort: '',
     points: 0,
     level: 1,
     profilePicUrl: '',
@@ -25,10 +28,23 @@ export default function Profile() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState('');
   const [isOwnProfile, setIsOwnProfile] = useState(true);
+  const [checkIns, setCheckIns] = useState([]);
 
   useEffect(() => {
     loadProfile();
+    if (isOwnProfile) {
+      loadCheckIns();
+    }
   }, [id]);
+
+  const loadCheckIns = async () => {
+    try {
+      const response = await API.get('/checkins');
+      setCheckIns(response.data);
+    } catch (error) {
+      console.error('Error loading check-ins:', error);
+    }
+  };
 
   const loadProfile = async () => {
     try {
@@ -64,6 +80,7 @@ export default function Profile() {
         company: userData.company || '',
         jobTitle: userData.jobTitle || '',
         bio: userData.bio || '',
+        cohort: userData.cohort || 'Indiana - Cohort 9',
         points: userData.points || 0,
         level: userData.level || 1,
         profilePicUrl: userData.profileImage || '',
@@ -137,11 +154,8 @@ export default function Profile() {
       localStorage.setItem('user', JSON.stringify(updatedUser));
       
       // Update local state with correct field mapping
-      setProfile(prevProfile => ({
-        ...prevProfile,
-        ...updatedUser,
-        profilePicUrl: updatedUser.profileImage || updatedUser.profilePicUrl || prevProfile.profilePicUrl
-      }));
+      // Force reload of profile to get updated image
+      await loadProfile();
       
       setIsEditing(false);
       setSelectedFile(null);
@@ -186,6 +200,21 @@ export default function Profile() {
     );
   }
 
+  const handleMessage = async () => {
+    try {
+      const response = await API.post('/chats/direct', {
+        otherUserId: id
+      });
+      
+      if (response.data) {
+        navigate('/chats', { state: { selectedChatId: response.data.chatId || response.data.id } });
+      }
+    } catch (error) {
+      console.error('Error creating chat:', error);
+      alert('Failed to open chat. Please try again.');
+    }
+  };
+
   const headerActions = isOwnProfile ? (
     <div className="flex items-center gap-3">
       {!isEditing ? (
@@ -216,7 +245,15 @@ export default function Profile() {
         </div>
       )}
     </div>
-  ) : null;
+  ) : (
+    <button
+      onClick={handleMessage}
+      className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm flex items-center gap-2"
+    >
+      <MessageCircle size={16} />
+      Message
+    </button>
+  );
 
   return (
     <PageLayout
@@ -237,9 +274,10 @@ export default function Profile() {
               <div className="w-24 h-24 rounded-full bg-blue-600 flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
                 {previewUrl || profile.profilePicUrl ? (
                   <img 
-                    src={previewUrl || profile.profilePicUrl} 
+                    src={previewUrl || `${profile.profilePicUrl}?t=${Date.now()}`} 
                     alt="Profile" 
                     className="w-full h-full object-cover"
+                    key={profile.profilePicUrl}
                   />
                 ) : (
                   getInitials()
@@ -316,7 +354,7 @@ export default function Profile() {
                   )}
                 </div>
 
-                <div className="md:col-span-2">
+                <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Job Title</label>
                   {isOwnProfile && isEditing ? (
                     <input
@@ -332,6 +370,16 @@ export default function Profile() {
                       {profile.jobTitle || 'Not set'}
                     </p>
                   )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Cohort</label>
+                  <button
+                    onClick={() => navigate('/cohort')}
+                    className="text-blue-600 hover:text-blue-800 flex items-center py-2 transition-colors"
+                  >
+                    🎓 {profile.cohort || 'Indiana - Cohort 9'}
+                  </button>
                 </div>
               </div>
             </div>
@@ -424,6 +472,54 @@ export default function Profile() {
             </div>
           </div>
         </div>
+
+        {/* Check-In History */}
+        {isOwnProfile && checkIns.length > 0 && (
+          <div className="bg-white rounded-xl shadow-sm border p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Check-Ins</h3>
+            <div className="space-y-3">
+              {checkIns.slice(0, 5).map((checkIn) => (
+                <div key={checkIn.id} className="p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <h4 className="font-medium text-gray-900">{checkIn.venue}</h4>
+                      <p className="text-sm text-gray-600">{checkIn.location}</p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        {new Date(checkIn.created_at).toLocaleDateString()}
+                      </p>
+                      {checkIn.taggedUsers && checkIn.taggedUsers.length > 0 && (
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          <span className="text-xs text-gray-500">With:</span>
+                          {checkIn.taggedUsers.map((tagged) => (
+                            <span
+                              key={tagged.id}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/profile/${tagged.id}`);
+                              }}
+                              className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full cursor-pointer hover:bg-blue-200"
+                            >
+                              {tagged.firstName} {tagged.lastName}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-blue-600 text-2xl">📍</span>
+                  </div>
+                </div>
+              ))}
+              {checkIns.length > 5 && (
+                <button
+                  onClick={() => navigate('/checkin-history')}
+                  className="w-full text-center text-sm text-blue-600 hover:text-blue-800 py-2"
+                >
+                  View all {checkIns.length} check-ins →
+                </button>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Account Settings */}
         <div className="bg-white rounded-xl shadow-sm border p-6">

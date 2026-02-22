@@ -1,12 +1,13 @@
 const { query } = require('../config/database');
-const { uploadFile } = require('../services/s3Service');
+const fs = require('fs').promises;
+const path = require('path');
 
 // Fetch all members (with optional filters)
 const getMembers = async (req, res) => {
   try {
     const { school, role, skills } = req.query;
 
-    let sql = `SELECT id, email, firstname, lastname, company, jobtitle, points, level, usertype, bio, profile_image FROM users WHERE 1=1`;
+    let sql = `SELECT id, email, firstName, lastName, company, jobTitle, points, level, userType, bio, profileImage FROM users WHERE 1=1`;
     const params = [];
 
     if (role) {
@@ -15,22 +16,7 @@ const getMembers = async (req, res) => {
     }
     const members = await query(sql, params);
     
-    // Transform to camelCase for frontend
-    const transformedMembers = members.map(m => ({
-      id: m.id,
-      email: m.email,
-      firstName: m.firstname,
-      lastName: m.lastname,
-      company: m.company,
-      jobTitle: m.jobtitle,
-      points: m.points,
-      level: m.level,
-      userType: m.usertype,
-      bio: m.bio,
-      profileImage: m.profile_image
-    }));
-    
-    return res.json(transformedMembers);
+    return res.json(members);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Error fetching members' });
@@ -44,7 +30,7 @@ const getProfile = async (req, res) => {
     const userId = (!req.params.id || req.params.id === 'me') ? req.user.id : req.params.id;
     
     const users = await query(
-      'SELECT id, email, firstname, lastname, company, jobtitle, points, level, usertype, bio, profile_image FROM users WHERE id = $1',
+      'SELECT id, email, firstName, lastName, company, jobTitle, points, level, userType, bio, profileImage FROM users WHERE id = $1',
       [userId]
     );
     const user = users[0];
@@ -52,20 +38,7 @@ const getProfile = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
     
-    // Transform to camelCase for frontend
-    return res.json({
-      id: user.id,
-      email: user.email,
-      firstName: user.firstname,
-      lastName: user.lastname,
-      company: user.company,
-      jobTitle: user.jobtitle,
-      points: user.points,
-      level: user.level,
-      userType: user.usertype,
-      bio: user.bio,
-      profileImage: user.profile_image
-    });
+    return res.json(user);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Error fetching profile' });
@@ -83,11 +56,11 @@ const updateProfile = async (req, res) => {
     const params = [];
 
     if (firstName !== undefined) {
-      updates.push(`firstname = $${params.length + 1}`);
+      updates.push(`firstName = $${params.length + 1}`);
       params.push(firstName);
     }
     if (lastName !== undefined) {
-      updates.push(`lastname = $${params.length + 1}`);
+      updates.push(`lastName = $${params.length + 1}`);
       params.push(lastName);
     }
     if (company !== undefined) {
@@ -95,7 +68,7 @@ const updateProfile = async (req, res) => {
       params.push(company);
     }
     if (jobTitle !== undefined) {
-      updates.push(`jobtitle = $${params.length + 1}`);
+      updates.push(`jobTitle = $${params.length + 1}`);
       params.push(jobTitle);
     }
     if (bio !== undefined) {
@@ -105,20 +78,36 @@ const updateProfile = async (req, res) => {
 
     // Handle profileImage from frontend (either profileImage or profilePicUrl)
     if (profileImage !== undefined || profilePicUrl !== undefined) {
-      updates.push(`profile_image = $${params.length + 1}`);
+      updates.push(`profileImage = $${params.length + 1}`);
       params.push(profileImage || profilePicUrl || null);
     }
 
-    // Handle file uploads (if sent as multipart) - Upload to S3
-    if (req.files && req.files.profilePic) {
+    // Handle file uploads (if sent as multipart) - Save locally
+    if (req.files && req.files.profilePic && req.files.profilePic[0]) {
       try {
-        const uploadedUrl = await uploadFile(req.files.profilePic[0]);
-        updates.push(`profile_image = $${params.length + 1}`);
-        params.push(uploadedUrl);
-        console.log('Profile picture uploaded to S3:', uploadedUrl);
+        const file = req.files.profilePic[0];
+        const uploadDir = path.join(__dirname, '../../data/uploads/profile-pics');
+        
+        // Ensure directory exists
+        await fs.mkdir(uploadDir, { recursive: true });
+        
+        // Generate unique filename
+        const timestamp = Date.now();
+        const ext = path.extname(file.originalname);
+        const filename = `${timestamp}${ext}`;
+        const filepath = path.join(uploadDir, filename);
+        
+        // Write file
+        await fs.writeFile(filepath, file.buffer);
+        
+        // Store relative path in database
+        const relativeUrl = `/uploads/profile-pics/${filename}`;
+        updates.push(`profileImage = $${params.length + 1}`);
+        params.push(relativeUrl);
+        console.log('Profile picture uploaded locally:', relativeUrl);
       } catch (error) {
-        console.error('S3 upload error:', error);
-        return res.status(500).json({ message: 'Failed to upload profile picture' });
+        console.error('File upload error:', error);
+        return res.status(500).json({ message: 'Failed to upload profile picture', error: error.message });
       }
     }
 
@@ -131,27 +120,14 @@ const updateProfile = async (req, res) => {
     await query(updateSql, params);
 
     const updatedUsers = await query(
-      'SELECT id, email, firstname, lastname, company, jobtitle, points, level, usertype, bio, profile_image FROM users WHERE id = $1',
+      'SELECT id, email, firstName, lastName, company, jobTitle, points, level, userType, bio, profileImage FROM users WHERE id = $1',
       [userId]
     );
     const user = updatedUsers[0];
     
-    // Transform to camelCase for frontend
     return res.json({ 
       message: 'Profile updated successfully',
-      user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstname,
-        lastName: user.lastname,
-        company: user.company,
-        jobTitle: user.jobtitle,
-        points: user.points,
-        level: user.level,
-        userType: user.usertype,
-        bio: user.bio,
-        profileImage: user.profile_image
-      }
+      user: user
     });
   } catch (err) {
     console.error(err);
