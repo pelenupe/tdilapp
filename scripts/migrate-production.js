@@ -69,7 +69,17 @@ class DatabaseMigrator {
   async executeMigration(filename) {
     try {
       const migrationPath = path.join(__dirname, '../database/migrations', filename);
-      const sql = await fs.readFile(migrationPath, 'utf8');
+      let sql = await fs.readFile(migrationPath, 'utf8');
+
+      // Support mixed SQLite/PostgreSQL migration files by extracting PG block when present.
+      // If markers are not present, execute full SQL as before.
+      const pgStart = '-- PG_ONLY_START';
+      const pgEnd = '-- PG_ONLY_END';
+      if (sql.includes(pgStart) && sql.includes(pgEnd)) {
+        const startIndex = sql.indexOf(pgStart) + pgStart.length;
+        const endIndex = sql.indexOf(pgEnd);
+        sql = sql.slice(startIndex, endIndex).trim();
+      }
       
       console.log(`🔄 Executing migration: ${filename}`);
       

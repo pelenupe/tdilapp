@@ -20,7 +20,7 @@ const authenticateToken = async (req, res, next) => {
     
     // For simple JWT tokens (no session tracking), just validate user exists and is active
     const userCheck = await query(
-      'SELECT id, email, usertype, is_active FROM users WHERE id = $1',
+      'SELECT id, email, userType, is_active FROM users WHERE id = $1',
       [decoded.id]
     );
 
@@ -42,14 +42,14 @@ const authenticateToken = async (req, res, next) => {
     req.user = {
       id: decoded.id,
       email: user.email,
-      userType: decoded.userType || user.usertype,
+      userType: decoded.userType || user.userType,
       sessionId: null // Simple JWT doesn't have sessions
     };
 
     // Update last activity (non-critical - silently ignore errors)
     try {
       await query(
-        'UPDATE users SET updatedat = NOW() WHERE id = $1',
+        "UPDATE users SET updatedAt = datetime('now') WHERE id = $1",
         [decoded.id]
       );
     } catch (updateErr) {
@@ -231,10 +231,10 @@ const refreshTokenMiddleware = async (req, res, next) => {
 
     // Check if session exists and is active
     const session = await query(
-      `SELECT us.*, u.usertype, u.is_active 
+      `SELECT us.*, u.userType, u.isActive 
        FROM user_sessions us 
        JOIN users u ON us.user_id = u.id 
-       WHERE us.id = $1 AND us.refresh_token = $2 AND us.is_active = TRUE AND us.expires_at > NOW()`,
+       WHERE us.id = $1 AND us.refresh_token = $2 AND us.isActive = TRUE AND us.expires_at > datetime('now')`,
       [decoded.sessionId, refreshToken]
     );
 
@@ -245,7 +245,7 @@ const refreshTokenMiddleware = async (req, res, next) => {
       });
     }
 
-    if (!session[0].is_active) {
+    if (!session[0].isActive) {
       return res.status(401).json({ 
         error: 'Account deactivated',
         code: 'ACCOUNT_DEACTIVATED'
@@ -254,7 +254,7 @@ const refreshTokenMiddleware = async (req, res, next) => {
 
     req.user = {
       id: decoded.id,
-      userType: session[0].usertype,
+      userType: session[0].userType,
       sessionId: decoded.sessionId
     };
 
@@ -286,7 +286,7 @@ const refreshTokenMiddleware = async (req, res, next) => {
 const logoutUser = async (userId, sessionId) => {
   try {
     await query(
-      'UPDATE user_sessions SET is_active = FALSE WHERE user_id = $1 AND id = $2',
+      'UPDATE user_sessions SET isActive = FALSE WHERE user_id = $1 AND id = $2',
       [userId, sessionId]
     );
     return true;
@@ -300,7 +300,7 @@ const logoutUser = async (userId, sessionId) => {
 const logoutAllSessions = async (userId) => {
   try {
     await query(
-      'UPDATE user_sessions SET is_active = FALSE WHERE user_id = $1',
+      'UPDATE user_sessions SET isActive = FALSE WHERE user_id = $1',
       [userId]
     );
     return true;
@@ -328,7 +328,7 @@ const logAuditEvent = async (userId, action, resourceType, resourceId, details, 
 const cleanupExpiredSessions = async () => {
   try {
     const result = await query(
-      'UPDATE user_sessions SET is_active = FALSE WHERE expires_at < NOW() AND is_active = TRUE'
+      "UPDATE user_sessions SET isActive = FALSE WHERE expires_at < datetime('now') AND isActive = TRUE"
     );
     console.log(`Cleaned up ${result.rowCount || 0} expired sessions`);
   } catch (error) {

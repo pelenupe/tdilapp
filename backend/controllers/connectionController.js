@@ -27,25 +27,29 @@ const createConnection = async (req, res) => {
 
     // Create the connection
     await query(
-      'INSERT INTO connections (user_id, connected_user_id, status, created_at) VALUES ($1, $2, $3, NOW())',
+      "INSERT INTO connections (user_id, connected_user_id, status, created_at) VALUES ($1, $2, $3, datetime('now'))",
       [userId, targetUserId, 'connected']
     );
 
-    // Award points to both users using the points system
+    // Award points ONLY to the user initiating the connection (idempotent - once per pair)
+    // This ensures each unique connection pair only gets points awarded once total
     const userPointsResult = await awardPoints(userId, 'CONNECTION', `Connected with user ${targetUserId}`, { targetUserId });
-    const targetPointsResult = await awardPoints(targetUserId, 'CONNECTION', `Connected with user ${userId}`, { userId });
+    
+    // Get target user data without awarding points
+    const targetUsers = await query('SELECT points, level FROM users WHERE id = $1', [targetUserId]);
+    const targetPointsResult = { level: targetUsers[0]?.level || 1 };
 
     // Get updated user data (use lowercase column names for PostgreSQL)
     const usersData = await query(
-      'SELECT id, firstname, lastname, points, level FROM users WHERE id = $1 OR id = $2',
+      'SELECT id, firstName, lastName, points, level FROM users WHERE id = $1 OR id = $2',
       [userId, targetUserId]
     );
     
     // Transform to camelCase for frontend
     const users = usersData.map(u => ({
       id: u.id,
-      firstName: u.firstname,
-      lastName: u.lastname,
+      firstName: u.firstName,
+      lastName: u.lastName,
       points: u.points,
       level: u.level
     }));
@@ -73,13 +77,13 @@ const getUserConnections = async (req, res) => {
         c.id as connection_id,
         c.created_at,
         u.id,
-        u.firstname,
-        u.lastname,
+        u.firstName,
+        u.lastName,
         u.company,
-        u.jobtitle,
+        u.jobTitle,
         u.points,
         u.level,
-        u.profile_image
+        u.profileImage
       FROM connections c
       JOIN users u ON (
         CASE 
@@ -98,13 +102,13 @@ const getUserConnections = async (req, res) => {
       connectionId: c.connection_id,
       createdAt: c.created_at,
       id: c.id,
-      firstName: c.firstname,
-      lastName: c.lastname,
+      firstName: c.firstName,
+      lastName: c.lastName,
       company: c.company,
-      jobTitle: c.jobtitle,
+      jobTitle: c.jobTitle,
       points: c.points,
       level: c.level,
-      profileImage: c.profile_image
+      profileImage: c.profileImage
     }));
 
     res.json(connections);
@@ -210,7 +214,25 @@ const removeConnection = async (req, res) => {
       [userId, targetUserId, targetUserId, userId]
     );
 
-    res.json({ message: 'Connection removed successfully' });
+    // Deduct points from the user who initiated the connection (CONNECTION points are worth 50)
+    try {
+      await query('UPDATE users SET points = CASE WHEN points >= 50 THEN points - 50 ELSE 0 END WHERE id = $1', [userId]);
+    } catch (pointsError) {
+      console.error('Error deducting points:', pointsError);
+      // Continue even if points deduction fails
+    }
+
+    // Get updated user data to return new points
+    const updatedUser = await query('SELECT points, level FROM users WHERE id = $1', [userId]);
+    const newPoints = updatedUser[0]?.points || 0;
+    const level = updatedUser[0]?.level || 1;
+
+    res.json({ 
+      message: 'Connection removed successfully',
+      pointsDeducted: 50,
+      newPoints: newPoints,
+      level: level
+    });
   } catch (error) {
     console.error('Remove connection error:', error);
     res.status(500).json({ message: 'Error removing connection' });

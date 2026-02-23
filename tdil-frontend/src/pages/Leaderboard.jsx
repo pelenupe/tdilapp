@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
 import PageLayout from '../components/PageLayout';
+import ProfileImage from '../components/ProfileImage';
 import API from '../services/api';
 
 export default function Leaderboard() {
@@ -8,6 +10,7 @@ export default function Leaderboard() {
   const [loading, setLoading] = useState(true);
   const [timeframe, setTimeframe] = useState('all-time');
   const { user } = useUser();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchLeaderboard = async () => {
@@ -108,26 +111,26 @@ export default function Leaderboard() {
                     {index + 1}
                   </div>
                   
-                  {member.profileImage ? (
-                    <img 
-                      src={member.profileImage} 
-                      alt={`${member.firstName} ${member.lastName}`}
-                      className="w-12 h-12 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                      <span className="text-blue-600 font-bold text-lg">
-                        {member.firstName?.[0]}{member.lastName?.[0]}
-                      </span>
-                    </div>
-                  )}
+                  <ProfileImage 
+                    src={member.profileImage}
+                    firstName={member.firstName}
+                    lastName={member.lastName}
+                    size="md"
+                  />
 
                   <div className="flex-1">
                     <div className="flex items-center justify-between">
                       <div>
-                        <div className="font-bold text-gray-900 text-lg">
-                          {member.id === user?.id ? 'You' : `${member.firstName} ${member.lastName}`}
-                        </div>
+                        {member.id === user?.id ? (
+                          <div className="font-bold text-gray-900 text-lg">You</div>
+                        ) : (
+                          <Link
+                            to={`/profile/${member.id}`}
+                            className="font-bold text-blue-600 hover:text-blue-800 text-lg hover:underline"
+                          >
+                            {member.firstName} {member.lastName}
+                          </Link>
+                        )}
                         <div className="text-gray-600 text-sm">
                           {member.jobTitle && member.company ? 
                             `${member.jobTitle} at ${member.company}` : 

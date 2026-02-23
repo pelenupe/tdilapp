@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import Sidebar from '../components/Sidebar';
+import SidebarMember from '../components/SidebarMember';
+import ProfileImage from '../components/ProfileImage';
 import PointsService from '../services/pointsService';
 
 export default function ChatPage() {
@@ -49,8 +50,8 @@ export default function ChatPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Sidebar />
-        <div className="ml-64 flex items-center justify-center">
+        <SidebarMember />
+        <div className="lg:ml-64 flex items-center justify-center">
           <div className="text-center">
             <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-xs mb-4 mx-auto">
               tDIL
@@ -64,9 +65,9 @@ export default function ChatPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Sidebar />
-      
-      <div className="ml-64 flex h-screen">
+      <SidebarMember />
+
+      <div className="lg:ml-64 flex h-screen">
         {/* Main Chat Area */}
         <div className="flex-1 flex flex-col">
           {/* Chat Header */}
@@ -92,10 +93,11 @@ export default function ChatPage() {
             {messages.length > 0 ? (
               messages.map((message) => (
                 <div key={message.id} className={`flex gap-3 ${message.isCurrentUser ? 'flex-row-reverse' : ''}`}>
-                  <img
+                  <ProfileImage
                     src={message.avatar}
-                    alt={message.user}
-                    className="w-10 h-10 rounded-full flex-shrink-0"
+                    firstName={(message.user || '').split(' ')[0]}
+                    lastName={(message.user || '').split(' ')[1] || ''}
+                    size="md"
                   />
                   <div className={`flex-1 max-w-lg ${message.isCurrentUser ? 'text-right' : ''}`}>
                     <div className="flex items-center gap-2 mb-1">

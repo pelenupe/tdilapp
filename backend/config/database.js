@@ -327,6 +327,44 @@ const initDatabase = async () => {
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         )`;
 
+    // Create checkins table
+    const createCheckInsTable = isPostgreSQL
+      ? `CREATE TABLE IF NOT EXISTS checkins (
+          id SERIAL PRIMARY KEY,
+          user_id INTEGER NOT NULL REFERENCES users(id),
+          location VARCHAR(500) NOT NULL,
+          venue VARCHAR(255) NOT NULL,
+          notes TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`
+      : `CREATE TABLE IF NOT EXISTS checkins (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          location TEXT NOT NULL,
+          venue TEXT NOT NULL,
+          notes TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`;
+
+    // Create messages table for chat
+    const createMessagesTable = isPostgreSQL
+      ? `CREATE TABLE IF NOT EXISTS messages (
+          id SERIAL PRIMARY KEY,
+          sender_id INTEGER NOT NULL REFERENCES users(id),
+          receiver_id INTEGER NOT NULL REFERENCES users(id),
+          content TEXT NOT NULL,
+          is_read BOOLEAN DEFAULT FALSE,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )`
+      : `CREATE TABLE IF NOT EXISTS messages (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          sender_id INTEGER NOT NULL,
+          receiver_id INTEGER NOT NULL,
+          content TEXT NOT NULL,
+          is_read INTEGER DEFAULT 0,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`;
+
     console.log('🔄 Creating database tables...');
     await query(createUserTable);
     await query(createPointsHistoryTable);
@@ -336,6 +374,8 @@ const initDatabase = async () => {
     await query(createJobsTable);
     await query(createJobApplicationsTable);
     await query(createMerchTable);
+    await query(createCheckInsTable);
+    await query(createMessagesTable);
 
     // Add missing columns to existing invite_tokens table (for production DB updates)
     if (isPostgreSQL) {

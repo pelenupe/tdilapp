@@ -8,8 +8,8 @@ const generateToken = async (req, res) => {
     const createdBy = req.user.id;
 
     // Check if user has admin permissions
-    const userCheck = await query('SELECT usertype FROM users WHERE id = $1', [createdBy]);
-    const creatorUserType = userCheck[0]?.usertype?.toLowerCase();
+    const userCheck = await query('SELECT userType FROM users WHERE id = $1', [createdBy]);
+    const creatorUserType = userCheck[0]?.userType?.toLowerCase();
     if (!userCheck.length || (creatorUserType !== 'admin' && creatorUserType !== 'founder')) {
       return res.status(403).json({ message: 'Insufficient permissions to create invite tokens' });
     }
@@ -27,7 +27,7 @@ const generateToken = async (req, res) => {
 
     // Insert token with user_type and is_reusable
     await query(
-      'INSERT INTO invite_tokens (token, email, created_by, expires_at, user_type, is_reusable) VALUES ($1, $2, $3, $4, $5, $6)',
+      'INSERT INTO invite_tokens (token, email, createdBy, expires_at, user_type, is_reusable) VALUES ($1, $2, $3, $4, $5, $6)',
       [token, email || null, createdBy, expiresAtString, userType, isReusable]
     );
 
@@ -193,8 +193,8 @@ const getAllTokens = async (req, res) => {
     const createdBy = req.user.id;
 
     // Check admin permissions
-    const userCheck = await query('SELECT usertype FROM users WHERE id = $1', [createdBy]);
-    const userType = userCheck[0]?.usertype?.toLowerCase();
+    const userCheck = await query('SELECT userType FROM users WHERE id = $1', [createdBy]);
+    const userType = userCheck[0]?.userType?.toLowerCase();
     if (!userCheck.length || (userType !== 'admin' && userType !== 'founder')) {
       return res.status(403).json({ message: 'Insufficient permissions' });
     }
@@ -202,10 +202,10 @@ const getAllTokens = async (req, res) => {
     const tokens = await query(`
       SELECT 
         it.*,
-        creator.firstname || ' ' || creator.lastname as created_by_name,
-        user_used.firstname || ' ' || user_used.lastname as used_by_name
+        creator.firstName || ' ' || creator.lastName as created_by_name,
+        user_used.firstName || ' ' || user_used.lastName as used_by_name
       FROM invite_tokens it
-      LEFT JOIN users creator ON it.created_by = creator.id
+      LEFT JOIN users creator ON it.createdBy = creator.id
       LEFT JOIN users user_used ON it.used_by = user_used.id
       ORDER BY it.created_at DESC
     `);
@@ -240,8 +240,8 @@ const revokeToken = async (req, res) => {
     const userId = req.user.id;
 
     // Check admin permissions
-    const userCheck = await query('SELECT usertype FROM users WHERE id = $1', [userId]);
-    const userType = userCheck[0]?.usertype?.toLowerCase();
+    const userCheck = await query('SELECT userType FROM users WHERE id = $1', [userId]);
+    const userType = userCheck[0]?.userType?.toLowerCase();
     if (!userCheck.length || (userType !== 'admin' && userType !== 'founder')) {
       return res.status(403).json({ message: 'Insufficient permissions' });
     }

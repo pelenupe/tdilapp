@@ -61,3 +61,13 @@ temp/
 
 # PM2
 .pm2/
+
+# Local data directories (postgres, redis, uploads, logs)
+data/
+data/postgres/
+data/redis/
+data/logs/
+data/nginx_logs/
+data/uploads/
+data/backups/
+data/postgres_backups/

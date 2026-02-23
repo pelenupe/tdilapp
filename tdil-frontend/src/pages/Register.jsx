@@ -11,6 +11,8 @@ export default function Register() {
     password: '', 
     company: '', 
     jobTitle: '', 
+    almaMater: '',
+    graduationYear: '',
     inviteToken: '' 
   });
   const [loading, setLoading] = useState(false);
@@ -41,6 +43,8 @@ export default function Register() {
         password: formData.password,
         company: formData.company,
         jobTitle: formData.jobTitle,
+        almaMater: formData.almaMater,
+        graduationYear: formData.graduationYear ? parseInt(formData.graduationYear) : null,
         inviteToken: formData.inviteToken
       });
 
@@ -158,6 +162,37 @@ export default function Register() {
                 onChange={handleChange}
                 className="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
                 placeholder="Job Title (optional)"
+              />
+            </div>
+            
+            <div>
+              <label htmlFor="almaMater" className="sr-only">Alma Mater</label>
+              <input
+                id="almaMater"
+                name="almaMater"
+                type="text"
+                value={formData.almaMater}
+                onChange={handleChange}
+                className="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                placeholder="Alma Mater (optional)"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Join your cohort by entering your school
+              </p>
+            </div>
+            
+            <div>
+              <label htmlFor="graduationYear" className="sr-only">Graduation Year</label>
+              <input
+                id="graduationYear"
+                name="graduationYear"
+                type="number"
+                min="1950"
+                max="2030"
+                value={formData.graduationYear}
+                onChange={handleChange}
+                className="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                placeholder="Graduation Year (optional)"
               />
             </div>
             

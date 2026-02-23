@@ -10,7 +10,10 @@ const POINT_VALUES = {
   PROFILE_VIEW: 5,
   LOGIN_STREAK: 15,
   REFERRAL: 100,
-  REVIEW_SUBMITTED: 30
+  REVIEW_SUBMITTED: 30,
+  CHECKIN: 20,
+  SPONSOR_CHECKIN_BONUS: 0,
+  SPONSOR_CHECKIN_CREDIT: 0
 };
 
 // Level thresholds
@@ -26,9 +29,11 @@ const LEVEL_THRESHOLDS = [
 // Award points to a user
 const awardPoints = async (userId, pointType, description, metadata = {}) => {
   try {
-    const points = POINT_VALUES[pointType] || 0;
+    const overridePoints = metadata?.pointsOverride;
+    const hasOverride = overridePoints !== undefined && overridePoints !== null;
+    const points = hasOverride ? Number(overridePoints) : (POINT_VALUES[pointType] || 0);
     
-    if (points <= 0) {
+    if (!Number.isFinite(points) || points <= 0) {
       throw new Error(`Invalid point type: ${pointType}`);
     }
 
@@ -175,18 +180,18 @@ const getLeaderboard = async (req, res) => {
     const limit = parseInt(req.query.limit) || 20;
     
     const leaderboard = await query(
-      'SELECT id, firstname, lastname, points, level, profile_image FROM users WHERE usertype = \'member\' ORDER BY points DESC LIMIT $1',
+      'SELECT id, firstName, lastName, points, level, profileImage FROM users WHERE userType = \'member\' ORDER BY points DESC LIMIT $1',
       [limit]
     );
     
     // Add level info, rank, and transform to camelCase for frontend
     const leaderboardWithRanks = leaderboard.map((user, index) => ({
       id: user.id,
-      firstName: user.firstname,
-      lastName: user.lastname,
+      firstName: user.firstName,
+      lastName: user.lastName,
       points: user.points,
       level: user.level,
-      profileImage: user.profile_image,
+      profileImage: user.profileImage,
       rank: index + 1,
       levelInfo: calculateLevel(user.points)
     }));
@@ -230,13 +235,13 @@ const getPointsStats = async (req, res) => {
         MAX(points) as maxPoints,
         (SELECT COUNT(*) FROM points_history WHERE createdat >= NOW() - INTERVAL '7 days') as pointsThisWeek,
         (SELECT COUNT(*) FROM points_history WHERE createdat >= NOW() - INTERVAL '30 days') as pointsThisMonth
-      FROM users WHERE usertype = $1
+      FROM users WHERE userType = $1
     `, ['member']);
     
     const levelDistribution = await query(`
       SELECT level, COUNT(*) as count 
       FROM users 
-      WHERE usertype = $1 
+      WHERE userType = $1 
       GROUP BY level 
       ORDER BY level
     `, ['member']);

@@ -37,11 +37,11 @@ const getJobs = async (req, res) => {
   try {
     const jobs = await query(
       `SELECT j.*, 
-              u.firstname || ' ' || u.lastname as "postedByName",
+              u.firstName || ' ' || u.lastName as "postedByName",
               u.company as "postedByCompany"
        FROM jobs j
        LEFT JOIN users u ON j.posted_by = u.id
-       WHERE j.is_active = true
+       WHERE j.isActive = true
        ORDER BY j.created_at DESC`
     );
 
@@ -60,7 +60,7 @@ const getJobs = async (req, res) => {
       postedByName: job.postedByName,
       postedByCompany: job.postedByCompany,
       createdAt: job.created_at,
-      isActive: job.is_active
+      isActive: job.isActive
     }));
 
     res.json(formattedJobs);
@@ -77,7 +77,7 @@ const getJob = async (req, res) => {
     
     const jobs = await query(
       `SELECT j.*, 
-              u.firstname || ' ' || u.lastname as "postedByName",
+              u.firstName || ' ' || u.lastName as "postedByName",
               u.company as "postedByCompany",
               u.email as "postedByEmail"
        FROM jobs j
@@ -105,7 +105,7 @@ const getJob = async (req, res) => {
       postedByName: job.postedByName,
       postedByCompany: job.postedByCompany,
       createdAt: job.created_at,
-      isActive: job.is_active
+      isActive: job.isActive
     });
   } catch (err) {
     console.error('Error fetching job:', err);
@@ -188,7 +188,7 @@ const applyJob = async (req, res) => {
 const getMyApplications = async (req, res) => {
   try {
     const applications = await query(
-      `SELECT a.*, j.title as job_title, j.company as job_company
+      `SELECT a.*, j.title as jobTitle, j.company as job_company
        FROM job_applications a
        JOIN jobs j ON a.job_id = j.id
        WHERE a.user_id = $1
@@ -199,7 +199,7 @@ const getMyApplications = async (req, res) => {
     const formatted = applications.map(app => ({
       id: app.id,
       jobId: app.job_id,
-      jobTitle: app.job_title,
+      jobTitle: app.jobTitle,
       jobCompany: app.job_company,
       coverLetter: app.cover_letter,
       status: app.status,
@@ -230,7 +230,7 @@ const getMyJobs = async (req, res) => {
       salary: job.salary,
       jobType: job.job_type,
       createdAt: job.created_at,
-      isActive: job.is_active
+      isActive: job.isActive
     }));
 
     res.json(formatted);

@@ -19,6 +19,11 @@ import Donate from './pages/Donate';
 import Settings from './pages/Settings';
 import Leaderboard from './pages/Leaderboard';
 import Announcements from './pages/Announcements';
+import MyCohort from './pages/MyCohort';
+import GroupChats from './pages/GroupChats';
+import Students from './pages/Students';
+import CheckIn from './pages/CheckIn';
+import CheckInHistory from './pages/CheckInHistory';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -42,8 +47,20 @@ function App() {
         const response = await API.get('/auth/me');
         
         if (response.data && response.data.user) {
-          // Update user data if token is valid
-          localStorage.setItem('user', JSON.stringify(response.data.user));
+          // Update user data if token is valid, but preserve any client-side cache-bust hints
+          const existingUser = JSON.parse(localStorage.getItem('user') || '{}');
+          const mergedUser = {
+            ...existingUser,
+            ...response.data.user,
+            // Keep previous profile image timestamp if backend doesn't provide one
+            profileImageUpdatedAt:
+              response.data.user.profileImageUpdatedAt ||
+              existingUser.profileImageUpdatedAt ||
+              existingUser.updatedAt ||
+              null
+          };
+
+          localStorage.setItem('user', JSON.stringify(mergedUser));
           setIsAuthenticated(true);
         } else {
           throw new Error('Invalid response');
@@ -97,6 +114,11 @@ function App() {
           <Route path="/settings" element={isAuthenticated ? <Settings /> : <Navigate to="/login" />} />
           <Route path="/leaderboard" element={isAuthenticated ? <Leaderboard /> : <Navigate to="/login" />} />
           <Route path="/announcements" element={isAuthenticated ? <Announcements /> : <Navigate to="/login" />} />
+          <Route path="/cohort" element={isAuthenticated ? <MyCohort /> : <Navigate to="/login" />} />
+          <Route path="/chats" element={isAuthenticated ? <GroupChats /> : <Navigate to="/login" />} />
+          <Route path="/students" element={isAuthenticated ? <Students /> : <Navigate to="/login" />} />
+          <Route path="/checkin" element={isAuthenticated ? <CheckIn /> : <Navigate to="/login" />} />
+          <Route path="/checkin-history" element={isAuthenticated ? <CheckInHistory /> : <Navigate to="/login" />} />
         </Routes>
       </div>
     </UserProvider>

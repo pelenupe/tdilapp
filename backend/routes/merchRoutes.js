@@ -7,10 +7,10 @@ const router = express.Router();
 router.get('/', async (req, res) => {
   try {
     const items = await query(
-      `SELECT m.*, u.firstname || ' ' || u.lastname as "addedByName"
+      `SELECT m.*, u.firstName || ' ' || u.lastName as "addedByName"
        FROM merch m
-       LEFT JOIN users u ON m.created_by = u.id
-       WHERE m.is_active = true
+       LEFT JOIN users u ON m.createdBy = u.id
+       WHERE m.isActive = true
        ORDER BY m.featured DESC, m.created_at DESC`
     );
 
@@ -61,7 +61,7 @@ router.get('/:id', async (req, res) => {
       imageUrl: item.image_url,
       category: item.category,
       stockQuantity: item.stock_quantity,
-      isActive: item.is_active,
+      isActive: item.isActive,
       createdAt: item.created_at
     });
   } catch (err) {
@@ -86,7 +86,7 @@ router.post('/', protect, async (req, res) => {
     }
 
     const result = await query(
-      `INSERT INTO merch (name, description, price, points_cost, image_url, category, stock_quantity, sizes, featured, redeemable_with_points, created_by, is_active) 
+      `INSERT INTO merch (name, description, price, points_cost, image_url, category, stock_quantity, sizes, featured, redeemable_with_points, createdBy, isActive) 
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, true) RETURNING id`,
       [name, description || null, price || 0, points_price || null, image_url || null, category || 'apparel', stock || 10, sizes || 'S,M,L,XL', featured || false, redeemable_with_points || false, req.user.id]
     );
@@ -126,7 +126,7 @@ router.put('/:id', protect, async (req, res) => {
         image_url = COALESCE($5, image_url),
         category = COALESCE($6, category),
         stock_quantity = COALESCE($7, stock_quantity),
-        is_active = COALESCE($8, is_active)
+        isActive = COALESCE($8, isActive)
        WHERE id = $9`,
       [name, description, price, pointsCost, imageUrl, category, stockQuantity, isActive, id]
     );

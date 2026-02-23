@@ -95,6 +95,7 @@ const groupChatRoutes = require('./backend/routes/groupChatRoutes');
 const analyticsRoutes = require('./backend/routes/analyticsRoutes');
 const checkInRoutes = require('./backend/routes/checkInRoutes');
 const placesRoutes = require('./backend/routes/placesRoutes');
+const sponsorRoutes = require('./backend/routes/sponsorRoutes');
 
 // Security middleware configuration
 const helmetOptions = process.env.NODE_ENV === 'production' ? {
@@ -269,6 +270,7 @@ app.use('/api/chats', groupChatRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/checkins', checkInRoutes);
 app.use('/api/places', placesRoutes);
+app.use('/api/sponsors', sponsorRoutes);
 
 // API info endpoint for development
 app.get('/api', (req, res) => {

@@ -5,10 +5,12 @@ import PageLayout from '../components/PageLayout';
 import PointsService from '../services/pointsService';
 import { getMyProfile, updateProfile } from '../services/profileService';
 import API from '../services/api';
+import { useUser } from '../contexts/UserContext';
 
 export default function Profile() {
   const { id } = useParams(); // Get user ID from URL parameter
   const navigate = useNavigate();
+  const { updateUser } = useUser();
   const [profile, setProfile] = useState({
     firstName: '',
     lastName: '',
@@ -152,6 +154,13 @@ export default function Profile() {
       // Update localStorage with new data
       const updatedUser = response.data.user;
       localStorage.setItem('user', JSON.stringify(updatedUser));
+
+      // Update shared user context so all avatar instances (header/sidebar/etc) refresh immediately
+      updateUser({
+        ...updatedUser,
+        profileImage: updatedUser.profileImage,
+        profileImageUpdatedAt: Date.now()
+      });
       
       // Update local state with correct field mapping
       // Force reload of profile to get updated image

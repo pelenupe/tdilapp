@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { navigationItems } from '../config/navigation';
+import { UserCard, UserPoints } from './UserDisplay';
 
 export default function Sidebar() {
   const location = useLocation();
@@ -13,9 +14,9 @@ export default function Sidebar() {
     <div className={`fixed left-0 top-0 h-full bg-white border-r border-gray-200 transition-all duration-300 z-40 ${
       isCollapsed ? 'w-16' : 'w-64'
     }`}>
-      {/* Logo */}
+      {/* Logo & User Info */}
       <div className="p-4 border-b border-gray-200">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 mb-3">
           <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-xs">
             tDIL
           </div>
@@ -23,6 +24,14 @@ export default function Sidebar() {
             <span className="font-semibold text-gray-900">tDIL</span>
           )}
         </div>
+        {!isCollapsed && (
+          <div className="space-y-2">
+            <UserCard showPoints={true} showLevel={true} />
+            <div className="pt-2 border-t border-gray-100">
+              <UserPoints showLabel={false} className="justify-center" />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Navigation */}

@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import API from '../services/api';
 import { useUser } from '../contexts/UserContext';
 import SidebarMember from '../components/SidebarMember';
 import SidebarPartnerSchool from '../components/SidebarPartnerSchool';
 import SidebarSponsor from '../components/SidebarSponsor';
 import MobileHeader from '../components/MobileHeader';
+import ProfileImage from '../components/ProfileImage';
+import { getUserProfileImageUrl } from '../utils/profileImage';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -18,16 +20,12 @@ export default function Dashboard() {
   const [upcomingEvents, setUpcomingEvents] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const handleMemberClick = (memberName) => {
-    // Navigate to profile page with member name as parameter
-    navigate(`/profile?member=${encodeURIComponent(memberName)}`);
-  };
-
   // Calculate derived user data from UserContext
   const fullName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : '';
   const displayName = fullName || user?.email || 'User';
   const userLevel = user?.level || Math.floor((user?.points || 0) / 1000) + 1;
   const levelProgress = ((user?.points || 0) % 1000) / 10;
+  const profileImageUrl = getUserProfileImageUrl(user);
 
   // Fetch dashboard data
   useEffect(() => {
@@ -102,8 +100,8 @@ export default function Dashboard() {
                 <span className="font-bold text-gray-900 text-sm lg:text-base">{(user?.points || 0).toLocaleString()}</span>
               </div>
               <div className="flex items-center gap-1 lg:gap-2">
-                {user?.profileImage ? (
-                  <img src={user.profileImage} alt={displayName} className="w-6 h-6 lg:w-8 lg:h-8 rounded-full object-cover" />
+                {profileImageUrl ? (
+                  <img src={profileImageUrl} alt={displayName} className="w-6 h-6 lg:w-8 lg:h-8 rounded-full object-cover" />
                 ) : (
                   <div className="w-6 h-6 lg:w-8 lg:h-8 rounded-full bg-blue-100 flex items-center justify-center">
                     <span className="text-blue-600 font-bold text-xs lg:text-sm">
@@ -191,15 +189,24 @@ export default function Dashboard() {
                   }`}>
                     {member.rank}
                   </div>
-                  <img src={member.avatar} alt={member.name} className="w-10 h-10 rounded-full" />
+                  <ProfileImage
+                    src={member.profileImage || member.avatar}
+                    firstName={member.firstName}
+                    lastName={member.lastName}
+                    size="sm"
+                  />
                   <div className="flex-1">
-                    <div 
-                      className={`font-semibold ${member.isCurrentUser ? 'text-gray-900' : 'text-blue-600 hover:text-blue-700 cursor-pointer'}`}
-                      onClick={() => !member.isCurrentUser && handleMemberClick(`${member.firstName} ${member.lastName}`)}
-                    >
-                      {member.isCurrentUser ? 'You' : `${member.firstName} ${member.lastName}`}
-                    </div>
-                    <div className="text-sm text-gray-600">{member.points.toLocaleString()} pts</div>
+                    {member.isCurrentUser ? (
+                      <div className="font-semibold text-gray-900">You</div>
+                    ) : (
+                      <Link
+                        to={`/profile/${member.id}`}
+                        className="font-semibold text-blue-600 hover:text-blue-800 hover:underline"
+                      >
+                        {member.firstName} {member.lastName}
+                      </Link>
+                    )}
+                    <div className="text-sm text-gray-600">{(member.points || 0).toLocaleString()} pts</div>
                   </div>
                 </div>
               ))}
@@ -261,7 +268,12 @@ export default function Dashboard() {
             <div className="space-y-4">
               {recentActivity.map((activity, index) => (
                 <div key={index} className="flex items-start gap-3 p-4 hover:bg-gray-50 rounded-lg transition-colors">
-                  <img src={activity.userAvatar} alt={activity.user} className="w-8 h-8 rounded-full" />
+                  <ProfileImage
+                    src={activity.userAvatar}
+                    firstName={(activity.user || '').split(' ')[0]}
+                    lastName={(activity.user || '').split(' ')[1] || ''}
+                    size="sm"
+                  />
                   <div className="flex-1">
                     <div className="text-gray-900">
                       <span className="font-semibold">{activity.user}</span>

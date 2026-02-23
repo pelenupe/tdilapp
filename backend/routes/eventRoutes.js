@@ -7,9 +7,9 @@ const router = express.Router();
 router.get('/', async (req, res) => {
   try {
     const sql = `
-      SELECT e.*, u.firstname || ' ' || u.lastname as "createdByName"
+      SELECT e.*, u.firstName || ' ' || u.lastName as "createdByName"
       FROM events e
-      LEFT JOIN users u ON e.created_by = u.id
+      LEFT JOIN users u ON e.createdBy = u.id
       ORDER BY e.date ASC
     `;
     
@@ -25,10 +25,10 @@ router.get('/', async (req, res) => {
 router.get('/upcoming', async (req, res) => {
   try {
     const sql = `
-      SELECT e.*, u.firstname || ' ' || u.lastname as "createdByName"
+      SELECT e.*, u.firstName || ' ' || u.lastName as "createdByName"
       FROM events e
-      LEFT JOIN users u ON e.created_by = u.id
-      WHERE e.date >= NOW()
+      LEFT JOIN users u ON e.createdBy = u.id
+      WHERE e.date >= datetime('now')
       ORDER BY e.date ASC
       LIMIT 5
     `;
@@ -52,7 +52,7 @@ router.post('/', protect, async (req, res) => {
     }
 
     const result = await query(
-      `INSERT INTO events (title, description, date, location, category, max_attendees, points, created_by, current_attendees) 
+      `INSERT INTO events (title, description, date, location, category, max_attendees, points, createdBy, current_attendees) 
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 0) RETURNING id`,
       [title, description || null, date, location || null, category || 'in-person', max_attendees || 50, points || 50, createdBy]
     );
@@ -62,7 +62,7 @@ router.post('/', protect, async (req, res) => {
     res.status(201).json({
       message: 'Event created successfully',
       eventId: eventId,
-      event: { id: eventId, title, description, date, location, category, max_attendees, points, created_by: createdBy }
+      event: { id: eventId, title, description, date, location, category, max_attendees, points, createdBy: createdBy }
     });
   } catch (err) {
     console.error('Error creating event:', err);
@@ -98,7 +98,7 @@ router.post('/:id/register', protect, async (req, res) => {
 
     // Register user
     await query(
-      'INSERT INTO event_registrations (event_id, user_id, registered_at) VALUES ($1, $2, NOW())',
+      "INSERT INTO event_registrations (event_id, user_id, registered_at) VALUES ($1, $2, datetime('now'))",
       [eventId, userId]
     );
 
@@ -120,9 +120,9 @@ router.get('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const sql = `
-      SELECT e.*, u.firstname || ' ' || u.lastname as "createdByName"
+      SELECT e.*, u.firstName || ' ' || u.lastName as "createdByName"
       FROM events e
-      LEFT JOIN users u ON e.created_by = u.id
+      LEFT JOIN users u ON e.createdBy = u.id
       WHERE e.id = $1
     `;
     
@@ -145,12 +145,12 @@ router.delete('/:id', protect, async (req, res) => {
     const userType = req.user.userType;
 
     // Check if user is owner or admin
-    const event = await query('SELECT created_by FROM events WHERE id = $1', [id]);
+    const event = await query('SELECT createdBy FROM events WHERE id = $1', [id]);
     if (event.length === 0) {
       return res.status(404).json({ error: 'Event not found' });
     }
 
-    if (event[0].created_by !== userId && userType !== 'admin' && userType !== 'founder') {
+    if (event[0].createdBy !== userId && userType !== 'admin' && userType !== 'founder') {
       return res.status(403).json({ error: 'Not authorized to delete this event' });
     }
 

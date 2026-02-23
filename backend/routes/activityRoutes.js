@@ -9,9 +9,9 @@ router.get('/', async (req, res) => {
       SELECT 
         'points' as "activityType",
         u.id as "userId",
-        u.firstname as "firstName",
-        u.lastname as "lastName",
-        u.profile_image as "profileImage",
+        u.firstName as "firstName",
+        u.lastName as "lastName",
+        u.profileImage as "profileImage",
         ph.points,
         ph.reason,
         ph.createdat as "timestamp",
@@ -24,11 +24,11 @@ router.get('/', async (req, res) => {
       SELECT 
         'connection' as "activityType",
         u.id as "userId",
-        u.firstname as "firstName",
-        u.lastname as "lastName",
-        u.profile_image as "profileImage",
+        u.firstName as "firstName",
+        u.lastName as "lastName",
+        u.profileImage as "profileImage",
         null as points,
-        'Connected with ' || u2.firstname || ' ' || u2.lastname as reason,
+        'Connected with ' || u2.firstName || ' ' || u2.lastName as reason,
         c.created_at as "timestamp",
         'connected with' as action
       FROM connections c
@@ -69,10 +69,10 @@ router.get('/:type', async (req, res) => {
       sql = `
         SELECT 
           u.id as "userId",
-          u.firstname as "firstName",
-          u.lastname as "lastName",
-          u.profile_image as "profileImage",
-          'Connected with ' || u2.firstname || ' ' || u2.lastname as reason,
+          u.firstName as "firstName",
+          u.lastName as "lastName",
+          u.profileImage as "profileImage",
+          'Connected with ' || u2.firstName || ' ' || u2.lastName as reason,
           c.created_at as "timestamp",
           'connected with' as action
         FROM connections c
@@ -85,9 +85,9 @@ router.get('/:type', async (req, res) => {
       sql = `
         SELECT 
           u.id as "userId",
-          u.firstname as "firstName",
-          u.lastname as "lastName",
-          u.profile_image as "profileImage",
+          u.firstName as "firstName",
+          u.lastName as "lastName",
+          u.profileImage as "profileImage",
           ph.points,
           ph.reason,
           ph.createdat as "timestamp",

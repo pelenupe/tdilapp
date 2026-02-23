@@ -1,26 +1,21 @@
-import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { sponsorNavigation } from '../config/navigation';
 import Logo from './Logo';
+import { useUser } from '../contexts/UserContext';
+import { getUserProfileImageUrl } from '../utils/profileImage';
 
 export default function SidebarSponsor() {
-  const [user, setUser] = useState(null);
+  const { user, clearUser } = useUser();
   const location = useLocation();
 
-  useEffect(() => {
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      setUser(JSON.parse(userData));
-    }
-  }, []);
-
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    clearUser();
     window.location.href = '/login';
   };
 
   if (!user) return null;
+
+  const profileImageUrl = getUserProfileImageUrl(user);
 
   return (
     <div className="hidden lg:flex h-screen bg-gray-100 fixed inset-y-0 left-0 z-30 w-64">
@@ -34,11 +29,19 @@ export default function SidebarSponsor() {
         {/* User info */}
         <div className="px-4 py-3 border-b border-gray-200">
           <div className="flex items-center">
-            <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-              <span className="text-purple-600 font-semibold text-sm">
-                🏢
-              </span>
-            </div>
+            {profileImageUrl ? (
+              <img
+                src={profileImageUrl}
+                alt={`${user.firstName} ${user.lastName}`}
+                className="w-10 h-10 rounded-full object-cover border-2 border-purple-100"
+              />
+            ) : (
+              <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                <span className="text-purple-600 font-semibold text-sm">
+                  {user.firstName?.[0]}{user.lastName?.[0]}
+                </span>
+              </div>
+            )}
             <div className="ml-3">
               <p className="text-sm font-medium text-gray-700">{user.firstName} {user.lastName}</p>
               <p className="text-xs text-gray-500">{user.company}</p>

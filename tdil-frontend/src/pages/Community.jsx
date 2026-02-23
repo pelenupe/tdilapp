@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
 import { getMembers } from '../services/profileService';
 import PageLayout from '../components/PageLayout';
+import ProfileImage from '../components/ProfileImage';
 
 export default function Community() {
   const [members, setMembers] = useState([]);
@@ -12,6 +13,7 @@ export default function Community() {
   const [connectedUsers, setConnectedUsers] = useState({});
   const [connectingTo, setConnectingTo] = useState(null);
   const { user, updateUser } = useUser();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchMembersAndConnections = async () => {
@@ -275,27 +277,23 @@ export default function Community() {
             <div className="p-6">
               <div className="flex items-center mb-4">
                 <div className="relative">
-                  {member.profileImage ? (
-                    <img 
-                      src={member.profileImage} 
-                      alt={`${member.firstName} ${member.lastName}`}
-                      className="w-14 h-14 rounded-full object-cover"
-                    />
-                  ) : (
-                    <div className={`w-14 h-14 rounded-full flex items-center justify-center text-lg font-bold ${
-                      member.userType === 'partner_school' ? 'bg-purple-100 text-purple-600' :
-                      member.userType === 'sponsor' ? 'bg-yellow-100 text-yellow-600' :
-                      'bg-blue-100 text-blue-600'
-                    }`}>
-                      {member.firstName?.[0]}{member.lastName?.[0]}
-                    </div>
-                  )}
+                  <ProfileImage 
+                    src={member.profileImage}
+                    firstName={member.firstName}
+                    lastName={member.lastName}
+                    size="lg"
+                  />
                   <span className="absolute -bottom-1 -right-1 text-lg">
                     {getUserTypeIcon(member.userType)}
                   </span>
                 </div>
                 <div className="ml-4 flex-1">
-                  <h3 className="font-bold text-gray-900">{member.firstName} {member.lastName}</h3>
+                  <Link
+                    to={`/profile/${member.id}`}
+                    className="font-bold text-blue-600 hover:text-blue-800 hover:underline block"
+                  >
+                    {member.firstName} {member.lastName}
+                  </Link>
                   <p className="text-sm text-gray-500">{member.jobTitle || getUserTypeLabel(member.userType)}</p>
                   <span className={`inline-block mt-1 px-2 py-0.5 text-xs font-medium rounded-full ${
                     member.userType === 'partner_school' ? 'bg-purple-100 text-purple-700' :

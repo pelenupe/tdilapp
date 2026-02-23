@@ -3,10 +3,12 @@ const jwt = require('jsonwebtoken');
 const { query } = require('../config/database');
 const { useToken, getTokenInfo } = require('./inviteController');
 const { awardPoints } = require('./pointsController');
+const { autoAssignCohort } = require('./cohortController');
+const { autoConnectAlmaMater } = require('./analyticsController');
 
 const register = async (req, res) => {
   try {
-    const { firstName, lastName, email, password, company, jobTitle, inviteToken } = req.body;
+    const { firstName, lastName, email, password, company, jobTitle, inviteToken, almaMater, graduationYear } = req.body;
 
     // Check if invite token is provided
     if (!inviteToken) {
@@ -45,7 +47,7 @@ const register = async (req, res) => {
 
     // Create user with the user type from the invite token (RETURNING id is required for PostgreSQL)
     const inserted = await query(
-      `INSERT INTO users (email, password, firstname, lastname, company, jobtitle, points, level, usertype)
+      `INSERT INTO users (email, password, firstName, lastName, company, jobTitle, points, level, userType)
        VALUES ($1, $2, $3, $4, $5, $6, 0, 1, $7)
        RETURNING id`,
       [email, hashedPassword, firstName, lastName, company || '', jobTitle || '', userType]
@@ -116,7 +118,7 @@ const login = async (req, res) => {
     const updatedUser = updatedUsers[0];
 
     const token = jwt.sign(
-      { id: updatedUser.id, email: updatedUser.email, userType: updatedUser.usertype },
+      { id: updatedUser.id, email: updatedUser.email, userType: updatedUser.userType },
       process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '7d' }
     );
@@ -126,14 +128,15 @@ const login = async (req, res) => {
       user: {
         id: updatedUser.id,
         email: updatedUser.email,
-        firstName: updatedUser.firstname,
-        lastName: updatedUser.lastname,
+        firstName: updatedUser.firstName,
+        lastName: updatedUser.lastName,
         company: updatedUser.company,
-        jobTitle: updatedUser.jobtitle,
+        jobTitle: updatedUser.jobTitle,
         points: updatedUser.points,
         level: updatedUser.level,
-        userType: updatedUser.usertype || 'member',
-        profileImage: updatedUser.profile_image
+        userType: updatedUser.userType || 'member',
+        profileImage: updatedUser.profileImage || null,
+        bio: updatedUser.bio || ''
       }
     });
   } catch (err) {
@@ -149,7 +152,7 @@ const me = async (req, res) => {
     const userId = req.user.id;
 
     const users = await query(
-      'SELECT id, email, firstname, lastname, company, jobtitle, points, level, usertype, profile_image FROM users WHERE id = $1',
+      'SELECT id, email, firstName, lastName, company, jobTitle, points, level, userType, bio, profileImage FROM users WHERE id = $1',
       [userId]
     );
     
@@ -163,14 +166,15 @@ const me = async (req, res) => {
       user: {
         id: user.id,
         email: user.email,
-        firstName: user.firstname,
-        lastName: user.lastname,
+        firstName: user.firstName,
+        lastName: user.lastName,
         company: user.company,
-        jobTitle: user.jobtitle,
+        jobTitle: user.jobTitle,
         points: user.points,
         level: user.level,
-        userType: user.usertype || 'member',
-        profileImage: user.profile_image
+        userType: user.userType || 'member',
+        bio: user.bio,
+        profileImage: user.profileImage || null
       }
     });
   } catch (error) {
