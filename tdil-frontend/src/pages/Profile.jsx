@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Camera, Upload, User, Mail, Building, Briefcase, Award, Star, MessageCircle } from 'lucide-react';
+import { Camera, User, Mail, Building, Briefcase, Award, Star, MessageCircle, GraduationCap } from 'lucide-react';
 import PageLayout from '../components/PageLayout';
 import PointsService from '../services/pointsService';
 import { getMyProfile, updateProfile } from '../services/profileService';
@@ -8,9 +8,10 @@ import API from '../services/api';
 import { useUser } from '../contexts/UserContext';
 
 export default function Profile() {
-  const { id } = useParams(); // Get user ID from URL parameter
+  const { id } = useParams();
   const navigate = useNavigate();
   const { updateUser } = useUser();
+
   const [profile, setProfile] = useState({
     firstName: '',
     lastName: '',
@@ -32,11 +33,20 @@ export default function Profile() {
   const [isOwnProfile, setIsOwnProfile] = useState(true);
   const [checkIns, setCheckIns] = useState([]);
 
+  // Cohort dropdown state
+  const [cohortOptions, setCohortOptions] = useState([]);
+  const [showCustomCohort, setShowCustomCohort] = useState(false);
+  const [customCohortValue, setCustomCohortValue] = useState('');
+
   useEffect(() => {
     loadProfile();
-    if (isOwnProfile) {
-      loadCheckIns();
-    }
+    if (isOwnProfile) loadCheckIns();
+
+    // Load cohort options for the dropdown (public endpoint — no auth required)
+    fetch('/api/cohorts/names')
+      .then(r => r.ok ? r.json() : [])
+      .then(data => setCohortOptions(Array.isArray(data) ? data : []))
+      .catch(() => {});
   }, [id]);
 
   const loadCheckIns = async () => {
@@ -56,60 +66,51 @@ export default function Profile() {
 
       let response;
       if (isViewingOwnProfile) {
-        // Load current user's profile
         response = await getMyProfile();
       } else {
-        // Load other user's profile
         const token = localStorage.getItem('token');
-        response = await fetch(`/api/members/${id}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
+        const res = await fetch(`/api/members/${id}`, {
+          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
         });
-        if (!response.ok) throw new Error('Failed to fetch profile');
-        response = { data: await response.json() };
-        
-        // Award PROFILE_VIEW points for viewing another user's profile
+        if (!res.ok) throw new Error('Failed to fetch profile');
+        response = { data: await res.json() };
         PointsService.awardPoints('PROFILE_VIEW', `Viewed ${response.data.firstName} ${response.data.lastName}'s profile`);
       }
 
       const userData = response.data;
       setProfile({
         firstName: userData.firstName || '',
-        lastName: userData.lastName || '',
-        email: userData.email || '',
-        company: userData.company || '',
-        jobTitle: userData.jobTitle || '',
-        bio: userData.bio || '',
-        cohort: userData.cohort || 'Indiana - Cohort 9',
-        points: userData.points || 0,
-        level: userData.level || 1,
+        lastName:  userData.lastName  || '',
+        email:     userData.email     || '',
+        company:   userData.company   || '',
+        jobTitle:  userData.jobTitle  || '',
+        bio:       userData.bio       || '',
+        cohort:    userData.cohort    || '',
+        points:    userData.points    || 0,
+        level:     userData.level     || 1,
         profilePicUrl: userData.profileImage || '',
-        userType: userData.userType || 'member'
+        userType:  userData.userType  || 'member'
       });
       setIsLoading(false);
     } catch (error) {
       console.error('Error loading profile:', error);
-      // Fallback to localStorage if API fails (for own profile only)
       if (!id) {
         try {
           const userData = JSON.parse(localStorage.getItem('user') || '{}');
           setProfile({
             firstName: userData.firstName || '',
-            lastName: userData.lastName || '',
-            email: userData.email || '',
-            company: userData.company || '',
-            jobTitle: userData.jobTitle || '',
-            bio: userData.bio || '',
-            points: userData.points || 0,
-            level: userData.level || 1,
+            lastName:  userData.lastName  || '',
+            email:     userData.email     || '',
+            company:   userData.company   || '',
+            jobTitle:  userData.jobTitle  || '',
+            bio:       userData.bio       || '',
+            cohort:    userData.cohort    || '',
+            points:    userData.points    || 0,
+            level:     userData.level     || 1,
             profilePicUrl: userData.profileImage || userData.profilePicUrl || '',
-            userType: userData.userType || 'member'
+            userType:  userData.userType  || 'member'
           });
-        } catch (fallbackError) {
-          console.error('Fallback error:', fallbackError);
-        }
+        } catch (_) {}
       }
       setIsLoading(false);
     }
@@ -117,10 +118,7 @@ export default function Profile() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setProfile(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setProfile(prev => ({ ...prev, [name]: value }));
   };
 
   const handleFileSelect = (e) => {
@@ -138,37 +136,35 @@ export default function Profile() {
     try {
       const profileData = {
         firstName: profile.firstName,
-        lastName: profile.lastName,
-        company: profile.company,
-        jobTitle: profile.jobTitle,
-        bio: profile.bio
+        lastName:  profile.lastName,
+        company:   profile.company,
+        jobTitle:  profile.jobTitle,
+        bio:       profile.bio
       };
-
-      // Add selected file if there is one
-      if (selectedFile) {
-        profileData.profilePic = selectedFile;
-      }
+      if (selectedFile) profileData.profilePic = selectedFile;
 
       const response = await updateProfile(profileData);
-      
-      // Update localStorage with new data
-      const updatedUser = response.data.user;
-      localStorage.setItem('user', JSON.stringify(updatedUser));
 
-      // Update shared user context so all avatar instances (header/sidebar/etc) refresh immediately
-      updateUser({
-        ...updatedUser,
-        profileImage: updatedUser.profileImage,
-        profileImageUpdatedAt: Date.now()
-      });
-      
-      // Update local state with correct field mapping
-      // Force reload of profile to get updated image
+      // Update cohort separately via the cohort endpoint
+      const cohortValue = showCustomCohort ? customCohortValue.trim() : profile.cohort;
+      try {
+        await API.put('/cohorts/my-cohort', { cohort: cohortValue || null });
+      } catch (cohortErr) {
+        console.error('Error updating cohort:', cohortErr);
+        // Non-fatal — profile still saves
+      }
+
+      const updatedUser = response.data.user;
+      const mergedUser = { ...updatedUser, cohort: cohortValue || null };
+      localStorage.setItem('user', JSON.stringify(mergedUser));
+      updateUser({ ...mergedUser, profileImage: updatedUser.profileImage, profileImageUpdatedAt: Date.now() });
+
       await loadProfile();
-      
       setIsEditing(false);
       setSelectedFile(null);
       setPreviewUrl('');
+      setShowCustomCohort(false);
+      setCustomCohortValue('');
       alert('Profile updated successfully!');
     } catch (error) {
       console.error('Error updating profile:', error);
@@ -178,30 +174,21 @@ export default function Profile() {
     }
   };
 
-  const getInitials = () => {
-    return `${profile.firstName.charAt(0)}${profile.lastName.charAt(0)}`.toUpperCase();
-  };
+  const getInitials = () =>
+    `${profile.firstName.charAt(0)}${profile.lastName.charAt(0)}`.toUpperCase();
 
   const getLevelProgress = () => {
-    const pointsForNextLevel = profile.level * 1000;
-    const currentLevelPoints = (profile.level - 1) * 1000;
-    const progress = ((profile.points - currentLevelPoints) / (pointsForNextLevel - currentLevelPoints)) * 100;
-    return Math.min(Math.max(progress, 0), 100);
+    const next = profile.level * 1000;
+    const prev = (profile.level - 1) * 1000;
+    return Math.min(Math.max(((profile.points - prev) / (next - prev)) * 100, 0), 100);
   };
 
   if (isLoading) {
     return (
-      <PageLayout
-        userType={profile.userType}
-        title="Profile"
-        subtitle="Loading profile..."
-        showPointsInHeader={false}
-      >
+      <PageLayout userType={profile.userType} title="Profile" subtitle="Loading profile..." showPointsInHeader={false}>
         <div className="flex items-center justify-center py-12">
           <div className="text-center">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-xs mb-4 mx-auto">
-              tDIL
-            </div>
+            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-xs mb-4 mx-auto">tDIL</div>
             <div className="text-gray-600">Loading profile...</div>
           </div>
         </div>
@@ -211,13 +198,8 @@ export default function Profile() {
 
   const handleMessage = async () => {
     try {
-      const response = await API.post('/chats/direct', {
-        otherUserId: id
-      });
-      
-      if (response.data) {
-        navigate('/chats', { state: { selectedChatId: response.data.chatId || response.data.id } });
-      }
+      const response = await API.post('/chats/direct', { otherUserId: id });
+      if (response.data) navigate('/chats', { state: { selectedChatId: response.data.chatId || response.data.id } });
     } catch (error) {
       console.error('Error creating chat:', error);
       alert('Failed to open chat. Please try again.');
@@ -227,185 +209,187 @@ export default function Profile() {
   const headerActions = isOwnProfile ? (
     <div className="flex items-center gap-3">
       {!isEditing ? (
-        <button
-          onClick={() => setIsEditing(true)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-        >
+        <button onClick={() => setIsEditing(true)} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm">
           Edit Profile
         </button>
       ) : (
         <div className="flex gap-2">
           <button
-            onClick={() => {
-              setIsEditing(false);
-              loadProfile(); // Reset changes
-            }}
+            onClick={() => { setIsEditing(false); setShowCustomCohort(false); setCustomCohortValue(''); loadProfile(); }}
             className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm"
           >
             Cancel
           </button>
-          <button
-            onClick={handleSave}
-            disabled={isSaving}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 text-sm"
-          >
+          <button onClick={handleSave} disabled={isSaving} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 text-sm">
             {isSaving ? 'Saving...' : 'Save Changes'}
           </button>
         </div>
       )}
     </div>
   ) : (
-    <button
-      onClick={handleMessage}
-      className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm flex items-center gap-2"
-    >
-      <MessageCircle size={16} />
-      Message
+    <button onClick={handleMessage} className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm flex items-center gap-2">
+      <MessageCircle size={16} /> Message
     </button>
   );
 
   return (
     <PageLayout
       userType={profile.userType}
-      title={isOwnProfile ? "My Profile" : `${profile.firstName} ${profile.lastName}`}
-      subtitle={isOwnProfile ? "Manage your personal information and preferences" : "Member Profile"}
+      title={isOwnProfile ? 'My Profile' : `${profile.firstName} ${profile.lastName}`}
+      subtitle={isOwnProfile ? 'Manage your personal information and preferences' : 'Member Profile'}
       userPoints={profile.points}
       headerActions={headerActions}
     >
       <div className="max-w-4xl mx-auto space-y-6">
-        {/* Profile Information */}
+
+        {/* ── Profile Information ── */}
         <div className="bg-white rounded-xl shadow-sm border p-6">
           <h2 className="text-xl font-bold text-gray-900 mb-6">Profile Information</h2>
 
-          {/* Profile Picture and Basic Info */}
           <div className="flex flex-col sm:flex-row sm:items-start sm:space-x-6 space-y-4 sm:space-y-0">
+            {/* Avatar */}
             <div className="relative mx-auto sm:mx-0">
               <div className="w-24 h-24 rounded-full bg-blue-600 flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
                 {previewUrl || profile.profilePicUrl ? (
-                  <img 
-                    src={previewUrl || `${profile.profilePicUrl}?t=${Date.now()}`} 
-                    alt="Profile" 
-                    className="w-full h-full object-cover"
-                    key={profile.profilePicUrl}
-                  />
-                ) : (
-                  getInitials()
-                )}
+                  <img src={previewUrl || `${profile.profilePicUrl}?t=${Date.now()}`} alt="Profile" className="w-full h-full object-cover" key={profile.profilePicUrl} />
+                ) : getInitials()}
               </div>
               {isEditing && (
                 <label className="absolute -bottom-2 -right-2 bg-blue-600 text-white p-2 rounded-full cursor-pointer hover:bg-blue-700 transition-colors">
                   <Camera size={16} />
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileSelect}
-                    className="hidden"
-                  />
+                  <input type="file" accept="image/*" onChange={handleFileSelect} className="hidden" />
                 </label>
               )}
             </div>
 
+            {/* Fields grid */}
             <div className="flex-1">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                {/* First Name */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
                   {isOwnProfile && isEditing ? (
-                    <input
-                      type="text"
-                      name="firstName"
-                      value={profile.firstName}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
+                    <input type="text" name="firstName" value={profile.firstName} onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
                   ) : (
                     <p className="text-gray-900 py-2">{profile.firstName || 'Not set'}</p>
                   )}
                 </div>
 
+                {/* Last Name */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
                   {isOwnProfile && isEditing ? (
-                    <input
-                      type="text"
-                      name="lastName"
-                      value={profile.lastName}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
+                    <input type="text" name="lastName" value={profile.lastName} onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
                   ) : (
                     <p className="text-gray-900 py-2">{profile.lastName || 'Not set'}</p>
                   )}
                 </div>
 
+                {/* Email */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
                   <p className="text-gray-900 flex items-center py-2">
-                    <Mail size={16} className="mr-2 text-gray-400" />
-                    {profile.email}
+                    <Mail size={16} className="mr-2 text-gray-400" />{profile.email}
                   </p>
                 </div>
 
+                {/* Company */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Company</label>
                   {isOwnProfile && isEditing ? (
-                    <input
-                      type="text"
-                      name="company"
-                      value={profile.company}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
+                    <input type="text" name="company" value={profile.company} onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
                   ) : (
                     <p className="text-gray-900 flex items-center py-2">
-                      <Building size={16} className="mr-2 text-gray-400" />
-                      {profile.company || 'Not set'}
+                      <Building size={16} className="mr-2 text-gray-400" />{profile.company || 'Not set'}
                     </p>
                   )}
                 </div>
 
+                {/* Job Title */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Job Title</label>
                   {isOwnProfile && isEditing ? (
-                    <input
-                      type="text"
-                      name="jobTitle"
-                      value={profile.jobTitle}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    />
+                    <input type="text" name="jobTitle" value={profile.jobTitle} onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
                   ) : (
                     <p className="text-gray-900 flex items-center py-2">
-                      <Briefcase size={16} className="mr-2 text-gray-400" />
-                      {profile.jobTitle || 'Not set'}
+                      <Briefcase size={16} className="mr-2 text-gray-400" />{profile.jobTitle || 'Not set'}
                     </p>
                   )}
                 </div>
 
+                {/* ── Cohort ── */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Cohort</label>
-                  <button
-                    onClick={() => navigate('/cohort')}
-                    className="text-blue-600 hover:text-blue-800 flex items-center py-2 transition-colors"
-                  >
-                    🎓 {profile.cohort || 'Indiana - Cohort 9'}
-                  </button>
+                  <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                    <GraduationCap size={14} className="text-gray-400" /> Cohort
+                  </label>
+
+                  {isOwnProfile && isEditing ? (
+                    <div>
+                      <select
+                        value={showCustomCohort ? '__other__' : (profile.cohort || '')}
+                        onChange={e => {
+                          if (e.target.value === '__other__') {
+                            setShowCustomCohort(true);
+                            setProfile(prev => ({ ...prev, cohort: '' }));
+                          } else {
+                            setShowCustomCohort(false);
+                            setCustomCohortValue('');
+                            setProfile(prev => ({ ...prev, cohort: e.target.value }));
+                          }
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-sm"
+                      >
+                        <option value="">— None / Remove —</option>
+                        {cohortOptions.map(c => (
+                          <option key={c.name} value={c.name}>{c.name}</option>
+                        ))}
+                        <option value="__other__">Other / Not listed…</option>
+                      </select>
+
+                      {showCustomCohort && (
+                        <input
+                          type="text"
+                          value={customCohortValue}
+                          onChange={e => setCustomCohortValue(e.target.value)}
+                          placeholder="Type your cohort name…"
+                          className="mt-2 w-full px-3 py-2 border border-blue-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                          autoFocus
+                        />
+                      )}
+                    </div>
+                  ) : profile.cohort ? (
+                    <button onClick={() => navigate('/cohort')}
+                      className="text-blue-600 hover:text-blue-800 flex items-center gap-1 py-2 transition-colors text-sm">
+                      🎓 {profile.cohort}
+                    </button>
+                  ) : (
+                    <p className="text-gray-400 py-2 text-sm italic">
+                      No cohort set
+                      {isOwnProfile && (
+                        <button onClick={() => setIsEditing(true)} className="ml-2 text-blue-600 hover:underline not-italic">
+                          Add one
+                        </button>
+                      )}
+                    </p>
+                  )}
                 </div>
+
               </div>
             </div>
           </div>
 
-          {/* Bio Section */}
+          {/* Bio */}
           <div className="mt-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">Bio</label>
             {isOwnProfile && isEditing ? (
-              <textarea
-                name="bio"
-                value={profile.bio}
-                onChange={handleInputChange}
-                rows={4}
+              <textarea name="bio" value={profile.bio} onChange={handleInputChange} rows={4}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Tell us about yourself..."
-              />
+                placeholder="Tell us about yourself..." />
             ) : (
               <div className="text-gray-900 bg-gray-50 p-3 rounded-lg min-h-[100px]">
                 {profile.bio || 'No bio added yet.'}
@@ -414,7 +398,7 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* Stats */}
+        {/* ── Stats ── */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div className="bg-white rounded-xl shadow-sm border p-6">
             <div className="flex items-center justify-between mb-4">
@@ -422,24 +406,17 @@ export default function Profile() {
               <Award className="text-yellow-500" size={24} />
             </div>
             <div className="space-y-4">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">Current Points</span>
-                  <span className="text-2xl font-bold text-blue-600">{profile.points.toLocaleString()}</span>
-                </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-700">Current Points</span>
+                <span className="text-2xl font-bold text-blue-600">{profile.points.toLocaleString()}</span>
               </div>
               <div>
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium text-gray-700">Level {profile.level}</span>
-                  <span className="text-sm text-gray-500">
-                    {Math.round(getLevelProgress())}% to Level {profile.level + 1}
-                  </span>
+                  <span className="text-sm text-gray-500">{Math.round(getLevelProgress())}% to Level {profile.level + 1}</span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${getLevelProgress()}%` }}
-                  ></div>
+                  <div className="bg-blue-600 h-2 rounded-full transition-all duration-300" style={{ width: `${getLevelProgress()}%` }} />
                 </div>
               </div>
             </div>
@@ -451,63 +428,41 @@ export default function Profile() {
               <Star className="text-yellow-500" size={24} />
             </div>
             <div className="space-y-3">
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                  <User size={16} className="text-green-600" />
+              {[
+                { icon: <User size={16} className="text-green-600" />, bg: 'bg-green-100', title: 'Profile Complete', sub: 'Basic profile information added' },
+                { icon: <Star size={16} className="text-blue-600" />,  bg: 'bg-blue-100',  title: 'Community Member', sub: 'Joined the tDIL community' },
+                { icon: <Award size={16} className="text-yellow-600" />, bg: 'bg-yellow-100', title: `Level ${profile.level} Achiever`, sub: `Reached level ${profile.level}` }
+              ].map(a => (
+                <div key={a.title} className="flex items-center space-x-3">
+                  <div className={`w-8 h-8 ${a.bg} rounded-full flex items-center justify-center`}>{a.icon}</div>
+                  <div>
+                    <p className="font-medium text-gray-900 text-sm">{a.title}</p>
+                    <p className="text-xs text-gray-500">{a.sub}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="font-medium text-gray-900 text-sm">Profile Complete</p>
-                  <p className="text-xs text-gray-500">Basic profile information added</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                  <Star size={16} className="text-blue-600" />
-                </div>
-                <div>
-                  <p className="font-medium text-gray-900 text-sm">Community Member</p>
-                  <p className="text-xs text-gray-500">Joined the tDIL community</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
-                  <Award size={16} className="text-yellow-600" />
-                </div>
-                <div>
-                  <p className="font-medium text-gray-900 text-sm">Level {profile.level} Achiever</p>
-                  <p className="text-xs text-gray-500">Reached level {profile.level}</p>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </div>
 
-        {/* Check-In History */}
+        {/* ── Check-In History ── */}
         {isOwnProfile && checkIns.length > 0 && (
           <div className="bg-white rounded-xl shadow-sm border p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Check-Ins</h3>
             <div className="space-y-3">
-              {checkIns.slice(0, 5).map((checkIn) => (
+              {checkIns.slice(0, 5).map(checkIn => (
                 <div key={checkIn.id} className="p-4 bg-gray-50 rounded-lg">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <h4 className="font-medium text-gray-900">{checkIn.venue}</h4>
                       <p className="text-sm text-gray-600">{checkIn.location}</p>
-                      <p className="text-xs text-gray-400 mt-1">
-                        {new Date(checkIn.created_at).toLocaleDateString()}
-                      </p>
-                      {checkIn.taggedUsers && checkIn.taggedUsers.length > 0 && (
+                      <p className="text-xs text-gray-400 mt-1">{new Date(checkIn.created_at).toLocaleDateString()}</p>
+                      {checkIn.taggedUsers?.length > 0 && (
                         <div className="mt-2 flex flex-wrap gap-1">
                           <span className="text-xs text-gray-500">With:</span>
-                          {checkIn.taggedUsers.map((tagged) => (
-                            <span
-                              key={tagged.id}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                navigate(`/profile/${tagged.id}`);
-                              }}
-                              className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full cursor-pointer hover:bg-blue-200"
-                            >
+                          {checkIn.taggedUsers.map(tagged => (
+                            <span key={tagged.id} onClick={() => navigate(`/profile/${tagged.id}`)}
+                              className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full cursor-pointer hover:bg-blue-200">
                               {tagged.firstName} {tagged.lastName}
                             </span>
                           ))}
@@ -519,10 +474,7 @@ export default function Profile() {
                 </div>
               ))}
               {checkIns.length > 5 && (
-                <button
-                  onClick={() => navigate('/checkin-history')}
-                  className="w-full text-center text-sm text-blue-600 hover:text-blue-800 py-2"
-                >
+                <button onClick={() => navigate('/checkin-history')} className="w-full text-center text-sm text-blue-600 hover:text-blue-800 py-2">
                   View all {checkIns.length} check-ins →
                 </button>
               )}
@@ -530,33 +482,26 @@ export default function Profile() {
           </div>
         )}
 
-        {/* Account Settings */}
+        {/* ── Account Settings ── */}
         <div className="bg-white rounded-xl shadow-sm border p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Account Settings</h3>
           <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <div>
-                <p className="font-medium text-gray-900 text-sm">Email Notifications</p>
-                <p className="text-xs text-gray-500">Receive updates about events and opportunities</p>
+            {[
+              { label: 'Email Notifications',  sub: 'Receive updates about events and opportunities' },
+              { label: 'Profile Visibility',    sub: 'Allow other members to find your profile' },
+              { label: 'Activity Tracking',     sub: 'Help us improve your experience with usage data' }
+            ].map(s => (
+              <div key={s.label} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div>
+                  <p className="font-medium text-gray-900 text-sm">{s.label}</p>
+                  <p className="text-xs text-gray-500">{s.sub}</p>
+                </div>
+                <input type="checkbox" defaultChecked className="w-4 h-4 text-blue-600" />
               </div>
-              <input type="checkbox" defaultChecked className="w-4 h-4 text-blue-600" />
-            </div>
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <div>
-                <p className="font-medium text-gray-900 text-sm">Profile Visibility</p>
-                <p className="text-xs text-gray-500">Allow other members to find your profile</p>
-              </div>
-              <input type="checkbox" defaultChecked className="w-4 h-4 text-blue-600" />
-            </div>
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <div>
-                <p className="font-medium text-gray-900 text-sm">Activity Tracking</p>
-                <p className="text-xs text-gray-500">Help us improve your experience with usage data</p>
-              </div>
-              <input type="checkbox" defaultChecked className="w-4 h-4 text-blue-600" />
-            </div>
+            ))}
           </div>
         </div>
+
       </div>
     </PageLayout>
   );

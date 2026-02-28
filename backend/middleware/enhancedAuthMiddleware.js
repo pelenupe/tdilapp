@@ -1,3 +1,4 @@
+
 const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
 const { query } = require('../config/database');
@@ -15,16 +16,26 @@ const authenticateToken = async (req, res, next) => {
       });
     }
 
-    // Verify JWT token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    // Verify JWT token — use same fallback secret as authController
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
     
-    // For simple JWT tokens (no session tracking), just validate user exists and is active
-    const userCheck = await query(
-      'SELECT id, email, userType, is_active FROM users WHERE id = $1',
-      [decoded.id]
-    );
+    // For simple JWT tokens (no session tracking), just validate user exists
+    // Note: is_active column may not exist on all deployments — be defensive
+    let userCheck;
+    try {
+      userCheck = await query(
+        'SELECT id, email, "userType", is_active FROM users WHERE id = $1',
+        [decoded.id]
+      );
+    } catch (_) {
+      // Fallback: query without is_active column
+      userCheck = await query(
+        'SELECT id, email, "userType" FROM users WHERE id = $1',
+        [decoded.id]
+      );
+    }
 
-    if (userCheck.length === 0) {
+    if (!userCheck || userCheck.length === 0) {
       return res.status(401).json({ 
         error: 'User not found',
         code: 'USER_NOT_FOUND'
@@ -32,7 +43,8 @@ const authenticateToken = async (req, res, next) => {
     }
 
     const user = userCheck[0];
-    if (!user.is_active) {
+    // Only block if is_active is explicitly false/0 (null = column missing = allow)
+    if (user.is_active === false || user.is_active === 0) {
       return res.status(401).json({ 
         error: 'Account deactivated',
         code: 'ACCOUNT_DEACTIVATED'
@@ -42,7 +54,7 @@ const authenticateToken = async (req, res, next) => {
     req.user = {
       id: decoded.id,
       email: user.email,
-      userType: decoded.userType || user.userType,
+      userType: decoded.userType || user.userType || user.usertype,
       sessionId: null // Simple JWT doesn't have sessions
     };
 

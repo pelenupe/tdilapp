@@ -1,37 +1,31 @@
 const { query } = require('../config/database');
 
-// Get or create cohort for a user based on alma mater and graduation year
+// ─── Helper: get or create a cohort (used internally) ────────────────────────
 const getOrCreateCohort = async (schoolName, graduationYear, userId) => {
   try {
-    // Check if cohort exists
-    let cohorts = await query(
-      'SELECT * FROM cohorts WHERE schoolName = ? AND graduationYear = ?',
+    let existing = await query(
+      `SELECT * FROM cohorts WHERE "schoolName" = $1 AND "graduationYear" = $2 LIMIT 1`,
       [schoolName, graduationYear]
-    );
+    ).catch(() => []);
 
-    if (cohorts.length > 0) {
-      return cohorts[0];
-    }
+    if (existing.length > 0) return existing[0];
 
-    // Create new cohort
     const cohortName = `${schoolName} - Class of ${graduationYear}`;
     const result = await query(
-      `INSERT INTO cohorts (name, schoolName, graduationYear, createdBy) 
-       VALUES (?, ?, ?, ?)`,
+      `INSERT INTO cohorts (name, "schoolName", "graduationYear", "createdBy", "isActive")
+       VALUES ($1, $2, $3, $4, true) RETURNING id`,
       [cohortName, schoolName, graduationYear, userId]
     );
+    const newCohortId = result[0].id;
+    const newCohort = await query('SELECT * FROM cohorts WHERE id = $1', [newCohortId]);
 
-    const newCohort = await query(
-      'SELECT * FROM cohorts WHERE id = ?',
-      [result.lastID]
-    );
-
-    // Create group chat for cohort
-    await query(
-      `INSERT INTO group_chats (name, chat_type, cohort_id, createdBy) 
-       VALUES (?, 'cohort', ?, ?)`,
-      [cohortName, result.lastID, userId]
-    );
+    // Best-effort: create group chat for this cohort
+    try {
+      await query(
+        `INSERT INTO group_chats (name, chat_type, cohort_id, "createdBy") VALUES ($1, 'cohort', $2, $3)`,
+        [cohortName, newCohortId, userId]
+      );
+    } catch (_) { /* non-fatal */ }
 
     return newCohort[0];
   } catch (error) {
@@ -40,82 +34,68 @@ const getOrCreateCohort = async (schoolName, graduationYear, userId) => {
   }
 };
 
-// Add user to cohort
-const addUserToCohort = async (req, res) => {
+// ─── GET /api/cohorts/names  (PUBLIC – no auth) ───────────────────────────────
+// Used on signup page and profile dropdown to list selectable cohort names.
+// Merges admin-managed cohort_list + existing user cohort strings.
+const getCohortNames = async (req, res) => {
   try {
-    const { cohortId, userId, role = 'member' } = req.body;
+    const names = new Map(); // name → { id, name }
 
-    // Check if already a member
-    const existing = await query(
-      'SELECT * FROM cohort_members WHERE cohort_id = ? AND user_id = ?',
-      [cohortId, userId]
-    );
-
-    if (existing.length > 0) {
-      return res.status(400).json({ message: 'User already in cohort' });
-    }
-
-    // Add to cohort
-    await query(
-      'INSERT INTO cohort_members (cohort_id, user_id, role) VALUES (?, ?, ?)',
-      [cohortId, userId, role]
-    );
-
-    // Update user's cohort_id
-    await query('UPDATE users SET cohort_id = ? WHERE id = ?', [cohortId, userId]);
-
-    // Add to cohort group chat
-    const groupChats = await query(
-      'SELECT id FROM group_chats WHERE cohort_id = ? AND chat_type = ?',
-      [cohortId, 'cohort']
-    );
-
-    if (groupChats.length > 0) {
-      await query(
-        'INSERT OR IGNORE INTO group_chat_members (group_chat_id, user_id) VALUES (?, ?)',
-        [groupChats[0].id, userId]
+    // 1. Admin-managed cohort_list table (migration 009)
+    try {
+      const rows = await query(
+        `SELECT id, name FROM cohort_list WHERE is_active = TRUE ORDER BY name ASC`
       );
-    }
+      rows.forEach(r => {
+        if (r.name) names.set(r.name, { id: r.id, name: r.name });
+      });
+    } catch (_) { /* table may not exist on older DBs */ }
 
-    res.json({ message: 'Added to cohort successfully' });
+    // 2. Existing user cohort strings (organic cohorts already in use)
+    try {
+      const rows = await query(
+        `SELECT DISTINCT cohort AS name FROM users
+         WHERE cohort IS NOT NULL AND cohort <> ''
+         ORDER BY cohort ASC`
+      );
+      rows.forEach((r, i) => {
+        if (r.name && !names.has(r.name)) {
+          names.set(r.name, { id: `u_${i}`, name: r.name });
+        }
+      });
+    } catch (_) { /* continue */ }
+
+    const sorted = [...names.values()].sort((a, b) => a.name.localeCompare(b.name));
+    res.json(sorted);
   } catch (error) {
-    console.error('Error adding user to cohort:', error);
-    res.status(500).json({ message: 'Error adding user to cohort' });
+    console.error('Error getting cohort names:', error);
+    res.json([]); // Always return array so signup still works
   }
 };
 
-// Get user's cohort
+// ─── GET /api/cohorts/my-cohort ───────────────────────────────────────────────
 const getUserCohort = async (req, res) => {
   try {
     const userId = req.user.id;
+    const rows = await query('SELECT cohort FROM users WHERE id = $1', [userId]);
 
-    // Get user's cohort from their profile
-    const user = await query('SELECT cohort FROM users WHERE id = $1', [userId]);
-    
-    if (!user || !user[0] || !user[0].cohort) {
+    if (!rows || !rows[0] || !rows[0].cohort) {
       return res.json(null);
     }
 
-    const cohortName = user[0].cohort;
+    const cohortName = rows[0].cohort;
 
-    // Count members in same cohort
     const memberCount = await query(
-      'SELECT COUNT(*) as count FROM users WHERE cohort = $1',
-      [cohortName]
-    );
-
-    // Get group chat for this cohort
-    const groupChat = await query(
-      'SELECT id FROM group_chats WHERE cohort = $1',
+      'SELECT COUNT(*) AS count FROM users WHERE cohort = $1',
       [cohortName]
     );
 
     res.json({
-      id: groupChat[0]?.id || 1,
+      id: null,
       name: cohortName,
-      school_name: cohortName.split(' - ')[0],
-      graduation_year: cohortName.split(' ')[cohortName.split(' ').length - 1],
-      member_count: memberCount[0].count
+      school_name: cohortName.split(' - ')[0] || cohortName,
+      graduation_year: cohortName.split(' ').pop(),
+      member_count: parseInt(memberCount[0]?.count || 0)
     });
   } catch (error) {
     console.error('Error getting user cohort:', error);
@@ -123,25 +103,37 @@ const getUserCohort = async (req, res) => {
   }
 };
 
-// Get cohort members
+// ─── PUT /api/cohorts/my-cohort  (self-service cohort update) ────────────────
+const updateMyCohort = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { cohort } = req.body; // string name or null/empty to clear
+
+    await query('UPDATE users SET cohort = $1 WHERE id = $2', [cohort || null, userId]);
+
+    res.json({ message: 'Cohort updated successfully', cohort: cohort || null });
+  } catch (error) {
+    console.error('Error updating cohort:', error);
+    res.status(500).json({ message: 'Error updating cohort' });
+  }
+};
+
+// ─── GET /api/cohorts/:cohortId/members ───────────────────────────────────────
+// Returns all members who share the requesting user's cohort string.
 const getCohortMembers = async (req, res) => {
   try {
     const userId = req.user.id;
+    const rows = await query('SELECT cohort FROM users WHERE id = $1', [userId]);
 
-    // Get user's cohort
-    const user = await query('SELECT cohort FROM users WHERE id = $1', [userId]);
-    
-    if (!user || !user[0] || !user[0].cohort) {
+    if (!rows || !rows[0] || !rows[0].cohort) {
       return res.json([]);
     }
 
-    const cohortName = user[0].cohort;
-
-    // Get all members in same cohort
+    const cohortName = rows[0].cohort;
     const members = await query(
-      `SELECT id, firstName as firstname, lastName as lastname, email, company, jobTitle as jobtitle, 
-              profileImage as profile_image, points, level
-       FROM users 
+      `SELECT id, "firstName" AS firstname, "lastName" AS lastname, email, company,
+              "jobTitle" AS jobtitle, "profileImage" AS profile_image, points, level
+       FROM users
        WHERE cohort = $1
        ORDER BY points DESC`,
       [cohortName]
@@ -154,156 +146,156 @@ const getCohortMembers = async (req, res) => {
   }
 };
 
-// Get all cohorts
+// ─── GET /api/cohorts/ ────────────────────────────────────────────────────────
 const getAllCohorts = async (req, res) => {
   try {
-    const cohorts = await query(
-      `SELECT c.*, COUNT(DISTINCT cm.user_id) as member_count
-       FROM cohorts c
-       LEFT JOIN cohort_members cm ON c.id = cm.cohort_id
-       WHERE c.isActive = 1
-       GROUP BY c.id
-       ORDER BY c.graduationYear DESC, c.schoolName ASC`
+    // Aggregate distinct cohort strings from users (no separate cohorts table required)
+    const rows = await query(
+      `SELECT cohort AS name, COUNT(*) AS member_count
+       FROM users
+       WHERE cohort IS NOT NULL AND cohort <> ''
+       GROUP BY cohort
+       ORDER BY member_count DESC, cohort ASC`
     );
-
-    res.json(cohorts);
+    res.json(rows.map(r => ({ name: r.name, memberCount: parseInt(r.member_count || 0) })));
   } catch (error) {
     console.error('Error getting all cohorts:', error);
     res.status(500).json({ message: 'Error getting cohorts' });
   }
 };
 
-// Create cohort event/meetup
-const createCohortEvent = async (req, res) => {
+// ─── POST /api/cohorts/add-member  (admin use) ───────────────────────────────
+const addUserToCohort = async (req, res) => {
   try {
-    const userId = req.user.id;
-    const { cohortId, title, description, eventDate, location, locationType, maxAttendees } = req.body;
-
-    // Verify user is in cohort
-    const membership = await query(
-      'SELECT * FROM cohort_members WHERE cohort_id = ? AND user_id = ?',
-      [cohortId, userId]
-    );
-
-    if (membership.length === 0) {
-      return res.status(403).json({ message: 'Not a member of this cohort' });
+    const { userId, cohort } = req.body;
+    if (!userId || !cohort) {
+      return res.status(400).json({ message: 'userId and cohort are required' });
     }
 
-    // Create event
-    const result = await query(
-      `INSERT INTO cohort_events 
-       (cohort_id, title, description, event_date, location, location_type, max_attendees, createdBy) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [cohortId, title, description, eventDate, location, locationType, maxAttendees, userId]
+    await query('UPDATE users SET cohort = $1 WHERE id = $2', [cohort, userId]);
+    res.json({ message: 'Added to cohort successfully' });
+  } catch (error) {
+    console.error('Error adding user to cohort:', error);
+    res.status(500).json({ message: 'Error adding user to cohort' });
+  }
+};
+
+// ─── ADMIN: GET /api/cohorts/admin/users ─────────────────────────────────────
+const adminGetUsersWithCohorts = async (req, res) => {
+  try {
+    if (!['admin', 'founder'].includes(req.user?.userType)) {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+
+    const users = await query(
+      `SELECT id, "firstName" AS "firstName", "lastName" AS "lastName",
+              email, cohort, "userType"
+       FROM users
+       ORDER BY "lastName" ASC, "firstName" ASC`
     );
 
-    // Get group chat for cohort
-    const groupChats = await query(
-      'SELECT id FROM group_chats WHERE cohort_id = ? AND chat_type = ?',
-      [cohortId, 'cohort']
-    );
+    res.json(users);
+  } catch (error) {
+    console.error('Error getting users with cohorts:', error);
+    res.status(500).json({ message: 'Error getting users' });
+  }
+};
 
-    // Post announcement in group chat
-    if (groupChats.length > 0) {
-      await query(
-        `INSERT INTO group_messages (group_chat_id, sender_id, content, message_type, metadata) 
-         VALUES (?, ?, ?, 'event', ?)`,
-        [
-          groupChats[0].id,
-          userId,
-          `📅 New event: ${title}`,
-          JSON.stringify({ eventId: result.lastID, eventDate, location })
-        ]
+// ─── ADMIN: PUT /api/cohorts/admin/users/:userId ──────────────────────────────
+const adminUpdateUserCohort = async (req, res) => {
+  try {
+    if (!['admin', 'founder'].includes(req.user?.userType)) {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+
+    const { userId } = req.params;
+    const { cohort } = req.body;
+
+    const found = await query('SELECT id FROM users WHERE id = $1', [userId]);
+    if (!found || found.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    await query('UPDATE users SET cohort = $1 WHERE id = $2', [cohort || null, userId]);
+
+    res.json({ message: 'User cohort updated', userId, cohort: cohort || null });
+  } catch (error) {
+    console.error('Error admin updating user cohort:', error);
+    res.status(500).json({ message: 'Error updating user cohort' });
+  }
+};
+
+// ─── ADMIN: POST /api/cohorts/admin/cohort-list ───────────────────────────────
+// Add a new cohort name to the admin-managed cohort_list table
+const adminCreateCohortName = async (req, res) => {
+  try {
+    if (!['admin', 'founder'].includes(req.user?.userType)) {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+
+    const { name, description } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ message: 'Cohort name is required' });
+    }
+
+    try {
+      const result = await query(
+        `INSERT INTO cohort_list (name, description, created_by)
+         VALUES ($1, $2, $3)
+         ON CONFLICT (name) DO UPDATE SET is_active = TRUE
+         RETURNING id, name, description, is_active`,
+        [name.trim(), description || null, req.user.id]
       );
+      res.status(201).json({ message: 'Cohort name created', cohort: result[0] });
+    } catch (err) {
+      if (err.code === '23505') {
+        return res.status(409).json({ message: 'A cohort with this name already exists' });
+      }
+      throw err;
     }
-
-    const newEvent = await query('SELECT * FROM cohort_events WHERE id = ?', [result.lastID]);
-    res.json(newEvent[0]);
   } catch (error) {
-    console.error('Error creating cohort event:', error);
-    res.status(500).json({ message: 'Error creating event' });
+    console.error('Error creating cohort name:', error);
+    res.status(500).json({ message: 'Error creating cohort name' });
   }
 };
 
-// Get cohort events
+// ─── ADMIN: DELETE /api/cohorts/admin/cohort-list/:id ─────────────────────────
+const adminDeleteCohortName = async (req, res) => {
+  try {
+    if (!['admin', 'founder'].includes(req.user?.userType)) {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+
+    const { id } = req.params;
+    await query('UPDATE cohort_list SET is_active = FALSE WHERE id = $1', [id]).catch(() => {});
+    res.json({ message: 'Cohort name removed' });
+  } catch (error) {
+    console.error('Error deleting cohort name:', error);
+    res.status(500).json({ message: 'Error deleting cohort name' });
+  }
+};
+
+// ─── Cohort events (stubs) ────────────────────────────────────────────────────
+const createCohortEvent = async (req, res) => {
+  res.status(501).json({ message: 'Cohort events not yet supported' });
+};
+
 const getCohortEvents = async (req, res) => {
-  try {
-    // Return empty array for now - no cohort_events table
-    res.json([]);
-  } catch (error) {
-    console.error('Error getting cohort events:', error);
-    res.status(500).json({ message: 'Error getting events' });
-  }
+  res.json([]);
 };
 
-// Register for cohort event
 const registerForEvent = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const { eventId } = req.params;
-
-    // Check if already registered
-    const existing = await query(
-      'SELECT * FROM cohort_event_attendees WHERE cohort_event_id = ? AND user_id = ?',
-      [eventId, userId]
-    );
-
-    if (existing.length > 0) {
-      return res.status(400).json({ message: 'Already registered for this event' });
-    }
-
-    // Register
-    await query(
-      'INSERT INTO cohort_event_attendees (cohort_event_id, user_id) VALUES (?, ?)',
-      [eventId, userId]
-    );
-
-    res.json({ message: 'Registered successfully' });
-  } catch (error) {
-    console.error('Error registering for event:', error);
-    res.status(500).json({ message: 'Error registering for event' });
-  }
+  res.status(501).json({ message: 'Cohort events not yet supported' });
 };
 
-// Auto-assign user to cohort based on alma mater and graduation year
+// ─── Internal helper: auto-assign cohort on registration ─────────────────────
 const autoAssignCohort = async (userId, almaMater, graduationYear) => {
   try {
-    if (!almaMater || !graduationYear) {
-      return null;
-    }
-
-    // Get or create cohort
+    if (!almaMater || !graduationYear) return null;
     const cohort = await getOrCreateCohort(almaMater, graduationYear, userId);
-
-    // Add user to cohort
-    const existing = await query(
-      'SELECT * FROM cohort_members WHERE cohort_id = ? AND user_id = ?',
-      [cohort.id, userId]
-    );
-
-    if (existing.length === 0) {
-      await query(
-        'INSERT INTO cohort_members (cohort_id, user_id) VALUES (?, ?)',
-        [cohort.id, userId]
-      );
-
-      // Update user's cohort_id
-      await query('UPDATE users SET cohort_id = ? WHERE id = ?', [cohort.id, userId]);
-
-      // Add to cohort group chat
-      const groupChats = await query(
-        'SELECT id FROM group_chats WHERE cohort_id = ? AND chat_type = ?',
-        [cohort.id, 'cohort']
-      );
-
-      if (groupChats.length > 0) {
-        await query(
-          'INSERT OR IGNORE INTO group_chat_members (group_chat_id, user_id) VALUES (?, ?)',
-          [groupChats[0].id, userId]
-        );
-      }
+    if (cohort) {
+      await query('UPDATE users SET cohort = $1 WHERE id = $2', [cohort.name, userId]);
     }
-
     return cohort;
   } catch (error) {
     console.error('Error auto-assigning cohort:', error);
@@ -313,10 +305,16 @@ const autoAssignCohort = async (userId, almaMater, graduationYear) => {
 
 module.exports = {
   getOrCreateCohort,
-  addUserToCohort,
+  getCohortNames,
   getUserCohort,
+  updateMyCohort,
   getCohortMembers,
   getAllCohorts,
+  addUserToCohort,
+  adminGetUsersWithCohorts,
+  adminUpdateUserCohort,
+  adminCreateCohortName,
+  adminDeleteCohortName,
   createCohortEvent,
   getCohortEvents,
   registerForEvent,

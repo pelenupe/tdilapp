@@ -7,7 +7,7 @@ const getMembers = async (req, res) => {
   try {
     const { school, role, skills } = req.query;
 
-    let sql = `SELECT id, email, firstName, lastName, company, jobTitle, points, level, userType, bio, profileImage FROM users WHERE 1=1`;
+    let sql = `SELECT id, email, firstName, lastName, company, jobTitle, points, level, userType, bio, profileImage, cohort FROM users WHERE 1=1`;
     const params = [];
 
     if (role) {
@@ -30,7 +30,7 @@ const getProfile = async (req, res) => {
     const userId = (!req.params.id || req.params.id === 'me') ? req.user.id : req.params.id;
     
     const users = await query(
-      'SELECT id, email, firstName, lastName, company, jobTitle, points, level, userType, bio, profileImage FROM users WHERE id = $1',
+      'SELECT id, email, firstName, lastName, company, jobTitle, points, level, userType, bio, profileImage, cohort FROM users WHERE id = $1',
       [userId]
     );
     const user = users[0];
@@ -120,7 +120,7 @@ const updateProfile = async (req, res) => {
     await query(updateSql, params);
 
     const updatedUsers = await query(
-      'SELECT id, email, firstName, lastName, company, jobTitle, points, level, userType, bio, profileImage FROM users WHERE id = $1',
+      'SELECT id, email, firstName, lastName, company, jobTitle, points, level, userType, bio, profileImage, cohort FROM users WHERE id = $1',
       [userId]
     );
     const user = updatedUsers[0];

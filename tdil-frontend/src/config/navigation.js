@@ -16,6 +16,11 @@ export const navigationItems = [
   { name: 'Donate', href: '/donate', icon: '💝', path: '/donate' }
 ];
 
+// Admin-only items (visible to admin + founder only)
+export const adminNavigation = [
+  { name: 'Manage Cohorts', href: '/admin/users', icon: '⚙️', adminOnly: true }
+];
+
 // Different navigation items for different user types can be configured here
 export const memberNavigation = navigationItems;
 

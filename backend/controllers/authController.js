@@ -45,12 +45,18 @@ const register = async (req, res) => {
     // Use the user type from the invite token
     const userType = tokenInfo.userType || 'member';
 
-    // Create user with the user type from the invite token (RETURNING id is required for PostgreSQL)
+    // cohort from signup form (from dropdown or new name)
+    const cohortValue = req.body.cohort || req.body.almaMater || null;
+
+    // Create user — use ? for SQLite, $N for PostgreSQL
+    const isPostgreSQL = require('../config/database').isPostgreSQL;
     const inserted = await query(
-      `INSERT INTO users (email, password, firstName, lastName, company, jobTitle, points, level, userType)
-       VALUES ($1, $2, $3, $4, $5, $6, 0, 1, $7)
-       RETURNING id`,
-      [email, hashedPassword, firstName, lastName, company || '', jobTitle || '', userType]
+      isPostgreSQL
+        ? `INSERT INTO users (email, password, "firstName", "lastName", company, "jobTitle", points, level, "userType", cohort)
+           VALUES ($1, $2, $3, $4, $5, $6, 0, 1, $7, $8) RETURNING id`
+        : `INSERT INTO users (email, password, firstName, lastName, company, jobTitle, points, level, userType, cohort)
+           VALUES (?, ?, ?, ?, ?, ?, 0, 1, ?, ?)`,
+      [email, hashedPassword, firstName, lastName, company || '', jobTitle || '', userType, cohortValue]
     );
 
     const newUserId = inserted[0].id;
@@ -136,7 +142,8 @@ const login = async (req, res) => {
         level: updatedUser.level,
         userType: updatedUser.userType || 'member',
         profileImage: updatedUser.profileImage || null,
-        bio: updatedUser.bio || ''
+        bio: updatedUser.bio || '',
+        cohort: updatedUser.cohort || null
       }
     });
   } catch (err) {
@@ -152,7 +159,7 @@ const me = async (req, res) => {
     const userId = req.user.id;
 
     const users = await query(
-      'SELECT id, email, firstName, lastName, company, jobTitle, points, level, userType, bio, profileImage FROM users WHERE id = $1',
+      'SELECT id, email, firstName, lastName, company, jobTitle, points, level, userType, bio, profileImage, cohort FROM users WHERE id = $1',
       [userId]
     );
     
@@ -174,7 +181,8 @@ const me = async (req, res) => {
         level: user.level,
         userType: user.userType || 'member',
         bio: user.bio,
-        profileImage: user.profileImage || null
+        profileImage: user.profileImage || null,
+        cohort: user.cohort || null
       }
     });
   } catch (error) {

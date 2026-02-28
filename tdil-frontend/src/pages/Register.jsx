@@ -1,41 +1,75 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import Logo from '../components/Logo';
 import { register } from '../services/authService';
 
 export default function Register() {
-  const [formData, setFormData] = useState({ 
-    firstName: '', 
-    lastName: '', 
-    email: '', 
-    password: '', 
-    company: '', 
-    jobTitle: '', 
-    almaMater: '',
-    graduationYear: '',
-    inviteToken: '' 
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    password: '',
+    company: '',
+    jobTitle: '',
+    cohort: '',
+    inviteToken: ''
   });
+  const [cohortOptions, setCohortOptions] = useState([]);
+  const [cohortLoading, setCohortLoading] = useState(true);
+  const [customCohort, setCustomCohort] = useState('');
+  const [showCustomInput, setShowCustomInput] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
+  // Load cohort options from the public API (no auth required)
+  useEffect(() => {
+    const fetchCohorts = async () => {
+      try {
+        const res = await fetch('/api/cohorts/names');
+        if (res.ok) {
+          const data = await res.json();
+          setCohortOptions(Array.isArray(data) ? data : []);
+        }
+      } catch (_) {
+        // Silently fail — cohort selection just won't be pre-populated
+      } finally {
+        setCohortLoading(false);
+      }
+    };
+    fetchCohorts();
+  }, []);
+
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    if (name === 'cohort') {
+      if (value === '__other__') {
+        setShowCustomInput(true);
+        setFormData(prev => ({ ...prev, cohort: '' }));
+      } else {
+        setShowCustomInput(false);
+        setCustomCohort('');
+        setFormData(prev => ({ ...prev, cohort: value }));
+      }
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
   };
 
   const handleRegister = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
-    
+
     try {
-      // Validate required fields including invite token
       if (!formData.firstName || !formData.lastName || !formData.email || !formData.password || !formData.inviteToken) {
         setError('Please fill in all required fields, including the invite token.');
         return;
       }
 
-      // Make API call to register
+      // Use custom cohort input if "Other" was selected
+      const cohortValue = showCustomInput ? customCohort.trim() : formData.cohort;
+
       const response = await register({
         firstName: formData.firstName,
         lastName: formData.lastName,
@@ -43,18 +77,15 @@ export default function Register() {
         password: formData.password,
         company: formData.company,
         jobTitle: formData.jobTitle,
-        almaMater: formData.almaMater,
-        graduationYear: formData.graduationYear ? parseInt(formData.graduationYear) : null,
+        cohort: cohortValue || null,
         inviteToken: formData.inviteToken
       });
 
-      // Save user data and token
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
 
-      // Redirect to dashboard
       navigate('/dashboard');
-      window.location.reload(); // Force app to re-initialize auth state
+      window.location.reload();
     } catch (err) {
       console.error('Registration error:', err);
       setError(err.response?.data?.message || 'Registration failed. Please check your connection and try again.');
@@ -79,9 +110,11 @@ export default function Register() {
             Connect with Indianapolis leaders
           </p>
         </div>
-        
+
         <form className="mt-8 space-y-6" onSubmit={handleRegister}>
           <div className="space-y-4">
+
+            {/* Name row */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label htmlFor="firstName" className="sr-only">First Name</label>
@@ -92,7 +125,7 @@ export default function Register() {
                   required
                   value={formData.firstName}
                   onChange={handleChange}
-                  className="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                  className="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                   placeholder="First Name"
                 />
               </div>
@@ -105,12 +138,13 @@ export default function Register() {
                   required
                   value={formData.lastName}
                   onChange={handleChange}
-                  className="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                  className="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                   placeholder="Last Name"
                 />
               </div>
             </div>
-            
+
+            {/* Email */}
             <div>
               <label htmlFor="email" className="sr-only">Email address</label>
               <input
@@ -120,11 +154,12 @@ export default function Register() {
                 required
                 value={formData.email}
                 onChange={handleChange}
-                className="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                className="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 placeholder="Email address"
               />
             </div>
-            
+
+            {/* Password */}
             <div>
               <label htmlFor="password" className="sr-only">Password</label>
               <input
@@ -134,11 +169,12 @@ export default function Register() {
                 required
                 value={formData.password}
                 onChange={handleChange}
-                className="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                className="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 placeholder="Password"
               />
             </div>
-            
+
+            {/* Company */}
             <div>
               <label htmlFor="company" className="sr-only">Company</label>
               <input
@@ -147,11 +183,12 @@ export default function Register() {
                 type="text"
                 value={formData.company}
                 onChange={handleChange}
-                className="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                className="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 placeholder="Company (optional)"
               />
             </div>
-            
+
+            {/* Job Title */}
             <div>
               <label htmlFor="jobTitle" className="sr-only">Job Title</label>
               <input
@@ -160,42 +197,72 @@ export default function Register() {
                 type="text"
                 value={formData.jobTitle}
                 onChange={handleChange}
-                className="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                className="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 placeholder="Job Title (optional)"
               />
             </div>
-            
+
+            {/* ── Cohort Dropdown ── */}
             <div>
-              <label htmlFor="almaMater" className="sr-only">Alma Mater</label>
-              <input
-                id="almaMater"
-                name="almaMater"
-                type="text"
-                value={formData.almaMater}
-                onChange={handleChange}
-                className="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Alma Mater (optional)"
-              />
-              <p className="mt-1 text-xs text-gray-500">
-                Join your cohort by entering your school
-              </p>
+              <label htmlFor="cohort" className="block text-sm font-medium text-gray-700 mb-1">
+                🎓 Cohort
+                <span className="ml-1 text-gray-400 font-normal">(optional — you can add this later)</span>
+              </label>
+
+              {cohortLoading ? (
+                <div className="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-400">
+                  Loading cohorts…
+                </div>
+              ) : (
+                <select
+                  id="cohort"
+                  name="cohort"
+                  value={showCustomInput ? '__other__' : formData.cohort}
+                  onChange={handleChange}
+                  className="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm bg-white"
+                >
+                  <option value="">— Skip for now —</option>
+                  {cohortOptions.map(c => (
+                    <option key={c.name} value={c.name}>
+                      {c.name}{c.memberCount > 0 ? ` (${c.memberCount} ${c.memberCount === 1 ? 'member' : 'members'})` : ''}
+                    </option>
+                  ))}
+                  <option value="__other__">Other / Not listed…</option>
+                </select>
+              )}
+
+              {/* Custom cohort text input (shown when "Other" is selected) */}
+              {showCustomInput && (
+                <div className="mt-2">
+                  <input
+                    type="text"
+                    value={customCohort}
+                    onChange={e => setCustomCohort(e.target.value)}
+                    className="appearance-none rounded-lg block w-full px-3 py-2 border border-blue-300 placeholder-gray-400 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                    placeholder="Type your cohort name…"
+                    autoFocus
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Your cohort will be reviewed and added to the official list.
+                  </p>
+                </div>
+              )}
+
+              {!showCustomInput && (
+                <p className="mt-1 text-xs text-gray-500">
+                  Select the cohort you belong to. Don't see yours?{' '}
+                  <button
+                    type="button"
+                    onClick={() => { setShowCustomInput(true); }}
+                    className="text-blue-600 hover:underline"
+                  >
+                    Enter it manually.
+                  </button>
+                </p>
+              )}
             </div>
-            
-            <div>
-              <label htmlFor="graduationYear" className="sr-only">Graduation Year</label>
-              <input
-                id="graduationYear"
-                name="graduationYear"
-                type="number"
-                min="1950"
-                max="2030"
-                value={formData.graduationYear}
-                onChange={handleChange}
-                className="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Graduation Year (optional)"
-              />
-            </div>
-            
+
+            {/* Invite Token */}
             <div>
               <label htmlFor="inviteToken" className="sr-only">Invite Token</label>
               <input
@@ -205,11 +272,11 @@ export default function Register() {
                 required
                 value={formData.inviteToken}
                 onChange={handleChange}
-                className="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
+                className="appearance-none rounded-lg relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 placeholder="Invite Token (required)"
               />
               <p className="mt-1 text-xs text-gray-500">
-                Contact an administrator to get your invite token
+                Contact an administrator to get your invite token.
               </p>
             </div>
           </div>
@@ -226,7 +293,7 @@ export default function Register() {
               disabled={loading}
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Creating Account...' : 'Create Account'}
+              {loading ? 'Creating Account…' : 'Create Account'}
             </button>
           </div>
 

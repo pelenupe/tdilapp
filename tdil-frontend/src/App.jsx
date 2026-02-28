@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import API from './services/api';
 import { UserProvider } from './contexts/UserContext';
+import { SidebarProvider } from './contexts/SidebarContext';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -24,6 +25,10 @@ import GroupChats from './pages/GroupChats';
 import Students from './pages/Students';
 import CheckIn from './pages/CheckIn';
 import CheckInHistory from './pages/CheckInHistory';
+import PortalLogin from './pages/PortalLogin';
+import PartnerPortal from './pages/PartnerPortal';
+import SponsorPortal from './pages/SponsorPortal';
+import AdminUsers from './pages/AdminUsers';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -83,10 +88,8 @@ function App() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-xs mb-4 mx-auto">
-            tDIL
-          </div>
-          <div className="text-gray-600">Loading...</div>
+          <img src="/tdil-logo.png" alt="tDIL" className="w-16 h-16 object-contain mx-auto mb-4 animate-pulse" />
+          <div className="text-gray-500 text-sm">Loading...</div>
         </div>
       </div>
     );
@@ -94,6 +97,7 @@ function App() {
 
   return (
     <UserProvider>
+    <SidebarProvider>
       <div className="min-h-screen">
         <Routes>
           <Route path="/" element={!isAuthenticated ? <Home /> : <Navigate to="/dashboard" replace />} />
@@ -119,8 +123,17 @@ function App() {
           <Route path="/students" element={isAuthenticated ? <Students /> : <Navigate to="/login" />} />
           <Route path="/checkin" element={isAuthenticated ? <CheckIn /> : <Navigate to="/login" />} />
           <Route path="/checkin-history" element={isAuthenticated ? <CheckInHistory /> : <Navigate to="/login" />} />
+          {/* Admin */}
+          <Route path="/admin/users" element={isAuthenticated ? <AdminUsers /> : <Navigate to="/login" />} />
+
+          {/* Partner / Sponsor Portal — separate auth flow */}
+          <Route path="/portal/login" element={<PortalLogin />} />
+          <Route path="/portal/partner" element={<PartnerPortal />} />
+          <Route path="/portal/sponsor" element={<SponsorPortal />} />
+          <Route path="/portal" element={<Navigate to="/portal/login" replace />} />
         </Routes>
       </div>
+    </SidebarProvider>
     </UserProvider>
   );
 }
