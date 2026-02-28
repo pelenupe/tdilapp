@@ -159,7 +159,7 @@ const me = async (req, res) => {
     const userId = req.user.id;
 
     const users = await query(
-      'SELECT id, email, firstName, lastName, company, jobTitle, points, level, userType, bio, profileImage, cohort FROM users WHERE id = $1',
+      'SELECT id, email, firstName, lastName, company, jobTitle, points, level, userType, bio, profileImage, cohort, prefix, suffix, linkedin_url, calendly_url, resume_url FROM users WHERE id = $1',
       [userId]
     );
     
@@ -182,7 +182,12 @@ const me = async (req, res) => {
         userType: user.userType || 'member',
         bio: user.bio,
         profileImage: user.profileImage || null,
-        cohort: user.cohort || null
+        cohort: user.cohort || null,
+        prefix: user.prefix || null,
+        suffix: user.suffix || null,
+        linkedin_url: user.linkedin_url || null,
+        calendly_url: user.calendly_url || null,
+        resume_url: user.resume_url || null
       }
     });
   } catch (error) {
