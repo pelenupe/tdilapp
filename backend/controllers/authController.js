@@ -159,7 +159,7 @@ const me = async (req, res) => {
     const userId = req.user.id;
 
     const users = await query(
-      'SELECT id, email, firstName, lastName, company, jobTitle, points, level, userType, bio, profileImage, cohort, prefix, suffix, linkedin_url, calendly_url, resume_url FROM users WHERE id = $1',
+      'SELECT id, email, firstName, lastName, company, jobTitle, points, level, userType, bio, profileImage, cohort, prefix, suffix, linkedin_url, calendly_url, resume_url, coaching_url FROM users WHERE id = $1',
       [userId]
     );
     
@@ -187,7 +187,8 @@ const me = async (req, res) => {
         suffix: user.suffix || null,
         linkedin_url: user.linkedin_url || null,
         calendly_url: user.calendly_url || null,
-        resume_url: user.resume_url || null
+        resume_url: user.resume_url || null,
+        coaching_url: user.coaching_url || null
       }
     });
   } catch (error) {

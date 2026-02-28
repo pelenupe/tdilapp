@@ -22,7 +22,7 @@ export default function Profile() {
   const emptyProfile = {
     firstName: '', lastName: '', email: '', company: '', jobTitle: '', bio: '',
     cohort: '', prefix: '', suffix: '',
-    linkedin_url: '', calendly_url: '', resume_url: '',
+    linkedin_url: '', calendly_url: '', resume_url: '', coaching_url: '',
     points: 0, level: 1, profilePicUrl: '', userType: 'member'
   };
 
@@ -90,6 +90,7 @@ export default function Profile() {
         linkedin_url:  u.linkedin_url  || '',
         calendly_url:  u.calendly_url  || '',
         resume_url:    u.resume_url    || '',
+        coaching_url:  u.coaching_url  || '',
         points:    u.points    || 0,
         level:     u.level     || 1,
         profilePicUrl: u.profileImage || '',
@@ -142,6 +143,7 @@ export default function Profile() {
         linkedin_url:  profile.linkedin_url  || null,
         calendly_url:  profile.calendly_url  || null,
         resume_url:    profile.resume_url    || null,
+        coaching_url:  profile.coaching_url  || null,
       };
       if (selectedFile) profileData.profilePic = selectedFile;
 
@@ -431,6 +433,28 @@ export default function Profile() {
                   <a href={profile.resume_url} target="_blank" rel="noopener noreferrer"
                     className="text-sm text-blue-600 hover:underline flex items-center gap-1">
                     View Resume <ExternalLink size={12} />
+                  </a>
+                ) : (
+                  <p className="text-sm text-gray-400 italic">{isOwnProfile ? 'Not added yet' : 'Not provided'}</p>
+                )}
+              </div>
+            </div>
+
+            {/* Coaching */}
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-sm">🎯</span>
+              </div>
+              <div className="flex-1">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Coaching / Mentoring</label>
+                {isOwnProfile && isEditing ? (
+                  <input name="coaching_url" value={profile.coaching_url} onChange={handleChange}
+                    placeholder="https://calendly.com/your-coaching or coaching website"
+                    className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
+                ) : profile.coaching_url ? (
+                  <a href={profile.coaching_url} target="_blank" rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-600 text-white rounded-lg text-sm hover:bg-amber-700 transition-colors">
+                    🎯 Book Coaching Session
                   </a>
                 ) : (
                   <p className="text-sm text-gray-400 italic">{isOwnProfile ? 'Not added yet' : 'Not provided'}</p>

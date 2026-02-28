@@ -7,7 +7,7 @@ const getMembers = async (req, res) => {
   try {
     const { school, role, skills } = req.query;
 
-    let sql = `SELECT id, email, firstName, lastName, company, jobTitle, points, level, userType, bio, profileImage, cohort, prefix, suffix, linkedin_url, calendly_url, resume_url, partner_school_name, partner_school_status FROM users WHERE 1=1`;
+    let sql = `SELECT id, email, firstName, lastName, company, jobTitle, points, level, userType, bio, profileImage, cohort, prefix, suffix, linkedin_url, calendly_url, resume_url, coaching_url, partner_school_name, partner_school_status FROM users WHERE 1=1`;
     const params = [];
 
     if (role) {
@@ -30,7 +30,7 @@ const getProfile = async (req, res) => {
     const userId = (!req.params.id || req.params.id === 'me') ? req.user.id : req.params.id;
     
     const users = await query(
-      'SELECT id, email, firstName, lastName, company, jobTitle, points, level, userType, bio, profileImage, cohort, prefix, suffix, linkedin_url, calendly_url, resume_url, partner_school_name, partner_school_status FROM users WHERE id = $1',
+      'SELECT id, email, firstName, lastName, company, jobTitle, points, level, userType, bio, profileImage, cohort, prefix, suffix, linkedin_url, calendly_url, resume_url, coaching_url, partner_school_name, partner_school_status FROM users WHERE id = $1',
       [userId]
     );
     const user = users[0];
@@ -103,6 +103,10 @@ const updateProfile = async (req, res) => {
       updates.push(`partner_school_status = $${params.length + 1}`);
       params.push(req.body.partner_school_status || null);
     }
+    if (req.body.coaching_url !== undefined) {
+      updates.push(`coaching_url = $${params.length + 1}`);
+      params.push(req.body.coaching_url || null);
+    }
 
     // Handle profileImage from frontend (either profileImage or profilePicUrl)
     if (profileImage !== undefined || profilePicUrl !== undefined) {
@@ -148,7 +152,7 @@ const updateProfile = async (req, res) => {
     await query(updateSql, params);
 
     const updatedUsers = await query(
-      'SELECT id, email, firstName, lastName, company, jobTitle, points, level, userType, bio, profileImage, cohort, prefix, suffix, linkedin_url, calendly_url, resume_url, partner_school_name, partner_school_status FROM users WHERE id = $1',
+      'SELECT id, email, firstName, lastName, company, jobTitle, points, level, userType, bio, profileImage, cohort, prefix, suffix, linkedin_url, calendly_url, resume_url, coaching_url, partner_school_name, partner_school_status FROM users WHERE id = $1',
       [userId]
     );
     const user = updatedUsers[0];
