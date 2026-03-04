@@ -119,6 +119,7 @@ function App() {
           <Route path="/leaderboard" element={isAuthenticated ? <Leaderboard /> : <Navigate to="/login" />} />
           <Route path="/announcements" element={isAuthenticated ? <Announcements /> : <Navigate to="/login" />} />
           <Route path="/cohort" element={isAuthenticated ? <MyCohort /> : <Navigate to="/login" />} />
+          <Route path="/cohort/:name" element={isAuthenticated ? <MyCohort /> : <Navigate to="/login" />} />
           <Route path="/chats" element={isAuthenticated ? <GroupChats /> : <Navigate to="/login" />} />
           <Route path="/students" element={isAuthenticated ? <Students /> : <Navigate to="/login" />} />
           <Route path="/checkin" element={isAuthenticated ? <CheckIn /> : <Navigate to="/login" />} />

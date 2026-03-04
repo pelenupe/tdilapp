@@ -19,6 +19,9 @@ export default function GroupChats() {
   const [showDiscover, setShowDiscover] = useState(false);
   const [discoverChats, setDiscoverChats] = useState([]);
   const [joiningChat, setJoiningChat] = useState(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createForm, setCreateForm] = useState({ name: '' });
+  const [creating, setCreating] = useState(false);
   const [flaggingId, setFlaggingId] = useState(null);
   const [flagReason, setFlagReason] = useState('');
   const [flagConfirm, setFlagConfirm] = useState(null); // message object
@@ -205,10 +208,16 @@ export default function GroupChats() {
               showDiscover ? 'bg-blue-600 text-white border-blue-600' : 'border-gray-300 text-gray-700 hover:bg-gray-50'
             }`}
           >
-            <Compass size={14} /> Discover Groups
-          </button>
-        </div>
-      }
+          <Compass size={14} /> Discover Groups
+        </button>
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+        >
+          <Plus size={14} /> New Group
+        </button>
+      </div>
+    }
     >
       {/* Notification */}
       {notification && (
@@ -216,6 +225,59 @@ export default function GroupChats() {
           notification.type === 'error' ? 'bg-red-50 text-red-700 border border-red-200' : 'bg-green-50 text-green-700 border border-green-200'
         }`}>
           {notification.msg}
+        </div>
+      )}
+
+      {/* Create Group Chat Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-5">
+            <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <Plus size={16} className="text-blue-600" /> Create Group Chat
+            </h3>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Group Name *</label>
+                <input
+                  type="text"
+                  value={createForm.name}
+                  onChange={e => setCreateForm({ name: e.target.value })}
+                  placeholder="e.g. Alumni Networking, Study Group…"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
+                  autoFocus
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-1">
+                <button
+                  onClick={() => { setShowCreateModal(false); setCreateForm({ name: '' }); }}
+                  className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    if (!createForm.name.trim()) return;
+                    setCreating(true);
+                    try {
+                      await API.post('/chats', { name: createForm.name.trim() });
+                      notify('Group chat created! 🎉');
+                      setShowCreateModal(false);
+                      setCreateForm({ name: '' });
+                      await fetchChats();
+                    } catch (err) {
+                      notify(err.response?.data?.message || 'Failed to create group', 'error');
+                    } finally {
+                      setCreating(false);
+                    }
+                  }}
+                  disabled={creating || !createForm.name.trim()}
+                  className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium"
+                >
+                  {creating ? 'Creating…' : 'Create'}
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 

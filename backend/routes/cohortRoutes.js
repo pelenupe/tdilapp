@@ -170,6 +170,25 @@ router.post('/events', createCohortEvent);
 router.get('/:cohortId/events', getCohortEvents);
 router.post('/events/:eventId/register', registerForEvent);
 
+// Get members of any cohort by name (for browsing other cohorts)
+router.get('/members-by-name/:name', async (req, res) => {
+  try {
+    const cohortName = decodeURIComponent(req.params.name);
+    const members = await query(
+      `SELECT id, firstName as firstname, lastName as lastname, email, company,
+              jobTitle as jobtitle, profileImage as profile_image, points, level
+       FROM users
+       WHERE cohort = ${p(1)}
+       ORDER BY points DESC`,
+      [cohortName]
+    );
+    res.json(members);
+  } catch (err) {
+    console.error('Error getting cohort members by name:', err);
+    res.status(500).json({ message: 'Error getting cohort members' });
+  }
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // ADMIN ROUTES
 // ─────────────────────────────────────────────────────────────────────────────
