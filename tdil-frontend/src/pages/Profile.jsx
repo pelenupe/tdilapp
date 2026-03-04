@@ -6,6 +6,7 @@ import {
   ExternalLink, Edit2, X, CheckCircle
 } from 'lucide-react';
 import PageLayout from '../components/PageLayout';
+import RichTextEditor, { RichTextDisplay } from '../components/RichTextEditor';
 import PointsService from '../services/pointsService';
 import { getMyProfile, updateProfile } from '../services/profileService';
 import API from '../services/api';
@@ -359,12 +360,17 @@ export default function Profile() {
         <div className="bg-white rounded-xl shadow-sm border p-6">
           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">About</h2>
           {isOwnProfile && isEditing ? (
-            <textarea name="bio" value={profile.bio} onChange={handleChange} rows={4}
+            <RichTextEditor
+              value={profile.bio}
+              onChange={html => setProfile(prev => ({ ...prev, bio: html }))}
               placeholder="Share a bit about yourself, your work, passions, and what you bring to the tDIL community…"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 resize-none" />
+              minHeight={140}
+            />
+          ) : profile.bio ? (
+            <RichTextDisplay html={profile.bio} />
           ) : (
-            <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-              {profile.bio || <span className="text-gray-400 italic">{isOwnProfile ? 'No bio yet — click Edit Profile to add one.' : 'No bio provided.'}</span>}
+            <p className="text-sm text-gray-400 italic">
+              {isOwnProfile ? 'No bio yet — click Edit Profile to add one.' : 'No bio provided.'}
             </p>
           )}
         </div>
