@@ -52,7 +52,7 @@ export default function AdminDashboard() {
   const [announcements, setAnnouncements] = useState([]);
   const [annForm, setAnnForm] = useState({ title: '', content: '', category: 'general', priority: 'normal', featured: false });
   const [savingAnn, setSavingAnn] = useState(false);
-  const [editingAnn, setEditingAnn] = useState(null);
+  const [editingAnn, setEditingAnn] = useState(undefined);
   const [stats, setStats] = useState({ totalUsers: 0, admins: 0, announcements: 0 });
 
   const loadData = useCallback(async () => {
