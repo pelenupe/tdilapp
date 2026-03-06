@@ -584,7 +584,7 @@ export default function GroupChats() {
                                   isOwn ? 'bg-blue-600 text-white' : 'bg-white text-gray-900 border border-gray-200'
                                 }`}>
                                   <p className="whitespace-pre-wrap break-words">{msg.content}</p>
-                                  {/* Flag button - shown on hover for non-own messages */}
+                                  {/* Non-admin: flag button on others' messages */}
                                   {!isOwn && !isAdmin && (
                                     <button
                                       onClick={() => setFlagConfirm(msg)}
@@ -594,14 +594,32 @@ export default function GroupChats() {
                                       <Flag size={10} />
                                     </button>
                                   )}
-                                  {/* Admin: direct delete button on ALL messages */}
-                                  {isAdmin && (
+                                  {/* Admin: BOTH flag and delete on non-own messages; just delete on own messages */}
+                                  {isAdmin && !isOwn && (
+                                    <div className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 flex gap-0.5 transition-all">
+                                      <button
+                                        onClick={() => setFlagConfirm(msg)}
+                                        className="w-5 h-5 bg-white border border-gray-200 rounded-full flex items-center justify-center text-gray-400 hover:text-orange-500 hover:border-orange-300 shadow-sm"
+                                        title="Flag message"
+                                      >
+                                        <Flag size={9} />
+                                      </button>
+                                      <button
+                                        onClick={() => handleAdminDeleteMessage(msg.id, selectedChat.id)}
+                                        className="w-5 h-5 bg-white border border-red-200 rounded-full flex items-center justify-center text-red-400 hover:text-red-600 hover:border-red-400 shadow-sm"
+                                        title="Delete message"
+                                      >
+                                        <Trash2 size={9} />
+                                      </button>
+                                    </div>
+                                  )}
+                                  {isAdmin && isOwn && (
                                     <button
                                       onClick={() => handleAdminDeleteMessage(msg.id, selectedChat.id)}
                                       className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 w-5 h-5 bg-white border border-red-200 rounded-full flex items-center justify-center text-red-400 hover:text-red-600 hover:border-red-400 transition-all shadow-sm"
-                                      title="Remove message (admin)"
+                                      title="Delete own message"
                                     >
-                                      <Trash2 size={10} />
+                                      <Trash2 size={9} />
                                     </button>
                                   )}
                                 </div>
