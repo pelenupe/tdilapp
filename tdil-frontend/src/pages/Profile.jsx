@@ -36,6 +36,8 @@ export default function Profile() {
   const [isOwnProfile, setIsOwnProfile] = useState(true);
   const [checkIns, setCheckIns] = useState([]);
   const [saveMsg, setSaveMsg] = useState(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const [connecting, setConnecting] = useState(false);
 
   // Cohort dropdown
   const [cohortOptions, setCohortOptions] = useState([]);
@@ -45,6 +47,17 @@ export default function Profile() {
   useEffect(() => {
     loadProfile();
     if (isOwnProfile) loadCheckIns();
+    // Check connection status when viewing someone else's profile
+    if (id) {
+      const token = localStorage.getItem('token');
+      fetch('/api/connections/statuses', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userIds: [parseInt(id)] })
+      }).then(r => r.ok ? r.json() : {}).then(map => {
+        setIsConnected(!!map[parseInt(id)]);
+      }).catch(() => {});
+    }
     fetch('/api/cohorts/names')
       .then(r => r.ok ? r.json() : [])
       .then(data => setCohortOptions(Array.isArray(data) ? data : []))
@@ -183,6 +196,34 @@ export default function Profile() {
     } catch (_) { alert('Failed to open chat.'); }
   };
 
+  const handleConnect = async () => {
+    setConnecting(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/connections', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetUserId: parseInt(id) })
+      });
+      if (res.ok) { setIsConnected(true); }
+      else { const e = await res.json(); alert(e.message || 'Failed to connect'); }
+    } catch (_) { alert('Failed to connect'); }
+    setConnecting(false);
+  };
+
+  const handleDisconnect = async () => {
+    setConnecting(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/connections/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) { setIsConnected(false); }
+    } catch (_) {}
+    setConnecting(false);
+  };
+
   const getInitials = () =>
     `${profile.firstName.charAt(0)}${profile.lastName.charAt(0)}`.toUpperCase();
 
@@ -234,10 +275,23 @@ export default function Profile() {
       )}
     </div>
   ) : (
-    <button onClick={handleMessage}
-      className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm">
-      <MessageCircle size={14} /> Message
-    </button>
+    <div className="flex items-center gap-2">
+      {isConnected ? (
+        <button onClick={handleDisconnect} disabled={connecting}
+          className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 border border-gray-300 rounded-lg hover:bg-red-50 hover:text-red-600 hover:border-red-300 text-sm transition-colors disabled:opacity-50">
+          {connecting ? '…' : '✓ Connected'}
+        </button>
+      ) : (
+        <button onClick={handleConnect} disabled={connecting}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm disabled:opacity-50">
+          {connecting ? '…' : '+ Connect'}
+        </button>
+      )}
+      <button onClick={handleMessage}
+        className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm">
+        <MessageCircle size={14} /> Message
+      </button>
+    </div>
   );
 
   return (
