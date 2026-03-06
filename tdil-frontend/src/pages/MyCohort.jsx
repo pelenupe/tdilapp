@@ -70,8 +70,10 @@ export default function MyCohort() {
   const handleCohortChat = async () => {
     setChatLoading(true);
     try {
-      await API.post('/cohorts/group-chat');
-      navigate('/chats');
+      const r = await API.post('/cohorts/group-chat');
+      const chatId = r.data?.id || r.data?.chatId;
+      // Navigate to chats and select this specific cohort chat
+      navigate('/chats', { state: { selectedChatId: chatId } });
     } catch (err) {
       console.error('Error with cohort chat:', err);
       navigate('/chats');

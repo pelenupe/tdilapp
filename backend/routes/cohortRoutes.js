@@ -116,27 +116,41 @@ router.post('/group-chat', async (req, res) => {
     const cohortName = users[0]?.cohort;
     if (!cohortName) return res.status(400).json({ message: 'You are not in a cohort' });
 
-    // Check if a group chat already exists for this cohort
-    let chats = await query(`SELECT id, name FROM group_chats WHERE cohort = ${p(1)}`, [cohortName]);
+    // Check if a group chat already exists for this cohort (use rowid as id for SQLite)
+    let chats = await query(
+      `SELECT rowid as id, name FROM group_chats WHERE chat_type='cohort' AND (cohort = ${p(1)} OR name = ${p(2)}) AND is_active = 1 LIMIT 1`,
+      [cohortName, cohortName]
+    );
     if (!chats.length) {
       // Create it
-      const ins = await query(
-        `INSERT INTO group_chats (name, chat_type, cohort, created_by) VALUES (${p(1)}, 'cohort', ${p(2)}, ${p(3)})`,
-        [cohortName, cohortName, userId]
+      await query(
+        `INSERT INTO group_chats (name, chat_type, description, cohort, is_active, created_by) VALUES (${p(1)}, 'cohort', ${p(2)}, ${p(3)}, 1, ${p(4)})`,
+        [cohortName, `${cohortName} cohort group chat`, cohortName, userId]
       );
-      const newId = ins[0]?.id ?? ins.lastID ?? ins[0]?.lastID;
-      chats = await query(`SELECT id, name FROM group_chats WHERE id = ${p(1)}`, [newId]);
+      const lastId = await query('SELECT last_insert_rowid() as id');
+      const newId = lastId[0].id;
+      chats = [{ id: newId, name: cohortName }];
     }
+
+    const chatId = chats[0].id;
 
     // Add user to the chat (ignore duplicate)
     try {
       await query(
-        `INSERT INTO group_chat_members (group_chat_id, user_id) VALUES (${p(1)}, ${p(2)})`,
-        [chats[0].id, userId]
+        `INSERT OR IGNORE INTO group_chat_members (group_chat_id, user_id, role) VALUES (${p(1)}, ${p(2)}, 'member')`,
+        [chatId, userId]
       );
     } catch (_) { /* already member */ }
 
-    res.json({ id: chats[0].id, name: chats[0].name });
+    // Also add chat observers to this new chat
+    try {
+      const observers = await query(`SELECT id FROM users WHERE chat_observer = 1`);
+      for (const obs of observers) {
+        await query(`INSERT OR IGNORE INTO group_chat_members (group_chat_id, user_id, role) VALUES (${p(1)}, ${p(2)}, 'admin')`, [chatId, obs.id]);
+      }
+    } catch (_) {}
+
+    res.json({ id: chatId, chatId, name: chats[0].name });
   } catch (err) {
     console.error('Error creating/fetching cohort group chat:', err);
     res.status(500).json({ message: 'Error with group chat' });
