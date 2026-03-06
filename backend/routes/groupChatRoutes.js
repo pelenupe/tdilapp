@@ -112,6 +112,21 @@ router.post('/:chatId/messages', sendGroupMessage);
 // Flag a specific message
 router.post('/:chatId/messages/:messageId/flag', flagMessage);
 
+// Admin: directly delete a specific message
+router.delete('/:chatId/messages/:messageId/admin', async (req, res) => {
+  try {
+    if (!['admin', 'founder'].includes(req.user?.userType)) {
+      return res.status(403).json({ message: 'Admin access required' });
+    }
+    const { messageId } = req.params;
+    await query(`DELETE FROM group_messages WHERE rowid = ?`, [messageId]);
+    res.json({ message: 'Message removed' });
+  } catch (err) {
+    console.error('Admin delete message error:', err);
+    res.status(500).json({ message: 'Error removing message' });
+  }
+});
+
 // Get chat members
 router.get('/:chatId/members', getGroupChatMembers);
 

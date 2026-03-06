@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
 import PageLayout from '../components/PageLayout';
 import API from '../services/api';
-import { Flag, Plus, Compass, X, ShieldAlert, CheckCircle, Trash2 } from 'lucide-react';
+import { Flag, Plus, Compass, X, ShieldAlert, CheckCircle, Trash2, AlertTriangle } from 'lucide-react';
 
 export default function GroupChats() {
   const { user } = useUser();
@@ -196,6 +196,17 @@ export default function GroupChats() {
       await fetchAdminFlags();
     } catch (err) {
       notify('Action failed', 'error');
+    }
+  };
+
+  const handleAdminDeleteMessage = async (msgId, chatId) => {
+    if (!window.confirm('Remove this message?')) return;
+    try {
+      await API.delete(`/chats/${chatId}/messages/${msgId}/admin`);
+      setMessages(prev => prev.filter(m => m.id !== msgId));
+      notify('Message removed ✅');
+    } catch (err) {
+      notify(err.response?.data?.message || 'Failed to remove message', 'error');
     }
   };
 
@@ -573,14 +584,24 @@ export default function GroupChats() {
                                   isOwn ? 'bg-blue-600 text-white' : 'bg-white text-gray-900 border border-gray-200'
                                 }`}>
                                   <p className="whitespace-pre-wrap break-words">{msg.content}</p>
-                                  {/* Flag button - shown on hover */}
-                                  {!isOwn && (
+                                  {/* Flag button - shown on hover for non-own messages */}
+                                  {!isOwn && !isAdmin && (
                                     <button
                                       onClick={() => setFlagConfirm(msg)}
                                       className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 w-5 h-5 bg-white border border-gray-200 rounded-full flex items-center justify-center text-gray-400 hover:text-red-500 hover:border-red-300 transition-all shadow-sm"
                                       title="Flag this message"
                                     >
                                       <Flag size={10} />
+                                    </button>
+                                  )}
+                                  {/* Admin: direct delete button on ALL messages */}
+                                  {isAdmin && (
+                                    <button
+                                      onClick={() => handleAdminDeleteMessage(msg.id, selectedChat.id)}
+                                      className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 w-5 h-5 bg-white border border-red-200 rounded-full flex items-center justify-center text-red-400 hover:text-red-600 hover:border-red-400 transition-all shadow-sm"
+                                      title="Remove message (admin)"
+                                    >
+                                      <Trash2 size={10} />
                                     </button>
                                   )}
                                 </div>
