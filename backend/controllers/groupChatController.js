@@ -2,12 +2,12 @@ const { query } = require('../config/database');
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
-// Add all chat_observer users to a specific chat
+// Add all chat_observer users to a specific chat (only non-direct chats)
 const addObserversToChat = async (chatId) => {
   try {
-    const observers = await query(
-      `SELECT id FROM users WHERE chat_observer = 1`
-    );
+    const chatInfo = await query(`SELECT chat_type FROM group_chats WHERE rowid = ?`, [chatId]);
+    if (chatInfo[0]?.chat_type === 'direct') return; // Never add observers to direct chats
+    const observers = await query(`SELECT id FROM users WHERE chat_observer = 1`);
     for (const obs of observers) {
       await query(
         `INSERT OR IGNORE INTO group_chat_members (group_chat_id, user_id, role) VALUES (?, ?, 'admin')`,
@@ -19,11 +19,11 @@ const addObserversToChat = async (chatId) => {
   }
 };
 
-// Ensure a chat_observer user is in all active group chats
+// Ensure a chat_observer user is in all active non-direct group chats
 const ensureObserverInAllChats = async (userId) => {
   try {
     const chats = await query(
-      `SELECT rowid as id FROM group_chats WHERE is_active = 1`
+      `SELECT rowid as id FROM group_chats WHERE is_active = 1 AND chat_type != 'direct'`
     );
     for (const chat of chats) {
       await query(

@@ -22,6 +22,12 @@ export default function GroupChats() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [createForm, setCreateForm] = useState({ name: '' });
   const [creating, setCreating] = useState(false);
+  // New Direct Message
+  const [showNewDM, setShowNewDM] = useState(false);
+  const [dmSearch, setDmSearch] = useState('');
+  const [dmMembers, setDmMembers] = useState([]);
+  const [dmLoading, setDmLoading] = useState(false);
+  const [startingDM, setStartingDM] = useState(null);
   const [flaggingId, setFlaggingId] = useState(null);
   const [flagReason, setFlagReason] = useState('');
   const [flagConfirm, setFlagConfirm] = useState(null); // message object
@@ -53,6 +59,43 @@ export default function GroupChats() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  const fetchMembers = async (q) => {
+    if (!q.trim()) { setDmMembers([]); return; }
+    setDmLoading(true);
+    try {
+      const r = await API.get('/members');
+      const all = r.data || [];
+      const filtered = all.filter(m =>
+        m.id !== user?.id &&
+        `${m.firstName} ${m.lastName}`.toLowerCase().includes(q.toLowerCase())
+      ).slice(0, 10);
+      setDmMembers(filtered);
+    } catch (_) {}
+    setDmLoading(false);
+  };
+
+  const startDM = async (memberId) => {
+    setStartingDM(memberId);
+    try {
+      const r = await API.post('/chats/direct', { otherUserId: memberId });
+      const chatId = r.data?.id || r.data?.chatId;
+      setShowNewDM(false);
+      setDmSearch('');
+      setDmMembers([]);
+      await fetchChats();
+      // Find the chat and select it
+      setChats(prev => {
+        const found = prev.find(c => c.id === chatId || c.chatId === chatId);
+        if (found) setSelectedChat(found);
+        return prev;
+      });
+    } catch (err) {
+      notify(err.response?.data?.message || 'Failed to open chat', 'error');
+    } finally {
+      setStartingDM(null);
+    }
+  };
 
   const fetchChats = async () => {
     try {
@@ -397,8 +440,50 @@ export default function GroupChats() {
 
             {/* ── Chat List ── */}
             <div className="col-span-12 md:col-span-4 border-r border-gray-200 overflow-y-auto flex flex-col">
-              <div className="p-3 border-b bg-gray-50 flex-shrink-0">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Your Chats</p>
+              <div className="p-3 border-b bg-gray-50 flex-shrink-0 space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Your Chats</p>
+                  <button
+                    onClick={() => { setShowNewDM(!showNewDM); setDmSearch(''); setDmMembers([]); }}
+                    className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                    title="Start new direct message"
+                  >
+                    + New DM
+                  </button>
+                </div>
+                {showNewDM && (
+                  <div className="relative">
+                    <input
+                      type="text"
+                      value={dmSearch}
+                      onChange={e => { setDmSearch(e.target.value); fetchMembers(e.target.value); }}
+                      placeholder="Search member to message…"
+                      className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-blue-500"
+                      autoFocus
+                    />
+                    {(dmMembers.length > 0 || dmLoading) && (
+                      <div className="absolute top-full left-0 right-0 z-10 bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-48 overflow-y-auto">
+                        {dmLoading ? (
+                          <div className="px-3 py-2 text-xs text-gray-400">Searching…</div>
+                        ) : dmMembers.map(m => (
+                          <button
+                            key={m.id}
+                            onClick={() => startDM(m.id)}
+                            disabled={startingDM === m.id}
+                            className="w-full flex items-center gap-2 px-3 py-2 hover:bg-blue-50 text-left text-xs"
+                          >
+                            <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xs font-bold flex-shrink-0">
+                              {m.firstName?.[0]}{m.lastName?.[0]}
+                            </div>
+                            <span className="font-medium text-gray-900">{m.firstName} {m.lastName}</span>
+                            {m.jobTitle && <span className="text-gray-400 truncate">{m.jobTitle}</span>}
+                            {startingDM === m.id && <span className="ml-auto text-gray-400">…</span>}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               <div className="flex-1 divide-y divide-gray-100 overflow-y-auto">
                 {chats.map(chat => (
