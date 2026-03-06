@@ -30,6 +30,7 @@ import PartnerPortal from './pages/PartnerPortal';
 import SponsorPortal from './pages/SponsorPortal';
 import AdminUsers from './pages/AdminUsers';
 import AdminDashboard from './pages/AdminDashboard';
+import ProgramCalendar from './pages/ProgramCalendar';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -125,6 +126,7 @@ function App() {
           <Route path="/students" element={isAuthenticated ? <Students /> : <Navigate to="/login" />} />
           <Route path="/checkin" element={isAuthenticated ? <CheckIn /> : <Navigate to="/login" />} />
           <Route path="/checkin-history" element={isAuthenticated ? <CheckInHistory /> : <Navigate to="/login" />} />
+          <Route path="/calendar" element={isAuthenticated ? <ProgramCalendar /> : <Navigate to="/login" />} />
           {/* Admin */}
           <Route path="/admin" element={isAuthenticated ? <AdminDashboard /> : <Navigate to="/login" />} />
           <Route path="/admin/users" element={isAuthenticated ? <AdminUsers /> : <Navigate to="/login" />} />

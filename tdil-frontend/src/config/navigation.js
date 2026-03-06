@@ -10,6 +10,7 @@ export const navigationItems = [
   { name: 'Community', href: '/community', icon: '👥', path: '/community' },
   { name: 'Job Board', href: '/jobs', icon: '💼', path: '/jobs' },
   { name: 'Events', href: '/events', icon: '📅', path: '/events' },
+  { name: 'Calendar', href: '/calendar', icon: '🗓️', path: '/calendar' },
   { name: 'Merch Store', href: '/merch-store', icon: '🛒', path: '/merch-store' },
   { name: 'Partner Schools', href: '/partner-schools', icon: '🏫', path: '/partner-schools' },
   { name: 'Rewards', href: '/rewards', icon: '🎁', path: '/rewards' },
