@@ -119,7 +119,7 @@ router.post('/', protect, async (req, res) => {
   try {
     const {
       title, description, date, location, category,
-      max_attendees, points, visibility, cohort_name, image_url
+      max_attendees, points, visibility, cohort_name, image_url, signup_url, host
     } = req.body;
     const createdBy = req.user.id;
 
@@ -139,13 +139,17 @@ router.post('/', protect, async (req, res) => {
       }
     }
 
+    // Ensure signup_url and host columns exist
+    try { await query('ALTER TABLE events ADD COLUMN signup_url TEXT'); } catch (_) {}
+    try { await query('ALTER TABLE events ADD COLUMN host TEXT'); } catch (_) {}
+
     const sql = `
       INSERT INTO events
         (title, description, date, location, category, maxAttendees, points,
-         created_by, current_attendees, visibility, cohort_name, image_url)
+         created_by, current_attendees, visibility, cohort_name, image_url, signup_url, host)
       VALUES
         (${p(1)}, ${p(2)}, ${p(3)}, ${p(4)}, ${p(5)}, ${p(6)}, ${p(7)},
-         ${p(8)}, 0, ${p(9)}, ${p(10)}, ${p(11)})
+         ${p(8)}, 0, ${p(9)}, ${p(10)}, ${p(11)}, ${p(12)}, ${p(13)})
       ${isPostgreSQL ? 'RETURNING id' : ''}
     `;
 
@@ -160,7 +164,9 @@ router.post('/', protect, async (req, res) => {
       createdBy,
       vis,
       cohortName,
-      image_url || null
+      image_url || null,
+      signup_url || null,
+      host || null
     ]);
 
     const eventId = result[0]?.id;
@@ -319,7 +325,7 @@ router.put('/:id', protect, async (req, res) => {
       return res.status(403).json({ error: 'Not authorized to edit this event' });
     }
 
-    const { title, description, date, location, category, max_attendees, points, visibility, cohort_name, image_url, signup_url } = req.body;
+    const { title, description, date, location, category, max_attendees, points, visibility, cohort_name, image_url, signup_url, host } = req.body;
 
     const updates = [];
     const vals = [];
@@ -337,6 +343,7 @@ router.put('/:id', protect, async (req, res) => {
     addF('cohort_name', cohort_name);
     addF('image_url', image_url);
     addF('signup_url', signup_url);
+    addF('host', host);
 
     if (!updates.length) return res.status(400).json({ error: 'Nothing to update' });
 

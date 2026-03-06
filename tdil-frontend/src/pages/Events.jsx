@@ -25,7 +25,8 @@ export default function Events() {
     visibility: 'public',
     cohort_name: '',
     image_url: '',
-    signup_url: ''
+    signup_url: '',
+    host: ''
   });
 
   useEffect(() => {
@@ -75,7 +76,9 @@ export default function Events() {
           createdBy: event.created_by,
           visibility: event.visibility || 'public',
           cohortName: event.cohort_name || null,
-          signupUrl: event.signup_url || null
+          signupUrl: event.signup_url || null,
+          host: event.host || null,
+          createdByName: event.createdByName || null
         }));
         setEvents(transformedEvents);
       } else {
@@ -122,13 +125,14 @@ export default function Events() {
           visibility: newEvent.visibility,
           cohort_name: newEvent.visibility === 'cohort' ? (newEvent.cohort_name || userCohort) : null,
           image_url: newEvent.image_url || null,
-          signup_url: newEvent.signup_url || null
+          signup_url: newEvent.signup_url || null,
+          host: newEvent.host || null
         })
       });
 
       if (response.ok) {
         setShowModal(false);
-        setNewEvent({ title: '', description: '', date: '', time: '', location: '', category: 'in-person', maxAttendees: 50, points: 50, visibility: 'public', cohort_name: '', image_url: '', signup_url: '' });
+        setNewEvent({ title: '', description: '', date: '', time: '', location: '', category: 'in-person', maxAttendees: 50, points: 50, visibility: 'public', cohort_name: '', image_url: '', signup_url: '', host: '' });
         setImagePreview(null);
         fetchEvents();
       } else {
@@ -191,7 +195,7 @@ export default function Events() {
   const resetModal = () => {
     setShowModal(false);
     setImagePreview(null);
-    setNewEvent({ title: '', description: '', date: '', time: '', location: '', category: 'in-person', maxAttendees: 50, points: 50, visibility: 'public', cohort_name: '', image_url: '', signup_url: '' });
+    setNewEvent({ title: '', description: '', date: '', time: '', location: '', category: 'in-person', maxAttendees: 50, points: 50, visibility: 'public', cohort_name: '', image_url: '', signup_url: '', host: '' });
   };
 
   if (loading) {
@@ -350,6 +354,17 @@ export default function Events() {
                   </div>
                 </div>
 
+                {/* Host */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Hosted By <span className="text-gray-400 font-normal">(optional)</span>
+                  </label>
+                  <input type="text" value={newEvent.host}
+                    onChange={(e) => setNewEvent({ ...newEvent, host: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g., tDIL, Indiana University, Career Services…" />
+                </div>
+
                 {/* External Sign-Up Link */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -424,6 +439,11 @@ export default function Events() {
                 {event.location && event.location !== 'TBD' && (
                   <div className="flex items-center gap-2 text-sm text-gray-600">
                     <span>📍</span>{event.location}
+                  </div>
+                )}
+                {(event.host || event.createdByName) && (
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <span>🎤</span>Hosted by {event.host || event.createdByName}
                   </div>
                 )}
                 <div className="flex items-center gap-2 text-sm text-gray-600">

@@ -18,7 +18,7 @@ const CAT_COLORS = {
 const defaultForm = {
   title: '', description: '', date: '', time: '09:00',
   location: '', category: 'in-person', max_attendees: 50,
-  points: 50, visibility: 'public', signup_url: ''
+  points: 50, visibility: 'public', signup_url: '', host: ''
 };
 
 function parseCSV(text) {
@@ -135,7 +135,8 @@ export default function ProgramCalendar() {
       max_attendees: ev.maxAttendees || ev.max_attendees || 50,
       points: ev.points || 50,
       visibility: ev.visibility || 'public',
-      signup_url: ev.signup_url || ''
+      signup_url: ev.signup_url || '',
+      host: ev.host || ''
     });
     setShowForm(true);
   };
@@ -292,6 +293,8 @@ export default function ProgramCalendar() {
                 placeholder="Location / Zoom link" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
               <input value={form.signup_url} onChange={e => setForm(f => ({...f, signup_url: e.target.value}))}
                 placeholder="Sign-up URL (Eventbrite, Calendly, Zoom, etc.)" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
+              <input value={form.host} onChange={e => setForm(f => ({...f, host: e.target.value}))}
+                placeholder="Hosted by (e.g. tDIL, Indiana University…)" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
               <div className="grid grid-cols-3 gap-2">
                 <div>
                   <label className="block text-xs text-gray-500 mb-1">Type</label>
@@ -454,6 +457,7 @@ function EventCard({ ev, isAdmin, onEdit, onDelete, expanded = false }) {
             <div className="flex items-center gap-3 text-xs text-gray-500 mb-2 flex-wrap">
               <span>📅 {dateStr}{timeStr && ` · ${timeStr}`}</span>
               {ev.location && <span>📍 {ev.location}</span>}
+              {(ev.host || ev.createdByName) && <span>🎤 {ev.host || ev.createdByName}</span>}
             </div>
             {expanded && ev.description && (
               <p className="text-sm text-gray-600 mb-2">{ev.description}</p>
