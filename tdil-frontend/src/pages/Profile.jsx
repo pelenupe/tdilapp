@@ -24,6 +24,7 @@ export default function Profile() {
     firstName: '', lastName: '', email: '', company: '', jobTitle: '', bio: '',
     cohort: '', prefix: '', suffix: '',
     linkedin_url: '', calendly_url: '', resume_url: '', coaching_url: '',
+    partner_school_name: '', partner_school_status: '',
     points: 0, level: 1, profilePicUrl: '', userType: 'member'
   };
 
@@ -105,6 +106,8 @@ export default function Profile() {
         calendly_url:  u.calendly_url  || '',
         resume_url:    u.resume_url    || '',
         coaching_url:  u.coaching_url  || '',
+        partner_school_name: u.partner_school_name || '',
+        partner_school_status: u.partner_school_status || '',
         points:    u.points    || 0,
         level:     u.level     || 1,
         profilePicUrl: u.profileImage || '',
@@ -158,6 +161,8 @@ export default function Profile() {
         calendly_url:  profile.calendly_url  || null,
         resume_url:    profile.resume_url    || null,
         coaching_url:  profile.coaching_url  || null,
+        partner_school_name: profile.partner_school_name || null,
+        partner_school_status: profile.partner_school_status || null,
       };
       if (selectedFile) profileData.profilePic = selectedFile;
 
@@ -499,6 +504,41 @@ export default function Profile() {
                 )}
               </div>
             </div>
+
+            {/* Partner School Affiliation */}
+            {(profile.partner_school_name || (isOwnProfile && isEditing)) && (
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-sm">🎓</span>
+                </div>
+                <div className="flex-1">
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Partner School Affiliation</label>
+                  {isOwnProfile && isEditing ? (
+                    <div className="flex gap-2">
+                      <input name="partner_school_name" value={profile.partner_school_name} onChange={handleChange}
+                        placeholder="School name (e.g. Indiana University)"
+                        className="flex-1 px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
+                      <select name="partner_school_status" value={profile.partner_school_status} onChange={handleChange}
+                        className="px-2 py-1.5 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-blue-500">
+                        <option value="">— Status —</option>
+                        <option value="enrolled">Current Student</option>
+                        <option value="graduated">Alumni / Graduated</option>
+                        <option value="faculty">Faculty / Staff</option>
+                      </select>
+                    </div>
+                  ) : profile.partner_school_name ? (
+                    <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium ${
+                      profile.partner_school_status === 'graduated' ? 'bg-green-100 text-green-800' :
+                      profile.partner_school_status === 'faculty' ? 'bg-purple-100 text-purple-800' :
+                      'bg-indigo-100 text-indigo-800'
+                    }`}>
+                      {profile.partner_school_status === 'graduated' ? '✅ Alumni' :
+                       profile.partner_school_status === 'faculty' ? '👩‍🏫 Faculty' : '📚 Student'} · {profile.partner_school_name}
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            )}
 
             {/* Coaching */}
             <div className="flex items-start gap-3">
