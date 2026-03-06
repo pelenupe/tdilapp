@@ -47,14 +47,19 @@ export default function PartnerPortal() {
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
   const isAdmin = ['admin', 'founder'].includes(JSON.parse(localStorage.getItem('user') || '{}').userType);
-  const isSchool = JSON.parse(localStorage.getItem('user') || '{}').userType === 'partner_school';
+  const portalUserData = JSON.parse(localStorage.getItem('user') || '{}');
+  const isSchool = portalUserData.userType === 'partner_school';
+  const [schoolEvents, setSchoolEvents] = useState([]);
+  const [showEventForm, setShowEventForm] = useState(false);
+  const [eventForm, setEventForm] = useState({ title: '', description: '', date: '', time: '09:00', location: '', category: 'in-person', signup_url: '', host: '' });
+  const [savingEvent, setSavingEvent] = useState(false);
 
   const token = localStorage.getItem('token');
 
   useEffect(() => {
     if (!token) { navigate('/portal/login'); return; }
     loadAll('');
-    if (isSchool || isAdmin) loadSchoolProfile();
+    if (isSchool || isAdmin) { loadSchoolProfile(); loadSchoolEvents(); }
   }, []);
 
   const loadSchoolProfile = async () => {
@@ -69,6 +74,54 @@ export default function PartnerPortal() {
 
   const handleProfileFieldChange = (field, value) => {
     setSchoolProfile(prev => ({ ...prev, [field]: value }));
+  };
+
+  const loadSchoolEvents = async () => {
+    try {
+      const res = await fetch('/api/events', { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) {
+        const all = await res.json();
+        // Show only events created by this school user
+        setSchoolEvents(all.filter(e => e.created_by === portalUserData.id));
+      }
+    } catch (_) {}
+  };
+
+  const handleCreateEvent = async (e) => {
+    e.preventDefault();
+    setSavingEvent(true);
+    try {
+      const payload = {
+        title: eventForm.title,
+        description: eventForm.description,
+        date: eventForm.time ? `${eventForm.date}T${eventForm.time}:00` : eventForm.date,
+        location: eventForm.location,
+        category: eventForm.category,
+        signup_url: eventForm.signup_url,
+        host: eventForm.host || schoolProfile?.company || 'Partner School',
+        points: 50,
+        visibility: 'public'
+      };
+      const res = await fetch('/api/events', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      if (res.ok) {
+        setShowEventForm(false);
+        setEventForm({ title: '', description: '', date: '', time: '09:00', location: '', category: 'in-person', signup_url: '', host: '' });
+        await loadSchoolEvents();
+      }
+    } catch (_) {}
+    setSavingEvent(false);
+  };
+
+  const handleDeleteEvent = async (id, title) => {
+    if (!window.confirm(`Delete "${title}"?`)) return;
+    try {
+      await fetch(`/api/events/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+      await loadSchoolEvents();
+    } catch (_) {}
   };
 
   const handleSaveProfile = async () => {
@@ -236,7 +289,7 @@ export default function PartnerPortal() {
           {[
             { key: 'overview', label: '📊 Top Visitors' },
             { key: 'checkins', label: `📋 Check-In Log (${ciTotal})` },
-            ...(isSchool || isAdmin ? [{ key: 'profile', label: '🏫 School Profile' }] : []),
+            ...(isSchool || isAdmin ? [{ key: 'profile', label: '🏫 School Profile' }, { key: 'events', label: `📅 Events (${schoolEvents.length})` }] : []),
           ].map(({ key, label }) => (
             <button key={key} onClick={() => setActiveTab(key)}
               className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${activeTab === key ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
@@ -450,6 +503,98 @@ export default function PartnerPortal() {
                 </button>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* School Events Tab */}
+        {activeTab === 'events' && (isSchool || isAdmin) && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+              <div>
+                <h2 className="font-semibold text-gray-900">📅 School Events</h2>
+                <p className="text-xs text-gray-500 mt-0.5">Events your school hosts — visible to all tDIL members</p>
+              </div>
+              <button onClick={() => setShowEventForm(!showEventForm)}
+                className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700">
+                {showEventForm ? 'Cancel' : '+ Add Event'}
+              </button>
+            </div>
+
+            {/* Event Create Form */}
+            {showEventForm && (
+              <div className="p-5 border-b bg-blue-50">
+                <form onSubmit={handleCreateEvent} className="space-y-3">
+                  <input required value={eventForm.title} onChange={e => setEventForm(f => ({...f, title: e.target.value}))}
+                    placeholder="Event title *" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Date *</label>
+                      <input required type="date" value={eventForm.date} onChange={e => setEventForm(f => ({...f, date: e.target.value}))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Time</label>
+                      <input type="time" value={eventForm.time} onChange={e => setEventForm(f => ({...f, time: e.target.value}))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                    </div>
+                  </div>
+                  <input value={eventForm.location} onChange={e => setEventForm(f => ({...f, location: e.target.value}))}
+                    placeholder="Location / Zoom link" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                  <input value={eventForm.signup_url} onChange={e => setEventForm(f => ({...f, signup_url: e.target.value}))}
+                    placeholder="Sign-up URL (optional — Eventbrite, Calendly, etc.)" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                  <div className="grid grid-cols-2 gap-3">
+                    <select value={eventForm.category} onChange={e => setEventForm(f => ({...f, category: e.target.value}))}
+                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
+                      <option value="in-person">In-Person</option>
+                      <option value="virtual">Virtual</option>
+                      <option value="hybrid">Hybrid</option>
+                    </select>
+                    <input value={eventForm.host} onChange={e => setEventForm(f => ({...f, host: e.target.value}))}
+                      placeholder={`Hosted by: ${schoolProfile?.company || 'your school'}`}
+                      className="px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                  </div>
+                  <textarea rows={2} value={eventForm.description} onChange={e => setEventForm(f => ({...f, description: e.target.value}))}
+                    placeholder="Description (optional)" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-none" />
+                  <div className="flex justify-end">
+                    <button type="submit" disabled={savingEvent}
+                      className="px-5 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50">
+                      {savingEvent ? 'Creating…' : 'Create Event'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {schoolEvents.length === 0 ? (
+              <div className="text-center py-12 text-gray-400">
+                <div className="text-3xl mb-2">📅</div>
+                <p className="text-sm">No events yet. Add your first one above.</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {schoolEvents.map(ev => {
+                  const d = ev.date ? new Date(ev.date) : null;
+                  return (
+                    <div key={ev.id} className="flex items-start gap-4 px-5 py-4 hover:bg-gray-50">
+                      <div className="text-center flex-shrink-0 w-12">
+                        <div className="text-xs text-gray-500">{d ? d.toLocaleString('en-US', { month: 'short' }) : ''}</div>
+                        <div className="text-xl font-bold text-blue-600">{d ? d.getDate() : '?'}</div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-gray-900 text-sm">{ev.title}</div>
+                        {ev.location && <div className="text-xs text-gray-500 mt-0.5">📍 {ev.location}</div>}
+                        {ev.signup_url && (
+                          <a href={ev.signup_url} target="_blank" rel="noopener noreferrer"
+                            className="inline-block mt-1 text-xs text-blue-600 hover:underline">🔗 Sign-up link</a>
+                        )}
+                      </div>
+                      <button onClick={() => handleDeleteEvent(ev.id, ev.title)}
+                        className="text-gray-400 hover:text-red-500 text-xs flex-shrink-0">Delete</button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 
