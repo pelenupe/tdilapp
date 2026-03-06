@@ -132,12 +132,19 @@ export default function AdminDashboard() {
     if (!window.confirm(`Permanently delete ${name}? This cannot be undone.`)) return;
     try {
       const token = localStorage.getItem('token');
-      await fetch(`/api/members/admin/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }).catch(() => {});
-      // Fallback: just remove from local state
+      const res = await fetch(`/api/members/admin/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || `Server returned ${res.status}`);
+      }
+      notify(`${name} deleted ✅`);
       setUsers(prev => prev.filter(u => u.id !== id));
-      notify(`${name} deleted`);
     } catch (err) {
-      notify('Delete failed', 'error');
+      console.error('Delete user error:', err);
+      notify(`Delete failed: ${err.message}`, 'error');
     }
   };
 
