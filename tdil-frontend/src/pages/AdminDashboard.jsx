@@ -53,20 +53,23 @@ export default function AdminDashboard() {
   const [annForm, setAnnForm] = useState({ title: '', content: '', category: 'general', priority: 'normal', featured: false });
   const [savingAnn, setSavingAnn] = useState(false);
   const [editingAnn, setEditingAnn] = useState(undefined);
+  const [observers, setObservers] = useState([]);
   const [stats, setStats] = useState({ totalUsers: 0, admins: 0, announcements: 0 });
 
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [usersRes, cohortsRes, annsRes] = await Promise.all([
+      const [usersRes, cohortsRes, annsRes, obsRes] = await Promise.all([
         API.get('/cohorts/admin/users'),
         API.get('/cohorts/names'),
-        API.get('/announcements')
+        API.get('/announcements'),
+        API.get('/chats/admin/eligible-observers').catch(() => ({ data: [] }))
       ]);
       const u = usersRes.data || [];
       setUsers(u);
       setCohortOptions(cohortsRes.data || []);
       setAnnouncements(annsRes.data || []);
+      setObservers(obsRes.data || []);
       setStats({
         totalUsers: u.length,
         admins: u.filter(x => ['admin','founder'].includes(x.userType)).length,
@@ -189,9 +192,20 @@ export default function AdminDashboard() {
 
   if (!user || !['admin', 'founder'].includes(user.userType)) return null;
 
+  const toggleObserver = async (userId, currentEnabled) => {
+    try {
+      await API.put(`/chats/admin/observers/${userId}`, { enabled: !currentEnabled });
+      notify(`Observer ${!currentEnabled ? 'added' : 'removed'} ✅`);
+      setObservers(prev => prev.map(o => o.id === userId ? { ...o, chat_observer: !currentEnabled ? 1 : 0 } : o));
+    } catch (err) {
+      notify('Failed to update observer', 'error');
+    }
+  };
+
   const TABS = [
     { key: 'users', label: `👥 Users (${users.length})` },
     { key: 'announcements', label: `📢 Announcements (${announcements.length})` },
+    { key: 'observers', label: `👁 Chat Observers (${observers.filter(o => o.chat_observer).length})` },
     { key: 'overview', label: '📊 Overview' }
   ];
 
@@ -456,6 +470,52 @@ export default function AdminDashboard() {
               </table>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── CHAT OBSERVERS TAB ── */}
+      {tab === 'observers' && (
+        <div className="space-y-4">
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 text-sm text-blue-800">
+            <strong>💡 Chat Observers</strong> are admins/founders who are automatically added to <em>every</em> group chat (including all future chats). They can read and post in any chat. Currently active: <strong>{observers.filter(o => o.chat_observer).length}</strong>
+          </div>
+          <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+            <div className="px-5 py-3 border-b bg-gray-50">
+              <h3 className="font-semibold text-gray-900 text-sm">Admins & Founders — Toggle Chat Observer Status</h3>
+            </div>
+            {observers.length === 0 ? (
+              <div className="py-12 text-center text-gray-400">No admins or founders found.</div>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {observers.map(obs => (
+                  <div key={obs.id} className="flex items-center justify-between px-5 py-3 hover:bg-gray-50">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-purple-600 text-xs font-bold">
+                        {obs.firstName?.[0]}{obs.lastName?.[0]}
+                      </div>
+                      <div>
+                        <div className="font-medium text-gray-900 text-sm">{obs.firstName} {obs.lastName}</div>
+                        <div className="text-xs text-gray-400">{obs.email} · <span className="capitalize">{obs.userType}</span></div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      {obs.chat_observer ? (
+                        <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded-full font-medium">👁 Active Observer</span>
+                      ) : (
+                        <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full">Not observing</span>
+                      )}
+                      <button
+                        onClick={() => toggleObserver(obs.id, !!obs.chat_observer)}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${obs.chat_observer ? 'bg-blue-600' : 'bg-gray-200'}`}
+                      >
+                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${obs.chat_observer ? 'translate-x-6' : 'translate-x-1'}`} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
 

@@ -2,6 +2,40 @@ const { query } = require('../config/database');
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
+// Add all chat_observer users to a specific chat
+const addObserversToChat = async (chatId) => {
+  try {
+    const observers = await query(
+      `SELECT id FROM users WHERE chat_observer = 1`
+    );
+    for (const obs of observers) {
+      await query(
+        `INSERT OR IGNORE INTO group_chat_members (group_chat_id, user_id, role) VALUES (?, ?, 'admin')`,
+        [chatId, obs.id]
+      );
+    }
+  } catch (err) {
+    console.warn('addObserversToChat error (non-fatal):', err.message);
+  }
+};
+
+// Ensure a chat_observer user is in all active group chats
+const ensureObserverInAllChats = async (userId) => {
+  try {
+    const chats = await query(
+      `SELECT rowid as id FROM group_chats WHERE is_active = 1`
+    );
+    for (const chat of chats) {
+      await query(
+        `INSERT OR IGNORE INTO group_chat_members (group_chat_id, user_id, role) VALUES (?, ?, 'admin')`,
+        [chat.id, userId]
+      );
+    }
+  } catch (err) {
+    console.warn('ensureObserverInAllChats error (non-fatal):', err.message);
+  }
+};
+
 // Ensure TDIL Staff chat exists and that all admins/founders are members
 const ensureStaffChat = async (userId) => {
   try {
@@ -60,6 +94,14 @@ const getUserGroupChats = async (req, res) => {
     // Auto-add admins to staff chat
     if (isAdminUser) {
       await ensureStaffChat(userId);
+    }
+
+    // Auto-add chat observers to all chats
+    const obsCheck = await query(
+      `SELECT chat_observer FROM users WHERE id = ?`, [userId]
+    );
+    if (obsCheck[0]?.chat_observer) {
+      await ensureObserverInAllChats(userId);
     }
 
     // Get all chats this user is a member of
@@ -451,6 +493,8 @@ const createGroupChat = async (req, res) => {
     }
 
     const newChat = await query('SELECT rowid as id, * FROM group_chats WHERE rowid = ?', [chatId]);
+    // Auto-add all chat_observers to the new chat
+    await addObserversToChat(chatId);
     res.json({ ...newChat[0], id: chatId });
   } catch (error) {
     console.error('Error creating group chat:', error);
