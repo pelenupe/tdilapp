@@ -8,7 +8,7 @@ export default function PortalLogin() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [portalType, setPortalType] = useState('partner'); // 'partner' | 'sponsor'
+  const [portalType, setPortalType] = useState('partner'); // 'partner' | 'employer' | 'sponsor'
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -67,26 +67,31 @@ export default function PortalLogin() {
         <p className="text-blue-200 text-sm mt-1">Analytics & insights for partners, schools & sponsors</p>
       </div>
 
-      {/* Portal type selector */}
+      {/* Portal type selector — 3 tabs */}
       <div className="flex gap-2 mb-6">
-        <button onClick={() => setPortalType('partner')}
-          className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${portalType === 'partner' ? 'bg-white text-blue-900 shadow' : 'bg-blue-700 text-blue-100 hover:bg-blue-600'}`}>
-          🏫 Partner School / Employer
-        </button>
-        <button onClick={() => setPortalType('sponsor')}
-          className={`px-5 py-2 rounded-full text-sm font-medium transition-all ${portalType === 'sponsor' ? 'bg-white text-blue-900 shadow' : 'bg-blue-700 text-blue-100 hover:bg-blue-600'}`}>
-          🤝 Sponsor
-        </button>
+        {[
+          { key: 'partner', label: '🏫 Partner School' },
+          { key: 'employer', label: '💼 Employer' },
+          { key: 'sponsor', label: '🤝 Sponsor' }
+        ].map(tab => (
+          <button key={tab.key} onClick={() => setPortalType(tab.key)}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${portalType === tab.key ? 'bg-white text-blue-900 shadow' : 'bg-blue-700 text-blue-100 hover:bg-blue-600'}`}>
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       {/* Login card */}
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
         <h2 className="text-xl font-bold text-gray-900 mb-1">
-          {portalType === 'partner' ? '🏫 Partner School / Employer Login' : '🤝 Sponsor Login'}
+          {portalType === 'partner' ? '🏫 Partner School Login' :
+           portalType === 'employer' ? '💼 Employer Login' : '🤝 Sponsor Login'}
         </h2>
         <p className="text-sm text-gray-500 mb-6">
           {portalType === 'partner'
             ? 'View member check-ins, visit data, and engagement at your institution.'
+            : portalType === 'employer'
+            ? 'Post jobs, manage listings, and connect with tDIL members.'
             : 'View check-ins at your location, points awarded, and member activity.'}
         </p>
 
