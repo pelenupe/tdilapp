@@ -31,6 +31,7 @@ import SponsorPortal from './pages/SponsorPortal';
 import AdminUsers from './pages/AdminUsers';
 import AdminDashboard from './pages/AdminDashboard';
 import ProgramCalendar from './pages/ProgramCalendar';
+import EmployerPortal from './pages/EmployerPortal';
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -135,6 +136,7 @@ function App() {
           <Route path="/portal/login" element={<PortalLogin />} />
           <Route path="/portal/partner" element={<PartnerPortal />} />
           <Route path="/portal/sponsor" element={<SponsorPortal />} />
+          <Route path="/portal/employer" element={<EmployerPortal />} />
           <Route path="/portal" element={<Navigate to="/portal/login" replace />} />
         </Routes>
       </div>
