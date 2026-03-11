@@ -20,8 +20,12 @@ export default function GroupChats() {
   const [discoverChats, setDiscoverChats] = useState([]);
   const [joiningChat, setJoiningChat] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [createForm, setCreateForm] = useState({ name: '' });
+  const [createForm, setCreateForm] = useState({ name: '', description: '' });
   const [creating, setCreating] = useState(false);
+  const [memberSearch, setMemberSearch] = useState('');
+  const [memberResults, setMemberResults] = useState([]);
+  const [selectedMembers, setSelectedMembers] = useState([]);
+  const [searchingMembers, setSearchingMembers] = useState(false);
   // New Direct Message
   const [showNewDM, setShowNewDM] = useState(false);
   const [dmSearch, setDmSearch] = useState('');
@@ -128,6 +132,21 @@ export default function GroupChats() {
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const searchMembers = async (q) => {
+    if (!q.trim()) { setMemberResults([]); return; }
+    setSearchingMembers(true);
+    try {
+      const r = await API.get('/members');
+      const all = r.data || [];
+      setMemberResults(all.filter(m =>
+        m.id !== user?.id &&
+        !selectedMembers.find(s => s.id === m.id) &&
+        `${m.firstName} ${m.lastName} ${m.company || ''}`.toLowerCase().includes(q.toLowerCase())
+      ).slice(0, 8));
+    } catch (_) {}
+    setSearchingMembers(false);
   };
 
   const fetchAdminFlags = async () => {
@@ -285,38 +304,84 @@ export default function GroupChats() {
       {/* Create Group Chat Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-5">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md p-5">
             <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
               <Plus size={16} className="text-blue-600" /> Create Group Chat
             </h3>
             <div className="space-y-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Group Name *</label>
-                <input
-                  type="text"
-                  value={createForm.name}
-                  onChange={e => setCreateForm({ name: e.target.value })}
+                <input type="text" value={createForm.name}
+                  onChange={e => setCreateForm(f => ({ ...f, name: e.target.value }))}
                   placeholder="e.g. Alumni Networking, Study Group…"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-                  autoFocus
-                />
+                  autoFocus />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Description (optional)</label>
+                <input type="text" value={createForm.description}
+                  onChange={e => setCreateForm(f => ({ ...f, description: e.target.value }))}
+                  placeholder="What's this group about?"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
+              </div>
+              {/* Member search */}
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Add Members — members, schools, employers, sponsors (optional)</label>
+                <div className="relative">
+                  <input type="text" value={memberSearch}
+                    onChange={e => { setMemberSearch(e.target.value); searchMembers(e.target.value); }}
+                    placeholder="Search by name or company…"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
+                  {(memberResults.length > 0 || searchingMembers) && (
+                    <div className="absolute top-full left-0 right-0 z-20 bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-40 overflow-y-auto">
+                      {searchingMembers ? (
+                        <div className="px-3 py-2 text-xs text-gray-400">Searching…</div>
+                      ) : memberResults.map(m => (
+                        <button type="button" key={m.id}
+                          onClick={() => { setSelectedMembers(p => [...p, m]); setMemberResults([]); setMemberSearch(''); }}
+                          className="w-full flex items-center gap-2 px-3 py-2 hover:bg-blue-50 text-left text-xs">
+                          <div className="w-6 h-6 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xs font-bold flex-shrink-0">
+                            {m.firstName?.[0]}{m.lastName?.[0]}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-gray-900">{m.firstName} {m.lastName}</div>
+                            <div className="text-gray-400 truncate">{m.company ? `${m.company} · ` : ''}{m.userType}</div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {selectedMembers.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {selectedMembers.map(m => (
+                      <span key={m.id} className="inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-800 rounded-full text-xs">
+                        {m.firstName} {m.lastName}
+                        <button type="button" onClick={() => setSelectedMembers(p => p.filter(x => x.id !== m.id))} className="hover:text-red-500 ml-0.5 font-bold">×</button>
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
               <div className="flex justify-end gap-2 pt-1">
-                <button
-                  onClick={() => { setShowCreateModal(false); setCreateForm({ name: '' }); }}
-                  className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
-                >
-                  Cancel
-                </button>
+                <button onClick={() => { setShowCreateModal(false); setCreateForm({ name: '', description: '' }); setSelectedMembers([]); setMemberSearch(''); setMemberResults([]); }}
+                  className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
                 <button
                   onClick={async () => {
                     if (!createForm.name.trim()) return;
                     setCreating(true);
                     try {
-                      await API.post('/chats', { name: createForm.name.trim() });
-                      notify('Group chat created! 🎉');
+                      const r = await API.post('/chats', {
+                        name: createForm.name.trim(),
+                        description: createForm.description.trim() || undefined,
+                        memberIds: selectedMembers.map(m => m.id)
+                      });
+                      notify(`Group "${createForm.name.trim()}" created! 🎉`);
                       setShowCreateModal(false);
-                      setCreateForm({ name: '' });
+                      setCreateForm({ name: '', description: '' });
+                      setSelectedMembers([]);
+                      setMemberSearch('');
+                      setMemberResults([]);
                       await fetchChats();
                     } catch (err) {
                       notify(err.response?.data?.message || 'Failed to create group', 'error');
@@ -325,9 +390,8 @@ export default function GroupChats() {
                     }
                   }}
                   disabled={creating || !createForm.name.trim()}
-                  className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium"
-                >
-                  {creating ? 'Creating…' : 'Create'}
+                  className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium">
+                  {creating ? 'Creating…' : `Create${selectedMembers.length > 0 ? ` (+${selectedMembers.length} members)` : ''}`}
                 </button>
               </div>
             </div>
