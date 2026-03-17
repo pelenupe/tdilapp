@@ -9,24 +9,39 @@ const nodemailer = require('nodemailer');
 const TDIL_BRAND_COLOR = '#016a91';
 const APP_URL = process.env.APP_URL || 'https://tdilapp.com';
 const FROM_NAME = 'tDIL Community';
-const FROM_EMAIL = process.env.EMAIL_USER || 'noreply@tdilapp.com';
+const FROM_EMAIL = process.env.EMAIL_FROM || process.env.EMAIL_USER || 'noreply@tdilapp.com';
 
-// Build transporter — gracefully disabled if credentials not set
+// Build transporter — supports any SMTP provider (Resend, SendGrid, Mailgun, Postmark, etc.)
+// Or falls back to Gmail if EMAIL_USER/EMAIL_PASS are set
 let transporter = null;
 
 function getTransporter() {
   if (transporter) return transporter;
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    return null; // silently skip — will log a warning instead
+
+  // Generic SMTP (Resend, SendGrid SMTP relay, Mailgun, Postmark, etc.)
+  if (process.env.SMTP_HOST && process.env.SMTP_PASS) {
+    transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT) || 587,
+      secure: parseInt(process.env.SMTP_PORT) === 465,
+      auth: {
+        user: process.env.SMTP_USER || 'apikey',
+        pass: process.env.SMTP_PASS
+      }
+    });
+    return transporter;
   }
-  transporter = nodemailer.createTransport({
-    service: process.env.EMAIL_SERVICE || 'gmail',
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS
-    }
-  });
-  return transporter;
+
+  // Legacy Gmail fallback
+  if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+    transporter = nodemailer.createTransport({
+      service: process.env.EMAIL_SERVICE || 'gmail',
+      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
+    });
+    return transporter;
+  }
+
+  return null; // No credentials — log only
 }
 
 // ── HTML email wrapper ────────────────────────────────────────────────────────
