@@ -1,5 +1,6 @@
 const { query } = require('../config/database');
 const { awardPoints } = require('./pointsController');
+const { sendConnectionEmail } = require('../services/emailService');
 
 // Create a connection between two users
 const createConnection = async (req, res) => {
@@ -34,6 +35,17 @@ const createConnection = async (req, res) => {
     // Award points to BOTH users when a connection is made
     const userPointsResult = await awardPoints(userId, 'CONNECTION', `Connected with user ${targetUserId}`, { targetUserId });
     const targetPointsResult = await awardPoints(targetUserId, 'CONNECTION', `Connected with user ${userId}`, { targetUserId: userId });
+
+    // Send email notifications to both users (non-blocking)
+    try {
+      const users = await query('SELECT id, firstName, lastName, email FROM users WHERE id = ? OR id = ?', [userId, targetUserId]);
+      const initiator = users.find(u => u.id === userId);
+      const target = users.find(u => u.id === parseInt(targetUserId));
+      if (initiator && target) {
+        sendConnectionEmail({ toEmail: target.email, toName: `${target.firstName} ${target.lastName}`, fromName: `${initiator.firstName} ${initiator.lastName}`, fromId: userId }).catch(() => {});
+        sendConnectionEmail({ toEmail: initiator.email, toName: `${initiator.firstName} ${initiator.lastName}`, fromName: `${target.firstName} ${target.lastName}`, fromId: targetUserId }).catch(() => {});
+      }
+    } catch (_) {}
 
     // Get updated user data (use lowercase column names for PostgreSQL)
     const usersData = await query(

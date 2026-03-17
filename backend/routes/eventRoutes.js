@@ -2,6 +2,7 @@ const express = require('express');
 const { query, isPostgreSQL } = require('../config/database');
 const { protect } = require('../middleware/authMiddleware');
 const { createNotification } = require('./notificationRoutes');
+const { sendEventRegistrationEmail } = require('../services/emailService');
 const router = express.Router();
 
 // Helper: positional placeholder
@@ -254,6 +255,22 @@ router.post('/:id/register', protect, async (req, res) => {
         });
       }
     } catch (_) { /* notification failure is non-fatal */ }
+
+    // Send event registration confirmation email (non-blocking)
+    try {
+      const [eventDetails] = await query(`SELECT title, date, location, points FROM events WHERE id = ${p(1)}`, [eventId]);
+      const [userDetails] = await query(`SELECT firstName, email FROM users WHERE id = ${p(1)}`, [userId]);
+      if (eventDetails && userDetails) {
+        sendEventRegistrationEmail({
+          toEmail: userDetails.email,
+          toName: userDetails.firstName,
+          eventTitle: eventDetails.title,
+          eventDate: eventDetails.date,
+          eventLocation: eventDetails.location,
+          pointsAwarded: eventDetails.points || 50
+        }).catch(() => {});
+      }
+    } catch (_) {}
 
     res.json({ message: 'Successfully registered for event' });
   } catch (err) {

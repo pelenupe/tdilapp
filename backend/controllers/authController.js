@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { query } = require('../config/database');
 const { useToken, getTokenInfo } = require('./inviteController');
+const { sendWelcomeEmail } = require('../services/emailService');
 const { awardPoints } = require('./pointsController');
 const { autoAssignCohort } = require('./cohortController');
 const { autoConnectAlmaMater } = require('./analyticsController');
@@ -73,6 +74,9 @@ const register = async (req, res) => {
       process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '7d' }
     );
+
+    // Send welcome email (non-blocking)
+    sendWelcomeEmail({ toEmail: email, firstName }).catch(() => {});
 
     return res.status(201).json({
       token: jwtToken,

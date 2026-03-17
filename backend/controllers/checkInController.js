@@ -1,4 +1,5 @@
 const { query } = require('../config/database');
+const { sendCheckinEmail } = require('../services/emailService');
 const { awardPoints } = require('./pointsController');
 const { getTierPoints, distanceMeters } = require('../services/sponsorService');
 
@@ -225,6 +226,20 @@ const createCheckIn = async (req, res) => {
         validationMethod: sponsorMatch.validationMethod
       });
     }
+
+    // Send check-in confirmation email (non-blocking)
+    try {
+      const userRows = await query('SELECT firstName, email, points FROM users WHERE id = ?', [userId]);
+      if (userRows[0]) {
+        sendCheckinEmail({
+          toEmail: userRows[0].email,
+          toName: userRows[0].firstName,
+          venue,
+          pointsAwarded: totalPointsAwarded,
+          totalPoints: userRows[0].points
+        }).catch(() => {});
+      }
+    } catch (_) {}
 
     res.json({
       message: 'Check-in successful',
