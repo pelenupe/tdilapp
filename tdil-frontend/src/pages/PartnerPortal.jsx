@@ -64,10 +64,21 @@ export default function PartnerPortal() {
 
   const loadSchoolProfile = async () => {
     try {
-      const res = await fetch('/api/portal/school-profile', { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch('/api/portal/org-profile', { headers: { Authorization: `Bearer ${token}` } });
       if (res.ok) {
         const data = await res.json();
-        setSchoolProfile(data.school);
+        // Map org_profiles fields to the shape the form expects
+        const org = data.org || {};
+        setSchoolProfile({
+          ...org,
+          bio: org.description || '',
+          jobTitle: org.description ? '' : '',
+          school_zoom_url: org.zoom_url || '',
+          school_intro_video_url: org.intro_video_url || '',
+          school_materials_url: org.materials_url || '',
+          school_contact_name: org.contact_name || '',
+          school_contact_email: org.contact_email || '',
+        });
       }
     } catch (_) {}
   };
@@ -127,18 +138,18 @@ export default function PartnerPortal() {
   const handleSaveProfile = async () => {
     setProfileSaving(true);
     try {
-      const res = await fetch('/api/portal/school-profile', {
+      const res = await fetch('/api/portal/org-profile', {
         method: 'PUT',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          bio: schoolProfile.bio,
-          jobTitle: schoolProfile.jobTitle,
+          description: schoolProfile.bio,
           calendly_url: schoolProfile.calendly_url,
-          school_intro_video_url: schoolProfile.school_intro_video_url,
-          school_zoom_url: schoolProfile.school_zoom_url,
-          school_contact_name: schoolProfile.school_contact_name,
-          school_contact_email: schoolProfile.school_contact_email,
-          school_materials_url: schoolProfile.school_materials_url,
+          intro_video_url: schoolProfile.school_intro_video_url,
+          zoom_url: schoolProfile.school_zoom_url,
+          contact_name: schoolProfile.school_contact_name,
+          contact_email: schoolProfile.school_contact_email,
+          materials_url: schoolProfile.school_materials_url,
+          website: schoolProfile.website,
         })
       });
       if (res.ok) {

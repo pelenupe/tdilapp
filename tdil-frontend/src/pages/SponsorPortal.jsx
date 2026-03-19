@@ -37,33 +37,43 @@ export default function SponsorPortal() {
   const [topVisitors, setTopVisitors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+  const [orgProfile, setOrgProfile] = useState(null);
   const [sponsorProfile, setSponsorProfile] = useState({
-    company: portalUser?.company || '',
-    bio: portalUser?.bio || '',
-    jobTitle: portalUser?.jobTitle || '',
-    linkedin_url: portalUser?.linkedin_url || '',
-    website: portalUser?.website || ''
+    name: '', description: '', linkedin_url: '', website: '', contact_name: '', contact_email: '', phone: ''
   });
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
   const token = localStorage.getItem('token');
 
+  const loadOrgProfile = async () => {
+    try {
+      const res = await fetch('/api/portal/org-profile', { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) {
+        const data = await res.json();
+        const org = data.org || {};
+        setOrgProfile(org);
+        setSponsorProfile({
+          name: org.name || '',
+          description: org.description || '',
+          linkedin_url: org.linkedin_url || '',
+          website: org.website || '',
+          contact_name: org.contact_name || '',
+          contact_email: org.contact_email || '',
+          phone: org.phone || ''
+        });
+      }
+    } catch (_) {}
+  };
+
   const handleSaveProfile = async () => {
     setSavingProfile(true);
     try {
-      const res = await fetch('/api/members/update', {
+      const res = await fetch('/api/portal/org-profile', {
         method: 'PUT',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          company: sponsorProfile.company,
-          bio: sponsorProfile.bio,
-          jobTitle: sponsorProfile.jobTitle,
-          linkedin_url: sponsorProfile.linkedin_url
-        })
+        body: JSON.stringify(sponsorProfile)
       });
       if (res.ok) {
-        const updated = { ...portalUser, ...sponsorProfile };
-        localStorage.setItem('user', JSON.stringify(updated));
         setProfileSaved(true);
         setTimeout(() => setProfileSaved(false), 3000);
       }
@@ -106,6 +116,7 @@ export default function SponsorPortal() {
       setStats(statsData);
       setTopVisitors(topData);
       await loadCheckins(1, companyOverride);
+      await loadOrgProfile();
     } catch (err) {
       console.error(err);
     } finally {
@@ -361,21 +372,35 @@ export default function SponsorPortal() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">Company / Organization Name</label>
-                  <input value={sponsorProfile.company} onChange={e => setSponsorProfile(p => ({...p, company: e.target.value}))}
+                  <input value={sponsorProfile.name} onChange={e => setSponsorProfile(p => ({...p, name: e.target.value}))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500" />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">Industry / Category</label>
-                  <input value={sponsorProfile.jobTitle} onChange={e => setSponsorProfile(p => ({...p, jobTitle: e.target.value}))}
-                    placeholder="e.g. Financial Services, Technology, Healthcare"
+                  <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">Phone / Contact Number (optional)</label>
+                  <input value={sponsorProfile.phone} onChange={e => setSponsorProfile(p => ({...p, phone: e.target.value}))}
+                    placeholder="(317) 555-0100"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500" />
                 </div>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">About Your Organization</label>
-                <textarea rows={4} value={sponsorProfile.bio} onChange={e => setSponsorProfile(p => ({...p, bio: e.target.value}))}
+                <textarea rows={4} value={sponsorProfile.description} onChange={e => setSponsorProfile(p => ({...p, description: e.target.value}))}
                   placeholder="Tell the tDIL community about your company, mission, and why you support tDIL..."
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 resize-none" />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">Primary Contact Name</label>
+                  <input value={sponsorProfile.contact_name} onChange={e => setSponsorProfile(p => ({...p, contact_name: e.target.value}))}
+                    placeholder="Jane Smith"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">Contact Email</label>
+                  <input value={sponsorProfile.contact_email} onChange={e => setSponsorProfile(p => ({...p, contact_email: e.target.value}))}
+                    placeholder="partnerships@company.com"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500" />
+                </div>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>

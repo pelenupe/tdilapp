@@ -25,15 +25,35 @@ export default function EmployerPortal() {
   const [saving, setSaving] = useState(false);
   const [notification, setNotification] = useState(null);
 
-  // Company profile state
+  // Company profile state — backed by org_profiles table
   const [companyProfile, setCompanyProfile] = useState({
-    company: portalUser.company || '',
-    bio: portalUser.bio || '',
-    jobTitle: portalUser.jobTitle || '',
-    linkedin_url: portalUser.linkedin_url || '',
-    website: ''
+    name: portalUser.company || '',
+    description: '',
+    linkedin_url: '',
+    website: '',
+    contact_name: '',
+    contact_email: ''
   });
   const [savingProfile, setSavingProfile] = useState(false);
+  const [profileSaved, setProfileSaved] = useState(false);
+
+  const loadOrgProfile = async () => {
+    try {
+      const res = await fetch('/api/portal/org-profile', { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) {
+        const data = await res.json();
+        const org = data.org || {};
+        setCompanyProfile({
+          name: org.name || portalUser.company || '',
+          description: org.description || '',
+          linkedin_url: org.linkedin_url || '',
+          website: org.website || '',
+          contact_name: org.contact_name || '',
+          contact_email: org.contact_email || ''
+        });
+      }
+    } catch (_) {}
+  };
 
   const notify = (msg, type = 'success') => {
     setNotification({ msg, type });
@@ -46,6 +66,7 @@ export default function EmployerPortal() {
       navigate('/portal/login'); return;
     }
     fetchMyJobs();
+    loadOrgProfile();
   }, []);
 
   const fetchMyJobs = async () => {
@@ -127,20 +148,15 @@ export default function EmployerPortal() {
   const handleSaveProfile = async () => {
     setSavingProfile(true);
     try {
-      const res = await fetch('/api/members/update', {
+      const res = await fetch('/api/portal/org-profile', {
         method: 'PUT',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          company: companyProfile.company,
-          bio: companyProfile.bio,
-          jobTitle: companyProfile.jobTitle,
-          linkedin_url: companyProfile.linkedin_url
-        })
+        body: JSON.stringify(companyProfile)
       });
       if (res.ok) {
-        const updated = { ...portalUser, ...companyProfile };
-        localStorage.setItem('user', JSON.stringify(updated));
         notify('Profile saved ✅');
+        setProfileSaved(true);
+        setTimeout(() => setProfileSaved(false), 3000);
       }
     } catch (_) { notify('Failed to save', 'error'); }
     setSavingProfile(false);
@@ -332,20 +348,32 @@ export default function EmployerPortal() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">Company Name</label>
-                  <input value={companyProfile.company} onChange={e => setCompanyProfile(p => ({...p, company: e.target.value}))}
+                  <input value={companyProfile.name} onChange={e => setCompanyProfile(p => ({...p, name: e.target.value}))}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">Industry / Department</label>
-                  <input value={companyProfile.jobTitle} onChange={e => setCompanyProfile(p => ({...p, jobTitle: e.target.value}))}
-                    placeholder="e.g. Technology, Healthcare" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
+                  <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">Website</label>
+                  <input value={companyProfile.website} onChange={e => setCompanyProfile(p => ({...p, website: e.target.value}))}
+                    placeholder="https://yourcompany.com" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
                 </div>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">Company Description</label>
-                <textarea rows={4} value={companyProfile.bio} onChange={e => setCompanyProfile(p => ({...p, bio: e.target.value}))}
+                <textarea rows={4} value={companyProfile.description} onChange={e => setCompanyProfile(p => ({...p, description: e.target.value}))}
                   placeholder="Tell tDIL members about your company, culture, and what makes you a great employer…"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 resize-none" />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">Hiring Contact Name</label>
+                  <input value={companyProfile.contact_name} onChange={e => setCompanyProfile(p => ({...p, contact_name: e.target.value}))}
+                    placeholder="Recruiter or HR contact" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">Hiring Contact Email</label>
+                  <input value={companyProfile.contact_email} onChange={e => setCompanyProfile(p => ({...p, contact_email: e.target.value}))}
+                    placeholder="hiring@yourcompany.com" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500" />
+                </div>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">LinkedIn Company Page</label>

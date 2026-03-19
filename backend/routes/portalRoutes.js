@@ -291,4 +291,184 @@ router.put('/admin/feature/:schoolId', protect, async (req, res) => {
   }
 });
 
+// ─── Org Profile (school / sponsor / employer) ───────────────────────────────
+
+// Helper: find or create org record for the current user
+const getOrCreateOrg = async (user) => {
+  // 1) If user already has org_id, return that org
+  if (user.org_id) {
+    const rows = await query(`SELECT * FROM org_profiles WHERE id = ${p(1)}`, [user.org_id]);
+    if (rows.length) return rows[0];
+  }
+  // 2) Try to find by company name + type
+  if (user.company) {
+    const rows = await query(
+      `SELECT * FROM org_profiles WHERE LOWER(name) = LOWER(${p(1)}) AND org_type = ${p(2)}`,
+      [user.company, user.userType]
+    );
+    if (rows.length) {
+      // Link user to found org
+      await query(`UPDATE users SET org_id = ${p(1)} WHERE id = ${p(2)}`, [rows[0].id, user.id]);
+      return rows[0];
+    }
+  }
+  // 3) Create new org
+  const name = user.company || `${user.firstName} ${user.lastName}`;
+  await query(
+    `INSERT INTO org_profiles (org_type, name, contact_name, contact_email)
+     VALUES (${p(1)}, ${p(2)}, ${p(3)}, ${p(4)})`,
+    [user.userType, name, `${user.firstName} ${user.lastName}`, user.email]
+  );
+  const created = await query(
+    `SELECT * FROM org_profiles WHERE LOWER(name)=LOWER(${p(1)}) AND org_type=${p(2)} ORDER BY id DESC LIMIT 1`,
+    [name, user.userType]
+  );
+  if (created.length) {
+    await query(`UPDATE users SET org_id = ${p(1)} WHERE id = ${p(2)}`, [created[0].id, user.id]);
+    return created[0];
+  }
+  return null;
+};
+
+// GET /api/portal/org-profile
+router.get('/org-profile', protect, portalOnly, async (req, res) => {
+  try {
+    const userRows = await query(
+      `SELECT id, email, firstName, lastName, company, jobTitle, userType, org_id FROM users WHERE id = ${p(1)}`,
+      [req.user.id]
+    );
+    if (!userRows.length) return res.status(404).json({ message: 'User not found' });
+    const user = userRows[0];
+    const org = await getOrCreateOrg(user);
+    res.json({ org: org || null });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', details: err.message });
+  }
+});
+
+// PUT /api/portal/org-profile
+router.put('/org-profile', protect, portalOnly, async (req, res) => {
+  try {
+    const userRows = await query(
+      `SELECT id, email, firstName, lastName, company, jobTitle, userType, org_id FROM users WHERE id = ${p(1)}`,
+      [req.user.id]
+    );
+    if (!userRows.length) return res.status(404).json({ message: 'User not found' });
+    const user = userRows[0];
+    const org = await getOrCreateOrg(user);
+    if (!org) return res.status(500).json({ message: 'Could not create org profile' });
+
+    const allowed = ['name','description','website','linkedin_url','logo_url',
+                     'contact_name','contact_email','phone',
+                     'calendly_url','zoom_url','materials_url','intro_video_url','featured'];
+    const updates = [];
+    const vals = [];
+    let i = 1;
+    for (const key of allowed) {
+      if (req.body[key] !== undefined) {
+        updates.push(`${key} = ${p(i++)}`);
+        vals.push(req.body[key] ?? null);
+      }
+    }
+    if (!updates.length) return res.status(400).json({ message: 'Nothing to update' });
+
+    vals.push(org.id);
+    await query(
+      `UPDATE org_profiles SET ${updates.join(', ')}, updated_at = ${isPostgreSQL ? 'NOW()' : "datetime('now')"} WHERE id = ${p(i)}`,
+      vals
+    );
+
+    // Also sync company name back to user record if name changed
+    if (req.body.name && req.body.name !== user.company) {
+      await query(`UPDATE users SET company = ${p(1)} WHERE org_id = ${p(2)}`, [req.body.name, org.id]);
+    }
+
+    const updated = await query(`SELECT * FROM org_profiles WHERE id = ${p(1)}`, [org.id]);
+    res.json({ message: 'Profile updated', org: updated[0] });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', details: err.message });
+  }
+});
+
+// GET /api/portal/all-orgs?type=partner_school|sponsor|employer  (public)
+router.get('/all-orgs', async (req, res) => {
+  try {
+    const { type } = req.query;
+    const rows = type
+      ? await query(`SELECT * FROM org_profiles WHERE org_type = ${p(1)} ORDER BY featured DESC, name ASC`, [type])
+      : await query(`SELECT * FROM org_profiles ORDER BY org_type, featured DESC, name ASC`);
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', details: err.message });
+  }
+});
+
+// ─── Admin: manage org profiles & create org users ───────────────────────────
+
+// GET /api/portal/admin/orgs
+router.get('/admin/orgs', protect, async (req, res) => {
+  try {
+    if (!['admin','founder'].includes(req.user?.userType)) return res.status(403).json({ message: 'Admin only' });
+    const rows = await query(`SELECT o.*, COUNT(u.id) as user_count
+      FROM org_profiles o LEFT JOIN users u ON u.org_id = o.id
+      GROUP BY o.id ORDER BY o.org_type, o.name`);
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', details: err.message });
+  }
+});
+
+// POST /api/portal/admin/orgs — admin creates a new org profile
+router.post('/admin/orgs', protect, async (req, res) => {
+  try {
+    if (!['admin','founder'].includes(req.user?.userType)) return res.status(403).json({ message: 'Admin only' });
+    const { org_type, name, description, website, linkedin_url, contact_name, contact_email, phone } = req.body;
+    if (!org_type || !name) return res.status(400).json({ message: 'org_type and name required' });
+    await query(
+      `INSERT INTO org_profiles (org_type, name, description, website, linkedin_url, contact_name, contact_email, phone)
+       VALUES (${p(1)},${p(2)},${p(3)},${p(4)},${p(5)},${p(6)},${p(7)},${p(8)})`,
+      [org_type, name, description||null, website||null, linkedin_url||null, contact_name||null, contact_email||null, phone||null]
+    );
+    const created = await query(
+      `SELECT * FROM org_profiles WHERE name=${p(1)} AND org_type=${p(2)} ORDER BY id DESC LIMIT 1`,
+      [name, org_type]
+    );
+    res.json({ message: 'Org created', org: created[0] });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', details: err.message });
+  }
+});
+
+// POST /api/portal/admin/create-org-user — admin creates a user account for a school/sponsor/employer
+router.post('/admin/create-org-user', protect, async (req, res) => {
+  try {
+    if (!['admin','founder'].includes(req.user?.userType)) return res.status(403).json({ message: 'Admin only' });
+    const { email, firstName, lastName, password, userType, org_id, company, jobTitle } = req.body;
+    if (!email || !firstName || !lastName || !password || !userType) {
+      return res.status(400).json({ message: 'email, firstName, lastName, password, userType required' });
+    }
+    const allowed = ['partner_school','sponsor','employer','member','admin'];
+    if (!allowed.includes(userType)) return res.status(400).json({ message: 'Invalid userType' });
+
+    const bcrypt = require('bcryptjs');
+    const hash = await bcrypt.hash(password, 10);
+
+    const existing = await query(`SELECT id FROM users WHERE LOWER(email)=LOWER(${p(1)})`, [email]);
+    if (existing.length) return res.status(409).json({ message: 'Email already in use' });
+
+    await query(
+      `INSERT INTO users (email, firstName, lastName, password, userType, company, jobTitle, org_id, isActive, emailVerified)
+       VALUES (${p(1)},${p(2)},${p(3)},${p(4)},${p(5)},${p(6)},${p(7)},${p(8)},1,1)`,
+      [email, firstName, lastName, hash, userType, company||null, jobTitle||null, org_id||null]
+    );
+    const user = await query(
+      `SELECT id, email, firstName, lastName, userType, company, org_id FROM users WHERE LOWER(email)=LOWER(${p(1)})`,
+      [email]
+    );
+    res.json({ message: 'User created', user: user[0] });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', details: err.message });
+  }
+});
+
 module.exports = router;

@@ -1,0 +1,29 @@
+# Ignore frontend directories
+tdil-frontend/
+frontend/
+client/
+src/components/
+src/pages/
+
+# Ignore frontend config files  
+vite.config.js
+vite.config.ts
+tailwind.config.js
+tailwind.config.ts
+postcss.config.js
+postcss.config.ts
+
+# Ignore React/JSX files
+*.jsx
+*.tsx
+
+# Ignore frontend dependencies
+node_modules/@vitejs/
+node_modules/vite/
+node_modules/react/
+node_modules/react-dom/
+
+# Ignore build outputs
+dist/
+build/
+.next/

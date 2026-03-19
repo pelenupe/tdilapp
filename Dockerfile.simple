@@ -1,0 +1,44 @@
+# Simplified Dockerfile that skips frontend build for now
+FROM node:18-alpine AS production
+
+# Install system dependencies
+RUN apk add --no-cache dumb-init curl
+
+# Create app user
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S nodejs -u 1001
+
+# Set working directory
+WORKDIR /app
+
+# Copy backend files
+COPY package*.json ./
+COPY server.js ./
+COPY backend/ ./backend/
+COPY database/ ./database/
+COPY scripts/ ./scripts/
+
+# Install dependencies
+RUN npm ci --only=production
+
+# Copy pre-built frontend (if exists) or create simple index
+RUN mkdir -p public
+RUN echo "<!DOCTYPE html><html><head><title>tDIL</title></head><body><h1>tDIL Backend Running</h1><p>Frontend will be added soon.</p></body></html>" > public/index.html
+
+# Create necessary directories  
+RUN mkdir -p backend/uploads && chown -R nodejs:nodejs backend/uploads
+RUN mkdir -p logs && chown -R nodejs:nodejs logs
+
+# Switch to non-root user
+USER nodejs
+
+# Expose port
+EXPOSE 5001
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:5001/health || exit 1
+
+# Start the application
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["node", "server.js"]
