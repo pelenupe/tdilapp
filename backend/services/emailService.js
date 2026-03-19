@@ -1,48 +1,12 @@
 /**
  * tDIL Email Notification Service
- * Sends transactional emails for key account/profile events.
- * Requires EMAIL_USER and EMAIL_PASS in .env (Gmail app password).
+ * Uses Resend SDK (primary) or nodemailer SMTP (fallback).
  */
-
-const nodemailer = require('nodemailer');
 
 const TDIL_BRAND_COLOR = '#016a91';
 const APP_URL = process.env.APP_URL || 'https://tdilapp.com';
 const FROM_NAME = 'tDIL Community';
-const FROM_EMAIL = process.env.EMAIL_FROM || process.env.EMAIL_USER || 'noreply@tdilapp.com';
-
-// Build transporter — supports any SMTP provider (Resend, SendGrid, Mailgun, Postmark, etc.)
-// Or falls back to Gmail if EMAIL_USER/EMAIL_PASS are set
-let transporter = null;
-
-function getTransporter() {
-  if (transporter) return transporter;
-
-  // Generic SMTP (Resend, SendGrid SMTP relay, Mailgun, Postmark, etc.)
-  if (process.env.SMTP_HOST && process.env.SMTP_PASS) {
-    transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT) || 587,
-      secure: parseInt(process.env.SMTP_PORT) === 465,
-      auth: {
-        user: process.env.SMTP_USER || 'apikey',
-        pass: process.env.SMTP_PASS
-      }
-    });
-    return transporter;
-  }
-
-  // Legacy Gmail fallback
-  if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-    transporter = nodemailer.createTransport({
-      service: process.env.EMAIL_SERVICE || 'gmail',
-      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
-    });
-    return transporter;
-  }
-
-  return null; // No credentials — log only
-}
+const FROM_EMAIL = process.env.EMAIL_FROM || 'noreply@tdilapp.com';
 
 // ── HTML email wrapper ────────────────────────────────────────────────────────
 function wrapEmail(title, bodyHtml, ctaText, ctaUrl) {
@@ -81,25 +45,51 @@ function wrapEmail(title, bodyHtml, ctaText, ctaUrl) {
 </html>`;
 }
 
-// ── Core send function ────────────────────────────────────────────────────────
+// ── Core send function — Resend SDK → nodemailer SMTP fallback ────────────────
 async function sendEmail({ to, subject, html }) {
-  const t = getTransporter();
-  if (!t) {
-    console.log(`[EMAIL] Would send to ${to}: "${subject}" (credentials not configured)`);
-    return false;
+
+  // 1. Resend SDK (primary — uses HTTP API, no port issues)
+  if (process.env.RESEND_API_KEY || process.env.SMTP_PASS) {
+    const apiKey = process.env.RESEND_API_KEY || process.env.SMTP_PASS;
+    try {
+      const { Resend } = require('resend');
+      const resend = new Resend(apiKey);
+      const { error } = await resend.emails.send({
+        from: `${FROM_NAME} <${FROM_EMAIL}>`,
+        to,
+        subject,
+        html
+      });
+      if (error) {
+        console.error('[EMAIL] Resend error:', error.message || JSON.stringify(error));
+        return false;
+      }
+      console.log(`[EMAIL] Sent via Resend to ${to}: "${subject}"`);
+      return true;
+    } catch (err) {
+      console.error('[EMAIL] Resend SDK error:', err.message);
+      return false;
+    }
   }
-  try {
-    await t.sendMail({
-      from: `"${FROM_NAME}" <${FROM_EMAIL}>`,
-      to,
-      subject,
-      html
-    });
-    return true;
-  } catch (err) {
-    console.error('[EMAIL] Send error:', err.message);
-    return false;
+
+  // 2. Nodemailer SMTP fallback (Gmail, etc.)
+  if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+    try {
+      const nodemailer = require('nodemailer');
+      const t = nodemailer.createTransport({
+        service: process.env.EMAIL_SERVICE || 'gmail',
+        auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
+      });
+      await t.sendMail({ from: `"${FROM_NAME}" <${process.env.EMAIL_USER}>`, to, subject, html });
+      return true;
+    } catch (err) {
+      console.error('[EMAIL] SMTP error:', err.message);
+      return false;
+    }
   }
+
+  console.log(`[EMAIL] Would send to ${to}: "${subject}" (no credentials configured)`);
+  return false;
 }
 
 // ── Specific notification functions ──────────────────────────────────────────
