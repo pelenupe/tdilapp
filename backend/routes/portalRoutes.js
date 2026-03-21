@@ -257,18 +257,91 @@ router.put('/school-profile', protect, portalOnly, async (req, res) => {
 });
 
 // GET /api/portal/all-schools  — public list of partner schools (for member PartnerSchools page)
+// Joins org_profiles when available so the latest shared profile data is returned
 router.get('/all-schools', async (req, res) => {
   try {
     const schools = await query(
-      `SELECT id, email, firstName, lastName, company, jobTitle, bio, profileImage,
-              calendly_url, resume_url,
-              school_intro_video_url, school_zoom_url, school_contact_name,
-              school_contact_email, school_materials_url, school_featured
-       FROM users
-       WHERE userType = 'partner_school'
-       ORDER BY school_featured DESC, company ASC`
+      `SELECT u.id, u.email, u.firstName, u.lastName, u.company, u.jobTitle, u.bio,
+              u.profileImage, u.calendly_url, u.resume_url, u.org_id,
+              u.school_intro_video_url, u.school_zoom_url, u.school_contact_name,
+              u.school_contact_email, u.school_materials_url, u.school_featured,
+              o.name as org_name, o.description as org_description,
+              o.website as org_website, o.linkedin_url as org_linkedin,
+              o.contact_name as org_contact_name, o.contact_email as org_contact_email,
+              o.calendly_url as org_calendly_url, o.zoom_url as org_zoom_url,
+              o.materials_url as org_materials_url, o.intro_video_url as org_intro_video_url,
+              o.logo_url, o.featured as org_featured
+       FROM users u
+       LEFT JOIN org_profiles o ON u.org_id = o.id
+       WHERE u.userType = 'partner_school'
+       ORDER BY COALESCE(o.featured, u.school_featured, 0) DESC, COALESCE(o.name, u.company) ASC`
     );
-    res.json(schools);
+    // Merge org_profiles data over user-table data when available
+    const merged = schools.map(s => ({
+      ...s,
+      company: s.org_name || s.company,
+      bio: s.org_description || s.bio,
+      school_intro_video_url: s.org_intro_video_url || s.school_intro_video_url,
+      school_zoom_url: s.org_zoom_url || s.school_zoom_url,
+      school_contact_name: s.org_contact_name || s.school_contact_name,
+      school_contact_email: s.org_contact_email || s.school_contact_email,
+      school_materials_url: s.org_materials_url || s.school_materials_url,
+      calendly_url: s.org_calendly_url || s.calendly_url,
+      school_featured: s.org_featured || s.school_featured,
+      website: s.org_website,
+      linkedin_url: s.org_linkedin,
+    }));
+    res.json(merged);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', details: err.message });
+  }
+});
+
+// GET /api/portal/org-detail/:orgId  — public full org profile (school/sponsor/employer)
+router.get('/org-detail/:orgId', async (req, res) => {
+  try {
+    const { orgId } = req.params;
+    // Try org_profiles first
+    const orgs = await query(`SELECT * FROM org_profiles WHERE id = ${p(1)}`, [orgId]);
+    if (orgs.length) {
+      // Get users linked to this org
+      const users = await query(
+        `SELECT id, firstName, lastName, email, jobTitle FROM users WHERE org_id = ${p(1)}`,
+        [orgId]
+      );
+      return res.json({ org: orgs[0], users });
+    }
+    // Fallback: treat orgId as a user_id for old schools not yet linked to org_profiles
+    const schoolUsers = await query(
+      `SELECT id, email, firstName, lastName, company, jobTitle, bio, profileImage,
+              calendly_url, school_intro_video_url, school_zoom_url, school_contact_name,
+              school_contact_email, school_materials_url, school_featured, org_id
+       FROM users WHERE id = ${p(1)} AND userType = 'partner_school'`,
+      [orgId]
+    );
+    if (schoolUsers.length) {
+      const u = schoolUsers[0];
+      // Shape to look like an org_profile
+      return res.json({
+        org: {
+          id: null,
+          org_type: 'partner_school',
+          name: u.company,
+          description: u.bio,
+          contact_name: u.school_contact_name,
+          contact_email: u.school_contact_email,
+          calendly_url: u.calendly_url,
+          zoom_url: u.school_zoom_url,
+          materials_url: u.school_materials_url,
+          intro_video_url: u.school_intro_video_url,
+          logo_url: u.profileImage,
+          featured: u.school_featured,
+          _user_id: u.id
+        },
+        users: [{ id: u.id, firstName: u.firstName, lastName: u.lastName, email: u.email, jobTitle: u.jobTitle }]
+      });
+    }
+    res.status(404).json({ message: 'Profile not found' });
   } catch (err) {
     res.status(500).json({ message: 'Server error', details: err.message });
   }

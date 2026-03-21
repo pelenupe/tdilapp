@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useUser } from '../contexts/UserContext';
+import { Link } from 'react-router-dom';
 import PageLayout from '../components/PageLayout';
-import { Calendar, ExternalLink, Video, BookOpen, Monitor, Mail, User, Star } from 'lucide-react';
+import { Calendar, ExternalLink, Video, BookOpen, Monitor, Mail, User, Star, ChevronRight } from 'lucide-react';
 import API from '../services/api';
 
 // Convert YouTube/Vimeo URL to embeddable URL
@@ -136,15 +137,17 @@ export default function PartnerSchools() {
         <div className="p-5">
           {/* School header */}
           <div className="flex items-start gap-4 mb-4">
-            <div className="w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden bg-purple-100">
+            <Link to={`/org/${school.org_id || school.id}`} className="w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden bg-purple-100 hover:opacity-80 transition-opacity">
               {school.profileImage
                 ? <img src={school.profileImage} alt={school.company} className="w-full h-full object-cover" />
                 : <span className="text-3xl">🎓</span>}
-            </div>
+            </Link>
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <h3 className="font-bold text-gray-900 text-base leading-tight">{school.company || `${school.firstName} ${school.lastName}`}</h3>
+                  <Link to={`/org/${school.org_id || school.id}`} className="font-bold text-gray-900 text-base leading-tight hover:text-purple-700 transition-colors block">
+                    {school.company || `${school.firstName} ${school.lastName}`}
+                  </Link>
                   <p className="text-sm text-purple-600 font-medium mt-0.5">{school.jobTitle || 'Partner Institution'}</p>
                 </div>
                 {isAdmin && (
@@ -232,21 +235,27 @@ export default function PartnerSchools() {
             </div>
           )}
 
-          {/* Connect button */}
-          {isConnected(school.id) ? (
-            <div className="flex items-center gap-2">
-              <span className="flex-1 text-center px-3 py-2 bg-green-100 text-green-700 rounded-lg text-sm font-medium">✓ Connected</span>
-              <button onClick={() => handleDisconnect(school.id)} disabled={connectingTo === school.id}
-                className="px-3 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-red-100 hover:text-red-600 text-sm">
-                {connectingTo === school.id ? '…' : '✕'}
+          {/* View Profile + Connect buttons */}
+          <div className="space-y-2">
+            <Link to={`/org/${school.org_id || school.id}`}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-purple-50 border border-purple-200 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors text-sm font-medium">
+              View Full Profile <ChevronRight size={14} />
+            </Link>
+            {isConnected(school.id) ? (
+              <div className="flex items-center gap-2">
+                <span className="flex-1 text-center px-3 py-2 bg-green-100 text-green-700 rounded-lg text-sm font-medium">✓ Connected</span>
+                <button onClick={() => handleDisconnect(school.id)} disabled={connectingTo === school.id}
+                  className="px-3 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-red-100 hover:text-red-600 text-sm">
+                  {connectingTo === school.id ? '…' : '✕'}
+                </button>
+              </div>
+            ) : (
+              <button onClick={() => handleConnect(school.id)} disabled={connectingTo === school.id}
+                className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium disabled:opacity-50">
+                {connectingTo === school.id ? 'Connecting…' : 'Connect with School'}
               </button>
-            </div>
-          ) : (
-            <button onClick={() => handleConnect(school.id)} disabled={connectingTo === school.id}
-              className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium disabled:opacity-50">
-              {connectingTo === school.id ? 'Connecting…' : 'Connect with School'}
-            </button>
-          )}
+            )}
+          </div>
         </div>
       </div>
     );
