@@ -27,22 +27,32 @@ export const adminNavigation = [
 export const memberNavigation = navigationItems;
 
 export const partnerSchoolNavigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: '🏠', path: '/dashboard' },
-  { name: 'Profile', href: '/profile', icon: '👤', path: '/profile' },
-  { name: 'Students', href: '/students', icon: '🎓', path: '/students' },
-  { name: 'Analytics', href: '/analytics', icon: '📊', path: '/analytics' },
-  { name: 'Chats', href: '/chats', icon: '💬', path: '/chats' },
-  { name: 'Community', href: '/community', icon: '👥', path: '/community' },
-  { name: 'Events', href: '/events', icon: '📅', path: '/events' },
-  { name: 'Job Board', href: '/jobs', icon: '💼', path: '/jobs' }
+  { name: 'Dashboard',       href: '/dashboard',      icon: '🏠' },
+  { name: 'My Profile',      href: '/profile',         icon: '👤' },
+  { name: 'Partner Portal',  href: '/partner-portal',  icon: '🏫' },
+  { name: 'Community',       href: '/community',       icon: '👥' },
+  { name: 'Job Board',       href: '/jobs',            icon: '💼' },
+  { name: 'Events',          href: '/events',          icon: '📅' },
+  { name: 'Chats',           href: '/chats',           icon: '💬' },
+  { name: 'Partner Schools', href: '/partner-schools', icon: '🎓' },
 ];
 
 export const sponsorNavigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: '🏠', path: '/dashboard' },
-  { name: 'Profile', href: '/profile', icon: '👤', path: '/profile' },
-  { name: 'Analytics', href: '/analytics', icon: '📊', path: '/analytics' },
-  { name: 'Chats', href: '/chats', icon: '💬', path: '/chats' },
-  { name: 'Community', href: '/community', icon: '👥', path: '/community' },
-  { name: 'Events', href: '/events', icon: '📅', path: '/events' },
-  { name: 'Sponsorships', href: '/sponsorships', icon: '⭐', path: '/sponsorships' }
+  { name: 'Dashboard',     href: '/dashboard',    icon: '🏠' },
+  { name: 'My Profile',    href: '/profile',       icon: '👤' },
+  { name: 'Sponsor Portal',href: '/sponsor-portal',icon: '🤝' },
+  { name: 'Community',     href: '/community',     icon: '👥' },
+  { name: 'Events',        href: '/events',        icon: '📅' },
+  { name: 'Chats',         href: '/chats',         icon: '💬' },
+];
+
+export const employerNavigation = [
+  { name: 'Dashboard',       href: '/dashboard',       icon: '🏠' },
+  { name: 'My Profile',      href: '/profile',          icon: '👤' },
+  { name: 'Employer Portal', href: '/employer-portal',  icon: '💼' },
+  { name: 'Post a Job',      href: '/employer-portal',  icon: '📋' },
+  { name: 'Job Board',       href: '/jobs',             icon: '🗂️' },
+  { name: 'Community',       href: '/community',        icon: '👥' },
+  { name: 'Events',          href: '/events',           icon: '📅' },
+  { name: 'Chats',           href: '/chats',            icon: '💬' },
 ];

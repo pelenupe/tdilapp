@@ -1,6 +1,7 @@
 import SidebarMember from './SidebarMember';
 import SidebarPartnerSchool from './SidebarPartnerSchool';
 import SidebarSponsor from './SidebarSponsor';
+import SidebarEmployer from './SidebarEmployer';
 import MobileHeader from './MobileHeader';
 import { useSidebar } from '../contexts/SidebarContext';
 
@@ -23,6 +24,8 @@ export default function PageLayout({
         return <SidebarPartnerSchool />;
       case 'sponsor':
         return <SidebarSponsor />;
+      case 'employer':
+        return <SidebarEmployer />;
       default:
         return <SidebarMember />;
     }
