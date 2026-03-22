@@ -137,7 +137,7 @@ export default function PartnerSchools() {
         <div className="p-5">
           {/* School header */}
           <div className="flex items-start gap-4 mb-4">
-            <Link to={`/org/${school.org_id || school.id}`} className="w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden bg-purple-100 hover:opacity-80 transition-opacity">
+            <Link to={`/org/${school.slug || school.org_id || school.id}`} className="w-16 h-16 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden bg-purple-100 hover:opacity-80 transition-opacity">
               {school.profileImage
                 ? <img src={school.profileImage} alt={school.company} className="w-full h-full object-cover" />
                 : <span className="text-3xl">🎓</span>}
@@ -145,7 +145,7 @@ export default function PartnerSchools() {
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <Link to={`/org/${school.org_id || school.id}`} className="font-bold text-gray-900 text-base leading-tight hover:text-purple-700 transition-colors block">
+                  <Link to={`/org/${school.slug || school.org_id || school.id}`} className="font-bold text-gray-900 text-base leading-tight hover:text-purple-700 transition-colors block">
                     {school.company || `${school.firstName} ${school.lastName}`}
                   </Link>
                   <p className="text-sm text-purple-600 font-medium mt-0.5">{school.jobTitle || 'Partner Institution'}</p>
@@ -237,7 +237,7 @@ export default function PartnerSchools() {
 
           {/* View Profile + Connect buttons */}
           <div className="space-y-2">
-            <Link to={`/org/${school.org_id || school.id}`}
+            <Link to={`/org/${school.slug || school.org_id || school.id}`}
               className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-purple-50 border border-purple-200 text-purple-700 rounded-lg hover:bg-purple-100 transition-colors text-sm font-medium">
               View Full Profile <ChevronRight size={14} />
             </Link>

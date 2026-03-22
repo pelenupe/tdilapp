@@ -72,10 +72,16 @@ export default function Profile() {
     } catch (_) {}
   };
 
+  // Client-side slug helper (must match backend slugify)
+  const toSlug = (str) =>
+    (str || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9\s-]/g, '').trim().replace(/\s+/g, '-').replace(/-+/g, '-');
+
   const loadProfile = async () => {
     try {
       const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-      const isOwn = !id || id === currentUser.id?.toString();
+      const mySlug = toSlug(`${currentUser.firstName || ''}-${currentUser.lastName || ''}`);
+      const isOwn = !id || id === currentUser.id?.toString() || id === mySlug;
       setIsOwnProfile(isOwn);
 
       let response;

@@ -1,4 +1,4 @@
-const { query } = require('../config/database');
+const { query, isPostgreSQL } = require('../config/database');
 const fs = require('fs').promises;
 const path = require('path');
 
@@ -23,22 +23,47 @@ const getMembers = async (req, res) => {
   }
 };
 
-// Fetch a single profile
+// Slugify helper for member slug lookups
+const slugify = (str) =>
+  (str || '').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s-]/g, '').trim()
+    .replace(/\s+/g, '-').replace(/-+/g, '-');
+
+// Fetch a single profile — accepts numeric id, 'me', OR 'firstname-lastname' slug
 const getProfile = async (req, res) => {
   try {
-    // If req.params.id is undefined (from /me route) or 'me', use the authenticated user's ID
-    const userId = (!req.params.id || req.params.id === 'me') ? req.user.id : req.params.id;
-    
-    const users = await query(
-      'SELECT id, email, firstName, lastName, company, jobTitle, points, level, userType, bio, profileImage, cohort, prefix, suffix, linkedin_url, calendly_url, resume_url, coaching_url, partner_school_name, partner_school_status FROM users WHERE id = $1',
-      [userId]
-    );
-    const user = users[0];
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+    const param = req.params.id;
+    // 'me' or missing → own profile
+    if (!param || param === 'me') {
+      const users = await query(
+        'SELECT id, email, firstName, lastName, company, jobTitle, points, level, userType, bio, profileImage, cohort, prefix, suffix, linkedin_url, calendly_url, resume_url, coaching_url, partner_school_name, partner_school_status FROM users WHERE id = $1',
+        [req.user.id]
+      );
+      if (!users[0]) return res.status(404).json({ message: 'User not found' });
+      return res.json(users[0]);
     }
-    
-    return res.json(user);
+
+    const COLS = 'id, email, firstName, lastName, company, jobTitle, points, level, userType, bio, profileImage, cohort, prefix, suffix, linkedin_url, calendly_url, resume_url, coaching_url, partner_school_name, partner_school_status';
+
+    // Numeric id → lookup by id
+    if (/^\d+$/.test(param)) {
+      const users = await query(`SELECT ${COLS} FROM users WHERE id = $1`, [param]);
+      if (!users[0]) return res.status(404).json({ message: 'User not found' });
+      return res.json(users[0]);
+    }
+
+    // Slug format (e.g. 'john-smith') → lookup by generated slug from name
+    // SQLite uses ||, PostgreSQL uses CONCAT — both wrapped in LOWER()
+    const concatExpr = isPostgreSQL
+      ? `LOWER(CONCAT(firstName, '-', lastName))`
+      : `LOWER(firstName || '-' || lastName)`;
+    const users = await query(
+      `SELECT ${COLS} FROM users WHERE ${concatExpr} = LOWER($1) LIMIT 1`,
+      [param]
+    );
+    if (!users[0]) return res.status(404).json({ message: 'User not found' });
+    return res.json(users[0]);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Error fetching profile' });

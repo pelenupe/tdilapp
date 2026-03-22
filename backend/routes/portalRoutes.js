@@ -5,6 +5,31 @@ const { protect } = require('../middleware/authMiddleware');
 
 const p = (n) => isPostgreSQL ? `$${n}` : '?';
 
+// ── Slug helpers ─────────────────────────────────────────────────────────────
+const slugify = (str) =>
+  (str || '').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-');
+
+// Ensure slug is unique in org_profiles — appends -2, -3 … if taken
+const ensureUniqueOrgSlug = async (base, excludeId = null) => {
+  let slug = slugify(base);
+  let candidate = slug;
+  let n = 1;
+  while (true) {
+    const params = [candidate];
+    let sql = `SELECT id FROM org_profiles WHERE slug = ${p(1)}`;
+    if (excludeId) { sql += ` AND id != ${p(2)}`; params.push(excludeId); }
+    const rows = await query(sql, params);
+    if (!rows.length) return candidate;
+    n++;
+    candidate = `${slug}-${n}`;
+  }
+};
+
 // Middleware: allow portal user types + admin/founder
 const portalOnly = (req, res, next) => {
   const allowed = ['partner_school', 'employer', 'sponsor', 'admin', 'founder'];
@@ -12,6 +37,20 @@ const portalOnly = (req, res, next) => {
     return res.status(403).json({ message: 'Access restricted to portal users.' });
   }
   next();
+};
+
+// Generate/update slug for an org (idempotent — skips if already has matching slug)
+const syncOrgSlug = async (orgId, name) => {
+  try {
+    const rows = await query(`SELECT slug FROM org_profiles WHERE id = ${p(1)}`, [orgId]);
+    if (!rows.length) return;
+    const current = rows[0].slug;
+    if (current && current.startsWith(slugify(name.split(' ')[0].toLowerCase()))) return; // already looks right
+    const newSlug = await ensureUniqueOrgSlug(name, orgId);
+    if (newSlug !== current) {
+      await query(`UPDATE org_profiles SET slug = ${p(1)} WHERE id = ${p(2)}`, [newSlug, orgId]);
+    }
+  } catch (_) {}
 };
 
 // Helper: get the company to filter by (admin can override via query param)
@@ -277,70 +316,91 @@ router.get('/all-schools', async (req, res) => {
        ORDER BY COALESCE(o.featured, u.school_featured, 0) DESC, COALESCE(o.name, u.company) ASC`
     );
     // Merge org_profiles data over user-table data when available
-    const merged = schools.map(s => ({
-      ...s,
-      company: s.org_name || s.company,
-      bio: s.org_description || s.bio,
-      school_intro_video_url: s.org_intro_video_url || s.school_intro_video_url,
-      school_zoom_url: s.org_zoom_url || s.school_zoom_url,
-      school_contact_name: s.org_contact_name || s.school_contact_name,
-      school_contact_email: s.org_contact_email || s.school_contact_email,
-      school_materials_url: s.org_materials_url || s.school_materials_url,
-      calendly_url: s.org_calendly_url || s.calendly_url,
-      school_featured: s.org_featured || s.school_featured,
-      website: s.org_website,
-      linkedin_url: s.org_linkedin,
-    }));
+    const merged = schools.map(s => {
+      const name = s.org_name || s.company || '';
+      const computedSlug = s.slug || (name ? slugify(name) : null);
+      return {
+        ...s,
+        company: name,
+        slug: computedSlug,
+        bio: s.org_description || s.bio,
+        school_intro_video_url: s.org_intro_video_url || s.school_intro_video_url,
+        school_zoom_url: s.org_zoom_url || s.school_zoom_url,
+        school_contact_name: s.org_contact_name || s.school_contact_name,
+        school_contact_email: s.org_contact_email || s.school_contact_email,
+        school_materials_url: s.org_materials_url || s.school_materials_url,
+        calendly_url: s.org_calendly_url || s.calendly_url,
+        school_featured: s.org_featured || s.school_featured,
+        website: s.org_website,
+        linkedin_url: s.org_linkedin,
+      };
+    });
     res.json(merged);
   } catch (err) {
     res.status(500).json({ message: 'Server error', details: err.message });
   }
 });
 
-// GET /api/portal/org-detail/:orgId  — public full org profile (school/sponsor/employer)
-router.get('/org-detail/:orgId', async (req, res) => {
+// GET /api/portal/org-detail/:slug  — public full org profile by slug OR numeric id
+router.get('/org-detail/:slug', async (req, res) => {
   try {
-    const { orgId } = req.params;
-    // Try org_profiles first
-    const orgs = await query(`SELECT * FROM org_profiles WHERE id = ${p(1)}`, [orgId]);
+    const { slug } = req.params;
+    const isNumeric = /^\d+$/.test(slug);
+
+    // 1) Try org_profiles by id (numeric) or slug (string)
+    const orgs = isNumeric
+      ? await query(`SELECT * FROM org_profiles WHERE id = ${p(1)}`, [slug])
+      : await query(`SELECT * FROM org_profiles WHERE slug = ${p(1)}`, [slug]);
+
     if (orgs.length) {
-      // Get users linked to this org
+      const org = orgs[0];
+      // Lazily backfill slug if missing
+      if (!org.slug && org.name) {
+        const s = await ensureUniqueOrgSlug(org.name, org.id);
+        await query(`UPDATE org_profiles SET slug = ${p(1)} WHERE id = ${p(2)}`, [s, org.id]);
+        org.slug = s;
+      }
       const users = await query(
         `SELECT id, firstName, lastName, email, jobTitle FROM users WHERE org_id = ${p(1)}`,
-        [orgId]
+        [org.id]
       );
-      return res.json({ org: orgs[0], users });
+      return res.json({ org, users });
     }
-    // Fallback: treat orgId as a user_id for old schools not yet linked to org_profiles
-    const schoolUsers = await query(
-      `SELECT id, email, firstName, lastName, company, jobTitle, bio, profileImage,
-              calendly_url, school_intro_video_url, school_zoom_url, school_contact_name,
-              school_contact_email, school_materials_url, school_featured, org_id
-       FROM users WHERE id = ${p(1)} AND userType = 'partner_school'`,
-      [orgId]
-    );
-    if (schoolUsers.length) {
-      const u = schoolUsers[0];
-      // Shape to look like an org_profile
-      return res.json({
-        org: {
-          id: null,
-          org_type: 'partner_school',
-          name: u.company,
-          description: u.bio,
-          contact_name: u.school_contact_name,
-          contact_email: u.school_contact_email,
-          calendly_url: u.calendly_url,
-          zoom_url: u.school_zoom_url,
-          materials_url: u.school_materials_url,
-          intro_video_url: u.school_intro_video_url,
-          logo_url: u.profileImage,
-          featured: u.school_featured,
-          _user_id: u.id
-        },
-        users: [{ id: u.id, firstName: u.firstName, lastName: u.lastName, email: u.email, jobTitle: u.jobTitle }]
-      });
+
+    // 2) Fallback for old schools: treat as user_id (numeric only)
+    if (isNumeric) {
+      const schoolUsers = await query(
+        `SELECT id, email, firstName, lastName, company, jobTitle, bio, profileImage,
+                calendly_url, school_intro_video_url, school_zoom_url, school_contact_name,
+                school_contact_email, school_materials_url, school_featured, org_id
+         FROM users WHERE id = ${p(1)} AND userType = 'partner_school'`,
+        [slug]
+      );
+      if (schoolUsers.length) {
+        const u = schoolUsers[0];
+        const orgSlug = slugify(u.company || `${u.firstName} ${u.lastName}`);
+        return res.json({
+          org: {
+            id: null,
+            org_type: 'partner_school',
+            name: u.company,
+            slug: orgSlug,
+            description: u.bio,
+            contact_name: u.school_contact_name,
+            contact_email: u.school_contact_email,
+            calendly_url: u.calendly_url,
+            zoom_url: u.school_zoom_url,
+            materials_url: u.school_materials_url,
+            intro_video_url: u.school_intro_video_url,
+            logo_url: u.profileImage,
+            featured: u.school_featured,
+            _user_id: u.id
+          },
+          users: [{ id: u.id, firstName: u.firstName, lastName: u.lastName, email: u.email, jobTitle: u.jobTitle }]
+        });
+      }
     }
+
     res.status(404).json({ message: 'Profile not found' });
   } catch (err) {
     res.status(500).json({ message: 'Server error', details: err.message });
@@ -412,8 +472,14 @@ router.get('/org-profile', protect, portalOnly, async (req, res) => {
     );
     if (!userRows.length) return res.status(404).json({ message: 'User not found' });
     const user = userRows[0];
-    const org = await getOrCreateOrg(user);
-    res.json({ org: org || null });
+  let org = await getOrCreateOrg(user);
+  // Lazily backfill slug
+  if (org && !org.slug && org.name) {
+    const s = await ensureUniqueOrgSlug(org.name, org.id);
+    await query(`UPDATE org_profiles SET slug = ${p(1)} WHERE id = ${p(2)}`, [s, org.id]);
+    org.slug = s;
+  }
+  res.json({ org: org || null });
   } catch (err) {
     res.status(500).json({ message: 'Server error', details: err.message });
   }
@@ -451,8 +517,11 @@ router.put('/org-profile', protect, portalOnly, async (req, res) => {
       vals
     );
 
-    // Also sync company name back to user record if name changed
-    if (req.body.name && req.body.name !== user.company) {
+    // Regenerate slug when name changes
+    if (req.body.name) {
+      const newSlug = await ensureUniqueOrgSlug(req.body.name, org.id);
+      await query(`UPDATE org_profiles SET slug = ${p(1)} WHERE id = ${p(2)}`, [newSlug, org.id]);
+      // Also sync company name back to all users in this org
       await query(`UPDATE users SET company = ${p(1)} WHERE org_id = ${p(2)}`, [req.body.name, org.id]);
     }
 
@@ -503,9 +572,14 @@ router.post('/admin/orgs', protect, async (req, res) => {
       [org_type, name, description||null, website||null, linkedin_url||null, contact_name||null, contact_email||null, phone||null]
     );
     const created = await query(
-      `SELECT * FROM org_profiles WHERE name=${p(1)} AND org_type=${p(2)} ORDER BY id DESC LIMIT 1`,
+      `SELECT * FROM org_profiles WHERE LOWER(name)=LOWER(${p(1)}) AND org_type=${p(2)} ORDER BY id DESC LIMIT 1`,
       [name, org_type]
     );
+    if (!created.length) return res.status(500).json({ message: 'Failed to create org' });
+    // Backfill slug
+    const s = await ensureUniqueOrgSlug(created[0].name, created[0].id);
+    await query(`UPDATE org_profiles SET slug = ${p(1)} WHERE id = ${p(2)}`, [s, created[0].id]);
+    created[0].slug = s;
     res.json({ message: 'Org created', org: created[0] });
   } catch (err) {
     res.status(500).json({ message: 'Server error', details: err.message });
