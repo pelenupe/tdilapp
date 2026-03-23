@@ -5,7 +5,7 @@ let sqlite3, Database;
 const dbType = process.env.DB_TYPE || 'sqlite';
 const isProduction = process.env.NODE_ENV === 'production';
 
-if (!isProduction && dbType === 'sqlite') {
+if (dbType === 'sqlite') {
   try {
     sqlite3 = require('sqlite3').verbose();
     Database = require('sqlite3').Database;
@@ -45,7 +45,7 @@ if (connectionString && (process.env.NODE_ENV === 'production' || dbType === 'po
   });
   console.log('🐘 Using PostgreSQL database');
 } else {
-  // SQLite for development
+  // SQLite for development/production-sqlite mode
   isPostgreSQL = false;
   try {
     db = new sqlite3.Database(sqliteDbPath, sqlite3.OPEN_READWRITE | sqlite3.OPEN_CREATE, (err) => {
@@ -109,11 +109,7 @@ const initDatabase = async () => {
 
   try {
     // Test connection first
-    if (isPostgreSQL) {
-      await query('SELECT 1');
-    } else {
-      await query('SELECT 1');
-    }
+    await query('SELECT 1');
     console.log('✅ Database connected successfully');
 
     // Define schema based on database type
