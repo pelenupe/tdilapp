@@ -4,6 +4,7 @@ import { useUser } from '../contexts/UserContext';
 import PageLayout from '../components/PageLayout';
 import API from '../services/api';
 import { Flag, Plus, Compass, X, ShieldAlert, CheckCircle, Trash2, AlertTriangle } from 'lucide-react';
+import { slugify } from '../utils/slugify';
 
 export default function GroupChats() {
   const { user } = useUser();

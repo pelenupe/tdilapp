@@ -12,6 +12,7 @@ router.get('/', async (req, res) => {
         u.id as userId,
         u.firstName,
         u.lastName,
+        u.slug,
         u.profileImage,
         0 as points,
         c.venue as target,
@@ -30,6 +31,7 @@ router.get('/', async (req, res) => {
         u.id as userId,
         u.firstName,
         u.lastName,
+        u.slug,
         u.profileImage,
         null as points,
         u2.firstName || ' ' || u2.lastName as target,
@@ -49,6 +51,7 @@ router.get('/', async (req, res) => {
         u.id as userId,
         u.firstName,
         u.lastName,
+        u.slug,
         u.profileImage,
         null as points,
         gc.name as target,
@@ -68,6 +71,7 @@ router.get('/', async (req, res) => {
         u.id as userId,
         u.firstName,
         u.lastName,
+        u.slug,
         u.profileImage,
         ph.points,
         ph.reason as target,
@@ -92,6 +96,7 @@ router.get('/', async (req, res) => {
     const formatted = all.map(row => ({
       activityType: row.activityType,
       userId: row.userId,
+      userSlug: row.slug,
       user: `${row.firstName} ${row.lastName}`,
       userAvatar: row.profileImage || null,
       action: row.action,
@@ -119,6 +124,7 @@ router.get('/:type', async (req, res) => {
         SELECT
           'connection' as activityType,
           u.id as userId,
+          u.slug,
           u.firstName,
           u.lastName,
           u.profileImage,
@@ -137,6 +143,7 @@ router.get('/:type', async (req, res) => {
         SELECT
           'checkin' as activityType,
           u.id as userId,
+          u.slug,
           u.firstName,
           u.lastName,
           u.profileImage,
@@ -154,6 +161,7 @@ router.get('/:type', async (req, res) => {
         SELECT
           'chat' as activityType,
           u.id as userId,
+          u.slug,
           u.firstName,
           u.lastName,
           u.profileImage,
@@ -172,6 +180,7 @@ router.get('/:type', async (req, res) => {
         SELECT
           'points' as activityType,
           u.id as userId,
+          u.slug,
           u.firstName,
           u.lastName,
           u.profileImage,
@@ -191,6 +200,7 @@ router.get('/:type', async (req, res) => {
     const formatted = rows.map(row => ({
       activityType: row.activityType,
       userId: row.userId,
+      userSlug: row.slug,
       user: `${row.firstName} ${row.lastName}`,
       userAvatar: row.profileImage || null,
       action: row.action,
