@@ -13,14 +13,16 @@ export const slugify = (str) =>
     .replace(/-+/g, '-');
 
 /**
- * Generate member permalink from firstName/lastName
- * Returns slug or generates from names if not available
+ * Generate member permalink from prefix/firstName/lastName
+ * Format: prefix-firstname-lastname (prefix optional)
+ * Returns stored slug if available, otherwise generates from fields
  */
 export const getMemberSlug = (member) => {
   if (!member) return '';
   if (member.slug) return member.slug;
   if (member.firstName && member.lastName) {
-    return slugify(`${member.firstName} ${member.lastName}`);
+    const parts = [member.prefix, member.firstName, member.lastName].filter(Boolean);
+    return slugify(parts.join(' '));
   }
   return member.id?.toString() || '';
 };

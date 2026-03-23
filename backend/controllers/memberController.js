@@ -31,8 +31,10 @@ const slugify = (str) =>
     .replace(/\s+/g, '-').replace(/-+/g, '-');
 
 // Ensure slug is unique in users — appends -2, -3 … if taken
-const ensureUniqueUserSlug = async (firstName, lastName, excludeId = null) => {
-  const base = `${firstName}-${lastName}`;
+// Format: prefix-firstname-lastname (prefix optional)
+const ensureUniqueUserSlug = async (firstName, lastName, prefix = null, excludeId = null) => {
+  const parts = [prefix, firstName, lastName].filter(Boolean);
+  const base = parts.join('-');
   let slug = slugify(base);
   let candidate = slug;
   let n = 1;
@@ -182,15 +184,17 @@ const updateProfile = async (req, res) => {
       }
     }
 
-    // Generate/update slug if firstName or lastName was updated
-    if (req.body.firstName !== undefined || req.body.lastName !== undefined) {
-      const currentUser = await query('SELECT firstName, lastName FROM users WHERE id = $1', [userId]);
+    // Generate/update slug if firstName, lastName, or prefix was updated
+    // Format: prefix-firstname-lastname (prefix optional)
+    if (req.body.firstName !== undefined || req.body.lastName !== undefined || req.body.prefix !== undefined) {
+      const currentUser = await query('SELECT firstName, lastName, prefix FROM users WHERE id = $1', [userId]);
       const current = currentUser[0] || {};
       const newFirstName = req.body.firstName !== undefined ? req.body.firstName : current.firstName;
       const newLastName = req.body.lastName !== undefined ? req.body.lastName : current.lastName;
-      
+      const newPrefix = req.body.prefix !== undefined ? (req.body.prefix || null) : (current.prefix || null);
+
       if (newFirstName && newLastName) {
-        const newSlug = await ensureUniqueUserSlug(newFirstName, newLastName, userId);
+        const newSlug = await ensureUniqueUserSlug(newFirstName, newLastName, newPrefix, userId);
         updates.push(`slug = $${params.length + 1}`);
         params.push(newSlug);
       }
