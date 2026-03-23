@@ -18,6 +18,7 @@ router.get('/full', async (req, res) => {
         SELECT
           id,
           slug,
+          userType,
           "firstName",
           "lastName",
           email,
@@ -39,6 +40,7 @@ router.get('/full', async (req, res) => {
         SELECT 
           u.id,
           u.slug,
+          u.userType,
           u."firstName",
           u."lastName",
           u.email,
@@ -58,7 +60,7 @@ router.get('/full', async (req, res) => {
       }
       
       sql += `
-        GROUP BY u.id, u.slug, u."firstName", u."lastName", u.email, u."jobTitle", u.company, u."profileImage"
+        GROUP BY u.id, u.slug, u.userType, u."firstName", u."lastName", u.email, u."jobTitle", u.company, u."profileImage"
         ORDER BY points DESC, u."firstName" ASC
         LIMIT 100
       `;
@@ -79,6 +81,7 @@ router.get('/top', async (req, res) => {
       SELECT 
         u.id,
         u.slug,
+        u.userType,
         u.firstName as "firstName",
         u.lastName as "lastName",
         u.email,
@@ -90,7 +93,7 @@ router.get('/top', async (req, res) => {
         ROW_NUMBER() OVER (ORDER BY COALESCE(SUM(p.points), 0) DESC) as rank
       FROM users u
       LEFT JOIN points_history p ON u.id = p.userid
-      GROUP BY u.id, u.slug
+      GROUP BY u.id, u.slug, u.userType
       ORDER BY points DESC, u.firstName ASC
       LIMIT 10
     `;
@@ -111,6 +114,7 @@ router.get('/', async (req, res) => {
       SELECT 
         u.id,
         u.slug,
+        u.userType,
         u.firstName as "firstName",
         u.lastName as "lastName",
         u.email,
@@ -118,7 +122,7 @@ router.get('/', async (req, res) => {
         CAST(COALESCE(SUM(p.points), 0) / 1000 AS INTEGER) + 1 as level
       FROM users u
       LEFT JOIN points_history p ON u.id = p.userid
-      GROUP BY u.id, u.slug
+      GROUP BY u.id, u.slug, u.userType
       ORDER BY points DESC, u.firstName ASC
       LIMIT 50
     `;

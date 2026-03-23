@@ -37,3 +37,18 @@ export const getOrgSlug = (org) => {
   if (org.name) return slugify(org.name);
   return org.id?.toString() || '';
 };
+
+/**
+ * Return the correct profile link for any user.
+ * - partner_school / sponsor / employer → /org/:id  (org-detail endpoint handles by user ID)
+ * - everyone else                       → /profile/:slug
+ */
+const ORG_USER_TYPES = new Set(['partner_school', 'sponsor', 'employer']);
+
+export const getProfileLink = (member) => {
+  if (!member) return '/';
+  if (ORG_USER_TYPES.has(member.userType)) {
+    return `/org/${member.id}`;
+  }
+  return `/profile/${getMemberSlug(member)}`;
+};

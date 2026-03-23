@@ -4,7 +4,7 @@ import { useUser } from '../contexts/UserContext';
 import { getMembers } from '../services/profileService';
 import PageLayout from '../components/PageLayout';
 import ProfileImage from '../components/ProfileImage';
-import { getMemberSlug } from '../utils/slugify';
+import { getProfileLink } from '../utils/slugify';
 
 export default function Community() {
   const [members, setMembers] = useState([]);
@@ -290,7 +290,7 @@ export default function Community() {
                 </div>
                 <div className="ml-4 flex-1">
                   <Link
-                    to={`/profile/${getMemberSlug(member)}`}
+                    to={getProfileLink(member)}
                     className="font-bold text-blue-600 hover:text-blue-800 hover:underline block"
                   >
                     {member.firstName} {member.lastName}

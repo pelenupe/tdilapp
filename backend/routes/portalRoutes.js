@@ -368,13 +368,13 @@ router.get('/org-detail/:slug', async (req, res) => {
       return res.json({ org, users });
     }
 
-    // 2) Fallback for old partner_school users by numeric id or generated slug
+    // 2) Fallback for org-type users (partner_school, sponsor, employer) by numeric user id
     if (isNumeric) {
       const schoolUsers = await query(
         `SELECT id, email, firstName, lastName, company, jobTitle, bio, profileImage,
                 calendly_url, school_intro_video_url, school_zoom_url, school_contact_name,
-                school_contact_email, school_materials_url, school_featured, org_id
-         FROM users WHERE id = ${p(1)} AND userType = 'partner_school'`,
+                school_contact_email, school_materials_url, school_featured, org_id, userType
+         FROM users WHERE id = ${p(1)} AND userType IN ('partner_school', 'sponsor', 'employer')`,
         [slug]
       );
       if (schoolUsers.length) {
@@ -383,7 +383,7 @@ router.get('/org-detail/:slug', async (req, res) => {
         return res.json({
           org: {
             id: null,
-            org_type: 'partner_school',
+            org_type: u.userType,
             name: u.company || `${u.firstName} ${u.lastName}`,
             slug: orgSlug,
             description: u.bio,

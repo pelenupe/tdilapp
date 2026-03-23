@@ -9,7 +9,7 @@ import SidebarSponsor from '../components/SidebarSponsor';
 import MobileHeader from '../components/MobileHeader';
 import ProfileImage from '../components/ProfileImage';
 import { getUserProfileImageUrl } from '../utils/profileImage';
-import { getMemberSlug } from '../utils/slugify';
+import { getProfileLink } from '../utils/slugify';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -238,7 +238,7 @@ export default function Dashboard() {
                       <div className="font-semibold text-gray-900">You</div>
                     ) : (
                       <Link
-                        to={`/profile/${getMemberSlug(member)}`}
+                        to={getProfileLink(member)}
                         className="font-semibold text-blue-600 hover:text-blue-800 hover:underline"
                       >
                         {member.firstName} {member.lastName}

@@ -5,7 +5,7 @@ import { useUser } from '../contexts/UserContext';
 import PageLayout from '../components/PageLayout';
 import ProfileImage from '../components/ProfileImage';
 import API from '../services/api';
-import { getMemberSlug } from '../utils/slugify';
+import { getProfileLink } from '../utils/slugify';
 
 export default function Directory() {
   const [members, setMembers] = useState([]);
@@ -226,7 +226,7 @@ export default function Directory() {
                 />
                 <div>
                   <Link
-                    to={`/profile/${getMemberSlug(member)}`}
+                    to={getProfileLink(member)}
                     className="font-bold text-blue-600 hover:text-blue-800 hover:underline block"
                   >
                     {member.firstName} {member.lastName}
