@@ -259,7 +259,7 @@ export default function MyCohort() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {members.map(member => (
                 <div key={member.id}
-                  onClick={() => navigate(`/profile/${member.id}`)}
+                  onClick={() => navigate(`/profile/${slugify(`${member.firstname} ${member.lastname}`)}`)}
                   className="border border-gray-200 rounded-lg p-3 hover:shadow-md transition-shadow cursor-pointer hover:border-blue-200">
                   <div className="flex items-center gap-3">
                     <ProfileImage
