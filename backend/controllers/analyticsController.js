@@ -31,7 +31,7 @@ const getPartnerSchoolAnalytics = async (req, res) => {
 
     // Get recent check-ins
     const recentCheckins = await query(
-      `SELECT lc.*, u.firstName, u.lastName, u.profileImage, u.almaMater
+      `SELECT lc.*, u.slug, u.firstName, u.lastName, u.profileImage, u.almaMater
        FROM location_checkins lc
        INNER JOIN users u ON lc.user_id = u.id
        WHERE lc.partner_id = ?
@@ -42,7 +42,7 @@ const getPartnerSchoolAnalytics = async (req, res) => {
 
     // Get connected alumni
     const connectedAlumni = await query(
-      `SELECT u.id, u.firstName, u.lastName, u.profileImage, u.points, u.level,
+      `SELECT u.id, u.slug, u.firstName, u.lastName, u.profileImage, u.points, u.level,
               u.graduationYear, pc.connected_at
        FROM partner_connections pc
        INNER JOIN users u ON pc.connected_user_id = u.id
@@ -101,7 +101,7 @@ const getSponsorAnalytics = async (req, res) => {
 
     // Get recent check-ins
     const recentCheckins = await query(
-      `SELECT lc.*, u.firstName, u.lastName, u.profileImage, u.company, u.jobTitle
+      `SELECT lc.*, u.slug, u.firstName, u.lastName, u.profileImage, u.company, u.jobTitle
        FROM location_checkins lc
        INNER JOIN users u ON lc.user_id = u.id
        WHERE lc.partner_id = ?
@@ -112,7 +112,7 @@ const getSponsorAnalytics = async (req, res) => {
 
     // Get connected members
     const connectedMembers = await query(
-      `SELECT u.id, u.firstName, u.lastName, u.profileImage, u.points, u.level,
+      `SELECT u.id, u.slug, u.firstName, u.lastName, u.profileImage, u.points, u.level,
               u.company, u.jobTitle, pc.connected_at
        FROM partner_connections pc
        INNER JOIN users u ON pc.connected_user_id = u.id

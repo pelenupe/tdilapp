@@ -298,7 +298,7 @@ const getUserCheckIns = async (req, res) => {
     for (const checkIn of checkIns) {
       try {
         const tagged = await query(
-          `SELECT u.id, u.firstName, u.lastName
+          `SELECT u.id, u.slug, u.firstName, u.lastName
            FROM checkin_tagged_users ct
            JOIN users u ON ct.user_id = u.id
            WHERE ct.checkin_id = $1`,

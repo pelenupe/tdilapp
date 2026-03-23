@@ -81,10 +81,11 @@ const getUserConnections = async (req, res) => {
     const userId = req.user.id;
 
     const connectionsData = await query(
-      `SELECT 
+      `SELECT
         c.id as connection_id,
         c.created_at,
         u.id,
+        u.slug,
         u.firstName,
         u.lastName,
         u.company,
@@ -94,7 +95,7 @@ const getUserConnections = async (req, res) => {
         u.profileImage
       FROM connections c
       JOIN users u ON (
-        CASE 
+        CASE
           WHEN c.user_id = $1 THEN u.id = c.connected_user_id
           ELSE u.id = c.user_id
         END
@@ -110,6 +111,7 @@ const getUserConnections = async (req, res) => {
       connectionId: c.connection_id,
       createdAt: c.created_at,
       id: c.id,
+      slug: c.slug,
       firstName: c.firstName,
       lastName: c.lastName,
       company: c.company,
