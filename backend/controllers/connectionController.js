@@ -38,12 +38,12 @@ const createConnection = async (req, res) => {
 
     // Send email notifications to both users (non-blocking)
     try {
-      const users = await query('SELECT id, firstName, lastName, email FROM users WHERE id = ? OR id = ?', [userId, targetUserId]);
+      const users = await query('SELECT id, firstName, lastName, email, slug FROM users WHERE id = ? OR id = ?', [userId, targetUserId]);
       const initiator = users.find(u => u.id === userId);
       const target = users.find(u => u.id === parseInt(targetUserId));
       if (initiator && target) {
-        sendConnectionEmail({ toEmail: target.email, toName: `${target.firstName} ${target.lastName}`, fromName: `${initiator.firstName} ${initiator.lastName}`, fromId: userId }).catch(() => {});
-        sendConnectionEmail({ toEmail: initiator.email, toName: `${initiator.firstName} ${initiator.lastName}`, fromName: `${target.firstName} ${target.lastName}`, fromId: targetUserId }).catch(() => {});
+        sendConnectionEmail({ toEmail: target.email, toName: `${target.firstName} ${target.lastName}`, fromName: `${initiator.firstName} ${initiator.lastName}`, fromSlug: initiator.slug }).catch(() => {});
+        sendConnectionEmail({ toEmail: initiator.email, toName: `${initiator.firstName} ${initiator.lastName}`, fromName: `${target.firstName} ${target.lastName}`, fromSlug: target.slug }).catch(() => {});
       }
     } catch (_) {}
 

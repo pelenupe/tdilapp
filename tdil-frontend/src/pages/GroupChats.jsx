@@ -641,7 +641,7 @@ export default function GroupChats() {
                               <div>
                                 {!isOwn && (
                                   <p className="text-xs text-blue-600 hover:text-blue-800 mb-1 cursor-pointer"
-                                    onClick={() => navigate(`/profile/${msg.sender_id}`)}>
+                                  onClick={() => navigate(`/profile/${slugify(`${msg.firstname} ${msg.lastname}`)}`)}>
                                     {msg.firstname} {msg.lastname}
                                   </p>
                                 )}

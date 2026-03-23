@@ -116,7 +116,7 @@ async function sendWelcomeEmail({ toEmail, firstName }) {
 }
 
 /** New connection notification */
-async function sendConnectionEmail({ toEmail, toName, fromName, fromId }) {
+async function sendConnectionEmail({ toEmail, toName, fromName, fromSlug }) {
   const html = `
     <p>Hi <strong>${toName}</strong>,</p>
     <p><strong>${fromName}</strong> just connected with you on tDIL! You've both earned connection points.</p>
@@ -125,7 +125,7 @@ async function sendConnectionEmail({ toEmail, toName, fromName, fromId }) {
   return sendEmail({
     to: toEmail,
     subject: `${fromName} connected with you on tDIL!`,
-    html: wrapEmail('New Connection! 🤝', html, 'View Profile', `${APP_URL}/profile/${fromId}`)
+    html: wrapEmail('New Connection! 🤝', html, 'View Profile', `${APP_URL}/profile/${fromSlug}`)
   });
 }
 
