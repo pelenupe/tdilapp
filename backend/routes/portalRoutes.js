@@ -45,7 +45,8 @@ const syncOrgSlug = async (orgId, name) => {
     const rows = await query(`SELECT slug FROM org_profiles WHERE id = ${p(1)}`, [orgId]);
     if (!rows.length) return;
     const current = rows[0].slug;
-    if (current && current.startsWith(slugify(name.split(' ')[0].toLowerCase()))) return; // already looks right
+    const expectedSlug = slugify(name);
+    if (current === expectedSlug) return; // already matches
     const newSlug = await ensureUniqueOrgSlug(name, orgId);
     if (newSlug !== current) {
       await query(`UPDATE org_profiles SET slug = ${p(1)} WHERE id = ${p(2)}`, [newSlug, orgId]);
@@ -367,7 +368,7 @@ router.get('/org-detail/:slug', async (req, res) => {
       return res.json({ org, users });
     }
 
-    // 2) Fallback for old schools: treat as user_id (numeric only)
+    // 2) Fallback for old partner_school users by numeric id or generated slug
     if (isNumeric) {
       const schoolUsers = await query(
         `SELECT id, email, firstName, lastName, company, jobTitle, bio, profileImage,
@@ -383,7 +384,7 @@ router.get('/org-detail/:slug', async (req, res) => {
           org: {
             id: null,
             org_type: 'partner_school',
-            name: u.company,
+            name: u.company || `${u.firstName} ${u.lastName}`,
             slug: orgSlug,
             description: u.bio,
             contact_name: u.school_contact_name,
@@ -399,6 +400,44 @@ router.get('/org-detail/:slug', async (req, res) => {
           users: [{ id: u.id, firstName: u.firstName, lastName: u.lastName, email: u.email, jobTitle: u.jobTitle }]
         });
       }
+    }
+
+    // 3) Fallback: try generating slug for legacy partner_school users and match
+    const schoolCandidates = await query(
+      `SELECT id, email, firstName, lastName, company, jobTitle, bio, profileImage,
+              calendly_url, school_intro_video_url, school_zoom_url, school_contact_name,
+              school_contact_email, school_materials_url, school_featured, org_id
+       FROM users WHERE userType = 'partner_school'`
+    );
+
+    const matchedUser = schoolCandidates.find((u) => {
+      const candidateName = (u.company || `${u.firstName} ${u.lastName}`).trim();
+      if (!candidateName) return false;
+      return slugify(candidateName) === slug;
+    });
+
+    if (matchedUser) {
+      const u = matchedUser;
+      const orgSlug = slugify(u.company || `${u.firstName} ${u.lastName}`);
+      return res.json({
+        org: {
+          id: null,
+          org_type: 'partner_school',
+          name: u.company || `${u.firstName} ${u.lastName}`,
+          slug: orgSlug,
+          description: u.bio,
+          contact_name: u.school_contact_name,
+          contact_email: u.school_contact_email,
+          calendly_url: u.calendly_url,
+          zoom_url: u.school_zoom_url,
+          materials_url: u.school_materials_url,
+          intro_video_url: u.school_intro_video_url,
+          logo_url: u.profileImage,
+          featured: u.school_featured,
+          _user_id: u.id
+        },
+        users: [{ id: u.id, firstName: u.firstName, lastName: u.lastName, email: u.email, jobTitle: u.jobTitle }]
+      });
     }
 
     res.status(404).json({ message: 'Profile not found' });

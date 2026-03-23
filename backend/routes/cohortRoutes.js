@@ -211,7 +211,7 @@ router.get('/members-by-name/:name', async (req, res) => {
 router.get('/admin/users', adminOnly, async (req, res) => {
   try {
     const search = req.query.search || '';
-    let sql = `SELECT id, firstName, lastName, email, cohort, userType, points, level, profileImage
+    let sql = `SELECT id, firstName, lastName, email, cohort, userType, points, level, profileImage, slug
                FROM users`;
     const params = [];
 

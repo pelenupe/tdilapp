@@ -7,6 +7,28 @@ const { awardPoints } = require('./pointsController');
 const { autoAssignCohort } = require('./cohortController');
 const { autoConnectAlmaMater } = require('./analyticsController');
 
+// Slugify helper
+const slugify = (str) =>
+  (str || '').toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s-]/g, '').trim()
+    .replace(/\s+/g, '-').replace(/-+/g, '-');
+
+// Ensure slug is unique in users — appends -2, -3 … if taken
+const ensureUniqueUserSlug = async (firstName, lastName) => {
+  const base = `${firstName}-${lastName}`;
+  let slug = slugify(base);
+  let candidate = slug;
+  let n = 1;
+  while (true) {
+    const existing = await query(`SELECT id FROM users WHERE slug = $1`, [candidate]);
+    if (!existing.length) break;
+    n++;
+    candidate = `${slug}-${n}`;
+  }
+  return candidate;
+};
+
 const register = async (req, res) => {
   try {
     const { firstName, lastName, email, password, company, jobTitle, inviteToken, almaMater, graduationYear } = req.body;
@@ -49,15 +71,18 @@ const register = async (req, res) => {
     // cohort from signup form (from dropdown or new name)
     const cohortValue = req.body.cohort || req.body.almaMater || null;
 
+    // Generate unique slug
+    const userSlug = await ensureUniqueUserSlug(firstName, lastName);
+
     // Create user — use ? for SQLite, $N for PostgreSQL
     const isPostgreSQL = require('../config/database').isPostgreSQL;
     const inserted = await query(
       isPostgreSQL
-        ? `INSERT INTO users (email, password, "firstName", "lastName", company, "jobTitle", points, level, "userType", cohort)
-           VALUES ($1, $2, $3, $4, $5, $6, 0, 1, $7, $8) RETURNING id`
-        : `INSERT INTO users (email, password, firstName, lastName, company, jobTitle, points, level, userType, cohort)
-           VALUES (?, ?, ?, ?, ?, ?, 0, 1, ?, ?)`,
-      [email, hashedPassword, firstName, lastName, company || '', jobTitle || '', userType, cohortValue]
+        ? `INSERT INTO users (email, password, "firstName", "lastName", company, "jobTitle", points, level, "userType", cohort, slug)
+           VALUES ($1, $2, $3, $4, $5, $6, 0, 1, $7, $8, $9) RETURNING id`
+        : `INSERT INTO users (email, password, firstName, lastName, company, jobTitle, points, level, userType, cohort, slug)
+           VALUES (?, ?, ?, ?, ?, ?, 0, 1, ?, ?, ?)`,
+      [email, hashedPassword, firstName, lastName, company || '', jobTitle || '', userType, cohortValue, userSlug]
     );
 
     const newUserId = inserted[0].id;

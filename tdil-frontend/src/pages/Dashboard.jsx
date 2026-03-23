@@ -9,6 +9,7 @@ import SidebarSponsor from '../components/SidebarSponsor';
 import MobileHeader from '../components/MobileHeader';
 import ProfileImage from '../components/ProfileImage';
 import { getUserProfileImageUrl } from '../utils/profileImage';
+import { getMemberSlug } from '../utils/slugify';
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -237,7 +238,7 @@ export default function Dashboard() {
                       <div className="font-semibold text-gray-900">You</div>
                     ) : (
                       <Link
-                        to={`/profile/${member.id}`}
+                        to={`/profile/${getMemberSlug(member)}`}
                         className="font-semibold text-blue-600 hover:text-blue-800 hover:underline"
                       >
                         {member.firstName} {member.lastName}
@@ -315,7 +316,7 @@ export default function Dashboard() {
                         <div className="flex-1 min-w-0">
                           <div className="text-gray-900 text-sm">
                             {activity.userId ? (
-                              <Link to={`/profile/${activity.userId}`} className="font-semibold text-blue-600 hover:underline">{activity.user}</Link>
+                              <Link to={`/profile/${activity.userSlug || activity.userId}`} className="font-semibold text-blue-600 hover:underline">{activity.user}</Link>
                             ) : <span className="font-semibold">{activity.user}</span>}
                             <span className="mx-1 text-gray-500">{activity.action}</span>
                             <span className="font-semibold text-gray-800">{activity.target}</span>

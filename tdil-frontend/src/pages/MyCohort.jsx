@@ -4,6 +4,7 @@ import { useUser } from '../contexts/UserContext';
 import PageLayout from '../components/PageLayout';
 import ProfileImage from '../components/ProfileImage';
 import API from '../services/api';
+import { slugify } from '../utils/slugify';
 
 export default function MyCohort() {
   const { user } = useUser();
@@ -268,7 +269,7 @@ export default function MyCohort() {
                       size="sm"
                     />
                     <div className="flex-1 min-w-0">
-                      <Link to={`/profile/${member.id}`}
+                      <Link to={`/profile/${slugify(`${member.firstname} ${member.lastname}`)}`}
                         onClick={e => e.stopPropagation()}
                         className="font-medium text-blue-600 hover:underline text-sm block truncate">
                         {member.firstname} {member.lastname}

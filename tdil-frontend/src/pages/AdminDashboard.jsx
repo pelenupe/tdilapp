@@ -4,6 +4,7 @@ import { useUser } from '../contexts/UserContext';
 import PageLayout from '../components/PageLayout';
 import API from '../services/api';
 import { Search, Users, Megaphone, Settings, Edit2, Trash2, Save, X, Plus, RefreshCw } from 'lucide-react';
+import { getMemberSlug } from '../utils/slugify';
 
 const USER_TYPES = ['member', 'admin', 'founder', 'partner_school', 'sponsor', 'employer'];
 
@@ -409,7 +410,7 @@ export default function AdminDashboard() {
                             className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors" title="Delete user">
                             <Trash2 size={13} />
                           </button>
-                          <Link to={`/profile/${u.id}`} className="p-1.5 text-gray-400 hover:text-gray-600 rounded text-xs">View</Link>
+                          <Link to={`/profile/${getMemberSlug(u)}`} className="p-1.5 text-gray-400 hover:text-gray-600 rounded text-xs">View</Link>
                         </div>
                       </td>
                     </tr>

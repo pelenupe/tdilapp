@@ -180,7 +180,7 @@ const getLeaderboard = async (req, res) => {
     const limit = parseInt(req.query.limit) || 20;
     
     const leaderboard = await query(
-      'SELECT id, firstName, lastName, points, level, profileImage FROM users WHERE userType = \'member\' ORDER BY points DESC LIMIT $1',
+      'SELECT id, firstName, lastName, points, level, profileImage, slug FROM users WHERE userType = \'member\' ORDER BY points DESC LIMIT $1',
       [limit]
     );
     
@@ -192,6 +192,7 @@ const getLeaderboard = async (req, res) => {
       points: user.points,
       level: user.level,
       profileImage: user.profileImage,
+      slug: user.slug,
       rank: index + 1,
       levelInfo: calculateLevel(user.points)
     }));
