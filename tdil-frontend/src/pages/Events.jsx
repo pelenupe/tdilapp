@@ -12,6 +12,7 @@ export default function Events() {
   const [userCohort, setUserCohort] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const fileInputRef = useRef(null);
+  const [editingEvent, setEditingEvent] = useState(null); // event being edited
   const [newEvent, setNewEvent] = useState({
     title: '',
     description: '',
@@ -193,6 +194,71 @@ export default function Events() {
     if (filter === 'in-person') return event.type === 'In-person';
     return true;
   });
+
+  const isAdmin = ['admin', 'founder'].includes(user?.userType);
+  const canManageEvent = (event) => event.createdBy === user?.id || isAdmin;
+
+  const handleDeleteEvent = async (eventId) => {
+    if (!window.confirm('Delete this event? This cannot be undone.')) return;
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/events/${eventId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) fetchEvents();
+      else { const e = await res.json(); alert(e.error || 'Failed to delete event.'); }
+    } catch (err) { console.error(err); }
+  };
+
+  const handleOpenEdit = (event) => {
+    setEditingEvent({
+      id: event.id,
+      title: event.title || '',
+      description: event.description || '',
+      date: event.date ? event.date.slice(0, 10) : '',
+      end_date: event.endDate ? event.endDate.slice(0, 10) : '',
+      time: event.time || '',
+      location: event.location !== 'TBD' ? (event.location || '') : '',
+      category: event.type === 'Virtual' ? 'virtual' : 'in-person',
+      maxAttendees: event.maxAttendees || 50,
+      points: event.points || 50,
+      visibility: event.visibility || 'public',
+      cohort_name: event.cohortName || '',
+      image_url: event.image || '',
+      signup_url: event.signupUrl || '',
+      host: event.host || ''
+    });
+  };
+
+  const handleSaveEdit = async (e) => {
+    e.preventDefault();
+    try {
+      const token = localStorage.getItem('token');
+      const ev = editingEvent;
+      const res = await fetch(`/api/events/${ev.id}`, {
+        method: 'PUT',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: ev.title,
+          description: ev.description,
+          date: `${ev.date}T${ev.time || '12:00'}:00`,
+          end_date: ev.end_date || null,
+          location: ev.location,
+          category: ev.category,
+          max_attendees: ev.maxAttendees,
+          points: ev.points,
+          visibility: ev.visibility,
+          cohort_name: ev.visibility === 'cohort' ? ev.cohort_name : null,
+          image_url: ev.image_url || null,
+          signup_url: ev.signup_url || null,
+          host: ev.host || null
+        })
+      });
+      if (res.ok) { setEditingEvent(null); fetchEvents(); }
+      else { const err = await res.json(); alert(err.error || 'Failed to update event.'); }
+    } catch (err) { console.error(err); alert('Failed to update event.'); }
+  };
 
   const resetModal = () => {
     setShowModal(false);
@@ -415,16 +481,118 @@ export default function Events() {
         </div>
       )}
 
+      {/* Edit Event Modal */}
+      {editingEvent && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold text-gray-900">Edit Event</h2>
+                <button onClick={() => setEditingEvent(null)} className="text-gray-400 hover:text-gray-600 text-2xl">×</button>
+              </div>
+              <form onSubmit={handleSaveEdit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Event Title *</label>
+                  <input type="text" required value={editingEvent.title}
+                    onChange={(e) => setEditingEvent({ ...editingEvent, title: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Start Date *</label>
+                    <input type="date" required value={editingEvent.date}
+                      onChange={(e) => setEditingEvent({ ...editingEvent, date: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Time</label>
+                    <input type="time" value={editingEvent.time}
+                      onChange={(e) => setEditingEvent({ ...editingEvent, time: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    End Date <span className="text-gray-400 font-normal">(optional)</span>
+                  </label>
+                  <input type="date" value={editingEvent.end_date} min={editingEvent.date}
+                    onChange={(e) => setEditingEvent({ ...editingEvent, end_date: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                  <input type="text" value={editingEvent.location}
+                    onChange={(e) => setEditingEvent({ ...editingEvent, location: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g., Indianapolis, IN or Virtual" />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                    <select value={editingEvent.category}
+                      onChange={(e) => setEditingEvent({ ...editingEvent, category: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                      <option value="in-person">In-Person</option>
+                      <option value="virtual">Virtual</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Max Attendees</label>
+                    <input type="number" min="1" value={editingEvent.maxAttendees}
+                      onChange={(e) => setEditingEvent({ ...editingEvent, maxAttendees: parseInt(e.target.value) || 50 })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Hosted By</label>
+                  <input type="text" value={editingEvent.host}
+                    onChange={(e) => setEditingEvent({ ...editingEvent, host: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g., tDIL, Indiana University…" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">External Sign-Up Link</label>
+                  <input type="url" value={editingEvent.signup_url}
+                    onChange={(e) => setEditingEvent({ ...editingEvent, signup_url: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="https://…" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                  <textarea rows={3} value={editingEvent.description}
+                    onChange={(e) => setEditingEvent({ ...editingEvent, description: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                    placeholder="Describe your event..." />
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button type="button" onClick={() => setEditingEvent(null)}
+                    className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">
+                    Cancel
+                  </button>
+                  <button type="submit"
+                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium">
+                    Save Changes
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Events Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredEvents.map((event) => (
           <div key={event.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
-            <img
-              src={event.image || tdilIcon}
-              alt={event.title}
-              className="w-full h-48 object-cover"
-              onError={(e) => { e.target.src = tdilIcon; }}
-            />
+            {/* Image area — custom image covers, default icon is small/padded */}
+            {event.image ? (
+              <img src={event.image} alt={event.title} className="w-full h-40 object-cover"
+                onError={(e) => { e.target.style.display='none'; }} />
+            ) : (
+              <div className="w-full h-28 bg-gray-50 border-b border-gray-100 flex items-center justify-center p-4">
+                <img src={tdilIcon} alt="tDIL" className="h-16 w-auto object-contain opacity-50" />
+              </div>
+            )}
             <div className="p-6">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
@@ -437,7 +605,17 @@ export default function Events() {
                     </span>
                   )}
                 </div>
-                <span className="text-xs font-medium text-yellow-600">+{event.points} pts</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-medium text-yellow-600">+{event.points} pts</span>
+                  {canManageEvent(event) && (
+                    <>
+                      <button onClick={() => handleOpenEdit(event)} title="Edit event"
+                        className="text-gray-400 hover:text-blue-600 transition-colors text-sm px-1">✏️</button>
+                      <button onClick={() => handleDeleteEvent(event.id)} title="Delete event"
+                        className="text-gray-400 hover:text-red-600 transition-colors text-sm px-1">🗑️</button>
+                    </>
+                  )}
+                </div>
               </div>
 
               <h3 className="font-bold text-gray-900 mb-2 text-lg">{event.title}</h3>

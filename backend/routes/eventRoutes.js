@@ -344,7 +344,7 @@ router.put('/:id', protect, async (req, res) => {
       return res.status(403).json({ error: 'Not authorized to edit this event' });
     }
 
-    const { title, description, date, location, category, max_attendees, points, visibility, cohort_name, image_url, signup_url, host } = req.body;
+    const { title, description, date, end_date, location, category, max_attendees, points, visibility, cohort_name, image_url, signup_url, host } = req.body;
 
     const updates = [];
     const vals = [];
@@ -354,6 +354,7 @@ router.put('/:id', protect, async (req, res) => {
     addF('title', title);
     addF('description', description);
     addF('date', date);
+    addF('end_date', end_date);
     addF('location', location);
     addF('category', category);
     addF('maxAttendees', max_attendees);
