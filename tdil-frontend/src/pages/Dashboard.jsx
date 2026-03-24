@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import tdilIcon from '../assets/tdil-icon.png';
 import API from '../services/api';
 import { useUser } from '../contexts/UserContext';
 import SidebarMember from '../components/SidebarMember';
@@ -437,12 +438,14 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {upcomingEvents.map((event, index) => (
                 <div key={index} className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow">
-                  <img
-                    src={event.image || '/tdil-logo.png'}
-                    alt={event.title}
-                    className="w-full h-48 object-cover"
-                    onError={(e) => { e.target.src = '/tdil-logo.png'; }}
-                  />
+                  {event.image ? (
+                    <img src={event.image} alt={event.title} className="w-full h-40 object-cover"
+                      onError={(e) => { e.target.style.display = 'none'; }} />
+                  ) : (
+                    <div className="w-full h-24 bg-gray-50 border-b border-gray-100 flex items-center justify-center">
+                      <img src={tdilIcon} alt="tDIL" className="h-14 w-auto object-contain opacity-50" />
+                    </div>
+                  )}
                   <div className="p-4">
                     <div className="flex items-center justify-between mb-2">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
