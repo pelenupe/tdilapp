@@ -34,8 +34,9 @@ const TYPE_CONFIG = {
     subtitle: 'Join tDIL as a partner educational institution',
     cta: 'Create School Account',
     showCohort: false,
+    primaryContactLabel: 'Primary Contact',
     fields: {
-      firstNameLabel: 'Primary Contact — First Name',
+      firstNameLabel: 'First Name',
       lastNameLabel: 'Last Name',
       companyLabel: 'School / Institution Name',
       jobTitleLabel: 'Department or Program',
@@ -54,8 +55,9 @@ const TYPE_CONFIG = {
     subtitle: 'Partner with tDIL and engage our community',
     cta: 'Create Sponsor Account',
     showCohort: false,
+    primaryContactLabel: 'Sponsorship Contact',
     fields: {
-      firstNameLabel: 'Sponsorship Contact — First Name',
+      firstNameLabel: 'First Name',
       lastNameLabel: 'Last Name',
       companyLabel: 'Organization / Company Name',
       jobTitleLabel: 'Industry or Category (optional)',
@@ -74,8 +76,9 @@ const TYPE_CONFIG = {
     subtitle: 'Connect with diverse talent in the tDIL community',
     cta: 'Create Employer Account',
     showCohort: false,
+    primaryContactLabel: 'HR / Recruiting Contact',
     fields: {
-      firstNameLabel: 'HR / Recruiting Contact — First Name',
+      firstNameLabel: 'First Name',
       lastNameLabel: 'Last Name',
       companyLabel: 'Company Name',
       jobTitleLabel: 'Industry (optional)',
@@ -247,7 +250,7 @@ export default function Register() {
           <div className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl ${cfg?.accent || 'bg-blue-600'} text-white text-2xl font-black mb-4 shadow-lg transition-all duration-300`}>
             {cfg ? cfg.label.split(' ')[0] : '🎓'}
           </div>
-          <h2 className="text-3xl font-extrabold text-gray-900">
+          <h2 className="text-3xl font-bold text-gray-900">
             {cfg?.title || 'Create Your Account'}
           </h2>
           <p className="mt-2 text-sm text-gray-600">
@@ -302,15 +305,22 @@ export default function Register() {
                 {detectedType === 'member' ? 'Your Details' : 'Organization & Contact'}
               </h3>
 
-              {/* First + Last Name */}
+              {/* Primary Contact heading for org types */}
+              {cfg.primaryContactLabel && (
+                <p className="text-sm font-semibold text-gray-700 -mb-1">
+                  {cfg.primaryContactLabel} <span className="text-red-500">*</span>
+                </p>
+              )}
+
+              {/* First + Last Name side by side */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className={labelBase}>{cfg.fields.firstNameLabel} <span className="text-red-500">*</span></label>
+                  <label className={labelBase}>{cfg.fields.firstNameLabel}</label>
                   <input name="firstName" type="text" required value={formData.firstName} onChange={handleChange}
                     className={inputBase} placeholder="First name" />
                 </div>
                 <div>
-                  <label className={labelBase}>{cfg.fields.lastNameLabel} <span className="text-red-500">*</span></label>
+                  <label className={labelBase}>{cfg.fields.lastNameLabel}</label>
                   <input name="lastName" type="text" required value={formData.lastName} onChange={handleChange}
                     className={inputBase} placeholder="Last name" />
                 </div>
