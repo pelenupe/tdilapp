@@ -270,7 +270,7 @@ export default function Register() {
                 value={formData.inviteToken}
                 onChange={handleTokenChange}
                 className={`${inputBase} pr-8 ${tokenValid ? 'border-green-400' : tokenError ? 'border-red-400' : ''}`}
-                placeholder="Your invite token (e.g. TDIL-MEMBER-2024)"
+                placeholder="Enter your invite token"
                 autoFocus
               />
               {tokenChecking && (
