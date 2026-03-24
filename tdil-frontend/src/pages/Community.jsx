@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import SchoolBadge, { getSchoolBorderClass } from '../components/SchoolBadge';
 import { useUser } from '../contexts/UserContext';
 import { getMembers } from '../services/profileService';
 import PageLayout from '../components/PageLayout';
@@ -274,7 +275,7 @@ export default function Community() {
       {/* Members Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredMembers.map((member) => (
-          <div key={member.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
+          <div key={member.id} className={`bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow ${getSchoolBorderClass(member.partner_school_status, member.partner_school_name)}`}>
             <div className="p-6">
               <div className="flex items-center mb-4">
                 <div className="relative">
@@ -296,6 +297,7 @@ export default function Community() {
                     {member.firstName} {member.lastName}
                   </Link>
                   <p className="text-sm text-gray-500">{member.jobTitle || getUserTypeLabel(member.userType)}</p>
+                  <SchoolBadge partnerSchoolName={member.partner_school_name} partnerSchoolStatus={member.partner_school_status} className="mt-1" />
                   <span className={`inline-block mt-1 px-2 py-0.5 text-xs font-medium rounded-full ${
                     member.userType === 'partner_school' ? 'bg-purple-100 text-purple-700' :
                     member.userType === 'sponsor' ? 'bg-yellow-100 text-yellow-700' :

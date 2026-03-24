@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import SchoolBadge, { getSchoolBorderClass } from '../components/SchoolBadge';
 import { useNavigate, Link } from 'react-router-dom';
 import { getMembers } from '../services/profileService';
 import { useUser } from '../contexts/UserContext';
@@ -214,7 +215,7 @@ export default function Directory() {
     >
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {members.map((member) => (
-          <div key={member.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <div key={member.id} className={`bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden ${getSchoolBorderClass(member.partner_school_status, member.partner_school_name)}`}>
             <div className="p-6">
               <div className="flex items-center mb-4">
                 <ProfileImage 
@@ -232,6 +233,7 @@ export default function Directory() {
                     {member.firstName} {member.lastName}
                   </Link>
                   <p className="text-sm text-gray-500">{member.jobTitle}</p>
+                  <SchoolBadge partnerSchoolName={member.partner_school_name} partnerSchoolStatus={member.partner_school_status} className="mt-1" />
                 </div>
               </div>
               

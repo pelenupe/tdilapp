@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import SchoolBadge from '../components/SchoolBadge';
 import { useUser } from '../contexts/UserContext';
 import PageLayout from '../components/PageLayout';
 import ProfileImage from '../components/ProfileImage';
@@ -138,6 +139,7 @@ export default function Leaderboard() {
                             member.jobTitle || member.company || 'tDIL Member'
                           }
                         </div>
+                        <SchoolBadge partnerSchoolName={member.partner_school_name} partnerSchoolStatus={member.partner_school_status} className="mt-1" />
                       </div>
                       <div className="text-right">
                         <div className="flex items-center gap-1 text-yellow-600 font-bold text-lg">
