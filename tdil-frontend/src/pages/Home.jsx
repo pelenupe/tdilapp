@@ -175,7 +175,7 @@ export default function Home() {
               <div
                 key={member.id || index}
                 className="flex items-center justify-between p-3 bg-white rounded-lg hover:bg-gray-50 transition-colors cursor-pointer"
-                onClick={() => handleMemberClick(member.name)}
+                onClick={() => navigate(`/profile/${member.slug || member.id}`)}
               >
                 <div className="flex items-center gap-4">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${
@@ -187,12 +187,13 @@ export default function Home() {
                     {index + 1}
                   </div>
                   <img
-                    src={member.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name)}&background=random`}
-                    alt={member.name}
-                    className="w-10 h-10 rounded-full"
+                    src={member.profileImage || member.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(`${member.firstName || ''} ${member.lastName || ''}`.trim())}&background=random`}
+                    alt={`${member.firstName} ${member.lastName}`}
+                    className="w-10 h-10 rounded-full object-cover"
+                    onError={(e) => { e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(`${member.firstName||''} ${member.lastName||''}`.trim())}&background=random`; }}
                   />
                   <span className="font-semibold text-gray-900">
-                    {member.name}
+                    {member.firstName} {member.lastName}
                   </span>
                 </div>
                 <div className="text-blue-600 font-bold">
