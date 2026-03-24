@@ -438,14 +438,16 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {upcomingEvents.map((event, index) => (
                 <div key={index} className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow">
-                  {event.image ? (
-                    <img src={event.image} alt={event.title} className="w-full h-40 object-cover"
-                      onError={(e) => { e.target.style.display = 'none'; }} />
-                  ) : (
-                    <div className="w-full h-24 bg-gray-50 border-b border-gray-100 flex items-center justify-center">
-                      <img src={tdilIcon} alt="tDIL" className="h-14 w-auto object-contain opacity-50" />
-                    </div>
-                  )}
+                  <Link to={`/events/${event.id}`} className="block">
+                    {event.image ? (
+                      <img src={event.image} alt={event.title} className="w-full h-40 object-cover"
+                        onError={(e) => { e.target.style.display = 'none'; }} />
+                    ) : (
+                      <div className="w-full h-24 bg-gray-50 border-b border-gray-100 flex items-center justify-center">
+                        <img src={tdilIcon} alt="tDIL" className="h-14 w-auto object-contain opacity-50" />
+                      </div>
+                    )}
+                  </Link>
                   <div className="p-4">
                     <div className="flex items-center justify-between mb-2">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -455,7 +457,9 @@ export default function Dashboard() {
                       </span>
                       <span className="text-xs font-medium text-yellow-600">{event.points}</span>
                     </div>
-                    <h3 className="font-bold text-gray-900 mb-2">{event.title}</h3>
+                    <Link to={`/events/${event.id}`}>
+                      <h3 className="font-bold text-blue-700 hover:text-blue-900 hover:underline mb-2">{event.title}</h3>
+                    </Link>
                     <p className="text-sm text-gray-600 mb-1">{event.date}</p>
                     <p className="text-sm text-gray-600 mb-4">{event.location}</p>
                     {event.registered ? (

@@ -14,6 +14,7 @@ import Profile from './pages/Profile';
 import ChatPage from './pages/ChatPage';
 import Rewards from './pages/Rewards';
 import Events from './pages/Events';
+import EventDetail from './pages/EventDetail';
 import Community from './pages/Community';
 import MerchStore from './pages/MerchStore';
 import PartnerSchools from './pages/PartnerSchools';
@@ -113,6 +114,7 @@ function App() {
           <Route path="/directory" element={isAuthenticated ? <Directory /> : <Navigate to="/login" />} />
           <Route path="/jobs" element={isAuthenticated ? <JobBoard /> : <Navigate to="/login" />} />
           <Route path="/events" element={isAuthenticated ? <Events /> : <Navigate to="/login" />} />
+          <Route path="/events/:id" element={isAuthenticated ? <EventDetail /> : <Navigate to="/login" />} />
           <Route path="/merch-store" element={isAuthenticated ? <MerchStore /> : <Navigate to="/login" />} />
           <Route path="/partner-schools" element={isAuthenticated ? <PartnerSchools /> : <Navigate to="/login" />} />
           <Route path="/profile" element={isAuthenticated ? <Profile /> : <Navigate to="/login" />} />

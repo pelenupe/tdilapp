@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
 import PageLayout from '../components/PageLayout';
 import tdilIcon from '../assets/tdil-icon.png';
@@ -584,15 +585,17 @@ export default function Events() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredEvents.map((event) => (
           <div key={event.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
-            {/* Image area — custom image covers, default icon is small/padded */}
-            {event.image ? (
-              <img src={event.image} alt={event.title} className="w-full h-40 object-cover"
-                onError={(e) => { e.target.style.display='none'; }} />
-            ) : (
-              <div className="w-full h-28 bg-gray-50 border-b border-gray-100 flex items-center justify-center p-4">
-                <img src={tdilIcon} alt="tDIL" className="h-16 w-auto object-contain opacity-50" />
-              </div>
-            )}
+            {/* Image area — clickable to event detail */}
+            <Link to={`/events/${event.id}`} className="block">
+              {event.image ? (
+                <img src={event.image} alt={event.title} className="w-full h-40 object-cover"
+                  onError={(e) => { e.target.style.display='none'; }} />
+              ) : (
+                <div className="w-full h-28 bg-gray-50 border-b border-gray-100 flex items-center justify-center p-4">
+                  <img src={tdilIcon} alt="tDIL" className="h-16 w-auto object-contain opacity-50" />
+                </div>
+              )}
+            </Link>
             <div className="p-6">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
@@ -618,7 +621,9 @@ export default function Events() {
                 </div>
               </div>
 
-              <h3 className="font-bold text-gray-900 mb-2 text-lg">{event.title}</h3>
+              <Link to={`/events/${event.id}`}>
+                <h3 className="font-bold text-blue-700 hover:text-blue-900 hover:underline mb-2 text-lg">{event.title}</h3>
+              </Link>
               {event.description && <p className="text-sm text-gray-600 mb-4 line-clamp-2">{event.description}</p>}
 
               <div className="space-y-1.5 mb-4">
