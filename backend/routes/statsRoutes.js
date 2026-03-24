@@ -1,30 +1,37 @@
 const express = require('express');
 const router = express.Router();
-const { query } = require('../config/database');
+const { query, isPostgreSQL } = require('../config/database');
 
-// GET /api/stats/overview - Get overview statistics
+// GET /api/stats/overview - Get overview statistics (public, no auth required)
 router.get('/overview', async (req, res) => {
   try {
-    // Get total members count
-    const membersResult = await query('SELECT COUNT(*) as count FROM users');
-    const totalMembers = parseInt(membersResult[0].count || membersResult[0]['COUNT(*)']) || 0;
+    // Count only member-type users (exclude admins, sponsors, schools, etc.)
+    const membersResult = await query(
+      `SELECT COUNT(*) as count FROM users WHERE userType = 'member'`
+    );
+    const totalMembers = parseInt(membersResult[0]?.count ?? membersResult[0]?.['COUNT(*)']) || 0;
 
-    // Get total partners count (companies with members)
-    const partnersResult = await query(`
-      SELECT COUNT(DISTINCT company) as count 
-      FROM users 
-      WHERE company IS NOT NULL AND company != ''
-    `);
-    const totalPartners = parseInt(partnersResult[0].count || partnersResult[0]['COUNT(DISTINCT company)']) || 0;
+    // Count partner schools
+    const partnersResult = await query(
+      `SELECT COUNT(*) as count FROM users WHERE userType = 'partner_school'`
+    );
+    const totalPartners = parseInt(partnersResult[0]?.count ?? partnersResult[0]?.['COUNT(*)']) || 0;
 
-    // Get total events count for this year
-    const currentYear = new Date().getFullYear();
-    const eventsResult = await query(`
-      SELECT COUNT(*) as count 
-      FROM events 
-      WHERE EXTRACT(YEAR FROM date) = $1
-    `, [currentYear]);
-    const totalEvents = parseInt(eventsResult[0].count || eventsResult[0]['COUNT(*)']) || 0;
+    // Count all events (SQLite and PostgreSQL compatible)
+    const currentYear = new Date().getFullYear().toString();
+    let eventsResult;
+    if (isPostgreSQL) {
+      eventsResult = await query(
+        `SELECT COUNT(*) as count FROM events WHERE EXTRACT(YEAR FROM date) = $1`,
+        [currentYear]
+      );
+    } else {
+      eventsResult = await query(
+        `SELECT COUNT(*) as count FROM events WHERE strftime('%Y', date) = ?`,
+        [currentYear]
+      );
+    }
+    const totalEvents = parseInt(eventsResult[0]?.count ?? eventsResult[0]?.['COUNT(*)']) || 0;
 
     res.json({
       totalMembers,
