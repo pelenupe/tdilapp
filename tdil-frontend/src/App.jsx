@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import tdilIcon from './assets/tdil-icon.png';
 import API from './services/api';
 import { UserProvider } from './contexts/UserContext';
 import { SidebarProvider } from './contexts/SidebarContext';
@@ -92,7 +93,7 @@ function App() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <img src="/tdil-logo.png" alt="tDIL" className="w-16 h-16 object-contain mx-auto mb-4 animate-pulse" />
+          <img src={tdilIcon} alt="tDIL" className="w-16 h-16 object-contain mx-auto mb-4 animate-pulse" />
           <div className="text-gray-500 text-sm">Loading...</div>
         </div>
       </div>

@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useUser } from '../contexts/UserContext';
 import PageLayout from '../components/PageLayout';
-
-const TDIL_LOGO = '/tdil-logo.png';
+import tdilIcon from '../assets/tdil-icon.png';
 
 export default function Events() {
   const { user } = useUser();
@@ -17,6 +16,7 @@ export default function Events() {
     title: '',
     description: '',
     date: '',
+    end_date: '',
     time: '',
     location: '',
     category: 'in-person',
@@ -76,6 +76,7 @@ export default function Events() {
           createdBy: event.created_by,
           visibility: event.visibility || 'public',
           cohortName: event.cohort_name || null,
+          endDate: event.end_date || null,
           signupUrl: event.signup_url || null,
           host: event.host || null,
           createdByName: event.createdByName || null
@@ -124,6 +125,7 @@ export default function Events() {
           points: newEvent.points,
           visibility: newEvent.visibility,
           cohort_name: newEvent.visibility === 'cohort' ? (newEvent.cohort_name || userCohort) : null,
+          end_date: newEvent.end_date || null,
           image_url: newEvent.image_url || null,
           signup_url: newEvent.signup_url || null,
           host: newEvent.host || null
@@ -132,7 +134,7 @@ export default function Events() {
 
       if (response.ok) {
         setShowModal(false);
-        setNewEvent({ title: '', description: '', date: '', time: '', location: '', category: 'in-person', maxAttendees: 50, points: 50, visibility: 'public', cohort_name: '', image_url: '', signup_url: '', host: '' });
+        setNewEvent({ title: '', description: '', date: '', end_date: '', time: '', location: '', category: 'in-person', maxAttendees: 50, points: 50, visibility: 'public', cohort_name: '', image_url: '', signup_url: '', host: '' });
         setImagePreview(null);
         fetchEvents();
       } else {
@@ -195,7 +197,7 @@ export default function Events() {
   const resetModal = () => {
     setShowModal(false);
     setImagePreview(null);
-    setNewEvent({ title: '', description: '', date: '', time: '', location: '', category: 'in-person', maxAttendees: 50, points: 50, visibility: 'public', cohort_name: '', image_url: '', signup_url: '', host: '' });
+    setNewEvent({ title: '', description: '', date: '', end_date: '', time: '', location: '', category: 'in-person', maxAttendees: 50, points: 50, visibility: 'public', cohort_name: '', image_url: '', signup_url: '', host: '' });
   };
 
   if (loading) {
@@ -257,7 +259,7 @@ export default function Events() {
                 {/* Date + Time */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Date *</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Start Date *</label>
                     <input type="date" required value={newEvent.date}
                       onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
@@ -268,6 +270,17 @@ export default function Events() {
                       onChange={(e) => setNewEvent({ ...newEvent, time: e.target.value })}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
                   </div>
+                </div>
+
+                {/* End Date (multi-day) */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    End Date <span className="text-gray-400 font-normal">(optional — for multi-day events)</span>
+                  </label>
+                  <input type="date" value={newEvent.end_date}
+                    min={newEvent.date}
+                    onChange={(e) => setNewEvent({ ...newEvent, end_date: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
                 </div>
 
                 {/* Location */}
@@ -336,7 +349,7 @@ export default function Events() {
                   <label className="block text-sm font-medium text-gray-700 mb-1">Event Image <span className="text-gray-400 font-normal">(optional)</span></label>
                   <div className="flex items-center gap-3">
                     <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 border border-gray-200">
-                      <img src={imagePreview || TDIL_LOGO} alt="preview" className="w-full h-full object-cover" />
+                      <img src={imagePreview || tdilIcon} alt="preview" className="w-full h-full object-cover" />
                     </div>
                     <div className="flex-1">
                       <button type="button" onClick={() => fileInputRef.current?.click()}
@@ -347,7 +360,7 @@ export default function Events() {
                       {imagePreview && (
                         <button type="button" onClick={() => { setImagePreview(null); setNewEvent(p => ({ ...p, image_url: '' })); if (fileInputRef.current) fileInputRef.current.value = ''; }}
                           className="mt-1 text-xs text-red-500 hover:text-red-700">
-                          Remove image (use tDIL logo)
+                          Remove image (use tDIL icon)
                         </button>
                       )}
                     </div>
@@ -407,10 +420,10 @@ export default function Events() {
         {filteredEvents.map((event) => (
           <div key={event.id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition-shadow">
             <img
-              src={event.image || TDIL_LOGO}
+              src={event.image || tdilIcon}
               alt={event.title}
               className="w-full h-48 object-cover"
-              onError={(e) => { e.target.src = TDIL_LOGO; }}
+              onError={(e) => { e.target.src = tdilIcon; }}
             />
             <div className="p-6">
               <div className="flex items-center justify-between mb-3">
@@ -434,6 +447,9 @@ export default function Events() {
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <span>📅</span>
                   {event.date ? new Date(event.date).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' }) : 'TBD'}
+                  {event.endDate && event.endDate !== event.date && (
+                    <> – {new Date(event.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</>
+                  )}
                   {event.time && ` • ${event.time}`}
                 </div>
                 {event.location && event.location !== 'TBD' && (

@@ -119,7 +119,7 @@ router.get('/upcoming', async (req, res) => {
 router.post('/', protect, async (req, res) => {
   try {
     const {
-      title, description, date, location, category,
+      title, description, date, end_date, location, category,
       max_attendees, points, visibility, cohort_name, image_url, signup_url, host
     } = req.body;
     const createdBy = req.user.id;
@@ -140,17 +140,18 @@ router.post('/', protect, async (req, res) => {
       }
     }
 
-    // Ensure signup_url and host columns exist
+    // Ensure optional columns exist
     try { await query('ALTER TABLE events ADD COLUMN signup_url TEXT'); } catch (_) {}
     try { await query('ALTER TABLE events ADD COLUMN host TEXT'); } catch (_) {}
+    try { await query('ALTER TABLE events ADD COLUMN end_date TEXT'); } catch (_) {}
 
     const sql = `
       INSERT INTO events
-        (title, description, date, location, category, maxAttendees, points,
+        (title, description, date, end_date, location, category, maxAttendees, points,
          created_by, current_attendees, visibility, cohort_name, image_url, signup_url, host)
       VALUES
-        (${p(1)}, ${p(2)}, ${p(3)}, ${p(4)}, ${p(5)}, ${p(6)}, ${p(7)},
-         ${p(8)}, 0, ${p(9)}, ${p(10)}, ${p(11)}, ${p(12)}, ${p(13)})
+        (${p(1)}, ${p(2)}, ${p(3)}, ${p(4)}, ${p(5)}, ${p(6)}, ${p(7)}, ${p(8)},
+         ${p(9)}, 0, ${p(10)}, ${p(11)}, ${p(12)}, ${p(13)}, ${p(14)})
       ${isPostgreSQL ? 'RETURNING id' : ''}
     `;
 
@@ -158,6 +159,7 @@ router.post('/', protect, async (req, res) => {
       title,
       description || null,
       date,
+      end_date || null,
       location || null,
       category || 'in-person',
       max_attendees || 50,
