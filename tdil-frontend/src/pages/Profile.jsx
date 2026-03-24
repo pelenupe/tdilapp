@@ -12,6 +12,13 @@ import { getMyProfile, updateProfile } from '../services/profileService';
 import API from '../services/api';
 import { useUser } from '../contexts/UserContext';
 
+// Extract LinkedIn vanity URL (the slug after /in/)
+const getLinkedInVanity = (url) => {
+  if (!url) return null;
+  const match = url.match(/linkedin\.com\/in\/([^/?#]+)/i);
+  return match ? match[1].replace(/\/$/, '') : null;
+};
+
 const PREFIX_OPTIONS = ['', 'Dr.', 'Rev.', 'Mr.', 'Mrs.', 'Ms.', 'Mx.', 'Prof.', 'Hon.'];
 const SUFFIX_OPTIONS = ['', 'Jr.', 'Sr.', 'I', 'II', 'III', 'IV', 'PhD', 'MBA', 'MD', 'JD', 'DMin', 'Ed.D.', 'PsyD', 'PE', 'CPA', 'CFP', 'RN', 'Esq.'];
 
@@ -46,6 +53,20 @@ export default function Profile() {
   const [customCohortValue, setCustomCohortValue] = useState('');
 
   useEffect(() => {
+    if (id && /^\d+$/.test(id)) {
+      const token = localStorage.getItem('token');
+      fetch(`/api/members/${id}`, { headers: { 'Authorization': `Bearer ${token}` } })
+        .then(r => r.ok ? r.json() : null)
+        .then(user => {
+          if (user && user.slug) {
+            navigate(`/profile/${user.slug}`, { replace: true });
+          } else {
+            loadProfile();
+          }
+        })
+        .catch(() => loadProfile());
+      return;
+    }
     loadProfile();
     if (isOwnProfile) loadCheckIns();
     // Check connection status when viewing someone else's profile
@@ -71,6 +92,28 @@ export default function Profile() {
       setCheckIns(r.data || []);
     } catch (_) {}
   };
+
+  // Load LinkedIn badge script whenever the linkedin_url changes
+  useEffect(() => {
+    const vanity = getLinkedInVanity(profile.linkedin_url);
+    if (!vanity) return;
+    const existing = document.getElementById('li-badge-script');
+    if (existing) {
+      // Re-trigger the badge rendering by calling their init if available
+      if (window.LIRenderAll) window.LIRenderAll();
+      return;
+    }
+    const script = document.createElement('script');
+    script.id = 'li-badge-script';
+    script.src = 'https://platform.linkedin.com/badges/js/profile.js';
+    script.async = true;
+    script.defer = true;
+    document.body.appendChild(script);
+    return () => {
+      const s = document.getElementById('li-badge-script');
+      if (s) s.remove();
+    };
+  }, [profile.linkedin_url]);
 
   // Client-side slug helper (must match backend slugify)
   const toSlug = (str) =>
@@ -570,6 +613,60 @@ export default function Profile() {
 
           </div>
         </div>
+
+        {/* ── LinkedIn Section ── */}
+        {profile.linkedin_url && (() => {
+          const vanity = getLinkedInVanity(profile.linkedin_url);
+          if (!vanity) return null;
+          return (
+            <div className="bg-white rounded-xl shadow-sm border p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 bg-blue-700 rounded-md flex items-center justify-center">
+                    <svg viewBox="0 0 24 24" className="w-4 h-4 fill-white">
+                      <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+                    </svg>
+                  </div>
+                  <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">LinkedIn</h2>
+                </div>
+                <a
+                  href={`https://www.linkedin.com/in/${vanity}/recent-activity/all/`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-700 text-white text-xs font-medium rounded-lg hover:bg-blue-800 transition-colors"
+                >
+                  View Recent Posts <ExternalLink size={11} />
+                </a>
+              </div>
+
+              {/* Official LinkedIn Profile Badge */}
+              <div className="flex justify-start">
+                <div
+                  className="badge-base LI-profile-badge"
+                  data-locale="en_US"
+                  data-size="medium"
+                  data-theme="light"
+                  data-type="HORIZONTAL"
+                  data-vanity={vanity}
+                  data-version="v1"
+                >
+                  <a
+                    className="badge-base__link LI-simple-link"
+                    href={`https://www.linkedin.com/in/${vanity}?trk=profile-badge`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {profile.firstName} {profile.lastName}
+                  </a>
+                </div>
+              </div>
+
+              <p className="text-xs text-gray-400 mt-3">
+                Profile badge powered by LinkedIn. Post content requires the LinkedIn API Partner Program.
+              </p>
+            </div>
+          );
+        })()}
 
         {/* ── Stats ── */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
