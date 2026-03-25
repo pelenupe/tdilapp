@@ -1,4 +1,5 @@
 const { query } = require('../config/database');
+const { sendDirectMessageEmail } = require('../services/emailService');
 
 const initChat = (io) => {
   io.on('connection', (socket) => {
@@ -38,6 +39,24 @@ const initChat = (io) => {
         io.to(senderId.toString()).emit('messageSent', newMessage);
         
         console.log(`📨: Message ${messageId} sent from ${senderId} to ${receiverId}`);
+
+        // Email notification to receiver (non-blocking, only if they have an email)
+        try {
+          const [receiver] = await query(
+            `SELECT email, "firstName" FROM users WHERE id = $1`, [receiverId]
+          );
+          const [sender] = await query(
+            `SELECT "firstName" FROM users WHERE id = $1`, [senderId]
+          );
+          if (receiver?.email && sender) {
+            sendDirectMessageEmail({
+              toEmail: receiver.email,
+              toName: receiver.firstName,
+              fromName: sender.firstName,
+              preview: content
+            }).catch(() => {});
+          }
+        } catch (_) {}
       } catch (err) {
         console.error('Error saving or sending message:', err);
         socket.emit('messageError', { error: 'Failed to send message' });
