@@ -22,8 +22,8 @@ function wrapEmail(title, bodyHtml, ctaText, ctaUrl) {
       <table width="560" cellpadding="0" cellspacing="0" style="background:white;border-radius:16px;overflow:hidden;box-shadow:0 1px 8px rgba(0,0,0,.08)">
         <!-- Header -->
         <tr><td style="background:${TDIL_BRAND_COLOR};padding:24px 32px;text-align:center">
-          <span style="color:white;font-size:26px;font-weight:800;letter-spacing:-0.5px">tDIL</span>
-          <span style="color:rgba(255,255,255,.7);font-size:13px;display:block;margin-top:2px">Today's Diverse Inclusive Leader</span>
+          <img src="${APP_URL}/tdil-logo.png" alt="tDIL" style="height:48px;width:auto;display:block;margin:0 auto 8px auto" />
+          <span style="color:rgba(255,255,255,.85);font-size:13px;display:block;letter-spacing:0.5px">Talent Development Impact Lab</span>
         </td></tr>
         <!-- Body -->
         <tr><td style="padding:32px;color:#1f2937">
@@ -98,7 +98,7 @@ async function sendEmail({ to, subject, html }) {
 async function sendWelcomeEmail({ toEmail, firstName }) {
   const html = `
     <p style="font-size:16px;color:#374151">Hi <strong>${firstName}</strong>! 👋</p>
-    <p>Welcome to <strong>tDIL</strong> — Today's Diverse Inclusive Leader community. We're thrilled to have you here.</p>
+    <p>Welcome to <strong>tDIL</strong> — the Talent Development Impact Lab community. We're thrilled to have you here.</p>
     <p>Here's what you can do to get started:</p>
     <ul style="padding-left:20px;color:#374151;line-height:1.8">
       <li>Complete your <strong>profile</strong> to help others connect with you</li>
