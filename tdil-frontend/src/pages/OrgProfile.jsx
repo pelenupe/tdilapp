@@ -36,6 +36,23 @@ export default function OrgProfile() {
 
   useEffect(() => {
     if (!id) return;
+
+    if (/^\d+$/.test(id)) {
+      fetch(`/api/portal/org-detail/${id}`)
+        .then(r => r.ok ? r.json() : Promise.reject('not found'))
+        .then(data => {
+          if (data.org && data.org.slug) {
+            navigate(`/org/${data.org.slug}`, { replace: true });
+          } else {
+            setOrg(data.org);
+            setUsers(data.users || []);
+            setLoading(false);
+          }
+        })
+        .catch(() => { setError('Organization profile not found.'); setLoading(false); });
+      return;
+    }
+
     fetch(`/api/portal/org-detail/${id}`)
       .then(r => r.ok ? r.json() : Promise.reject('not found'))
       .then(data => {
