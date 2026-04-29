@@ -100,6 +100,7 @@ const sponsorRoutes = require('./backend/routes/sponsorRoutes');
 const notificationRoutes = require('./backend/routes/notificationRoutes');
 const squareRoutes = require('./backend/routes/squareRoutes');
 const portalRoutes = require('./backend/routes/portalRoutes');
+const schoolPortalRoutes = require('./backend/routes/schoolPortalRoutes');
 
 // Security middleware configuration
 const helmetOptions = process.env.NODE_ENV === 'production' ? {
@@ -202,7 +203,7 @@ app.use(cors({
   origin: true,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Health-Token']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-Health-Token', 'X-API-Key']
 }));
 
 // Body parsing middleware with size limits
@@ -278,6 +279,7 @@ app.use('/api/sponsors', sponsorRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/square', squareRoutes);
 app.use('/api/portal', portalRoutes);
+app.use('/api/school-portal', schoolPortalRoutes);
 
 // API info endpoint for development
 app.get('/api', (req, res) => {
